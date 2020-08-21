@@ -1,0 +1,61 @@
+secrets:
+  admin:
+    username: admin
+    # password:
+
+loki-stack:
+  enabled: true
+  promtail:
+    pipelineStages:
+      - docker: {}
+      - regex:
+          expression: "level\\=(?P<level>\\w+)"
+      - labels:
+          level:
+
+grafana:
+  admin:
+    existingSecret: grafana-creds
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - id: prometheus
+        name: Prometheus
+        type: prometheus
+        url: http://basics-prometheus-server
+        access: proxy
+        isDefault: true
+      - id: loki
+        name: Loki
+        type: loki
+        url: http://basics-loki:3100
+        access: proxy
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+  ingress:
+    enabled: true
+    hosts:
+    - grafana.ponglehub.co.uk
+    tls:
+    - hosts:
+      - grafana.ponglehub.co.uk
+
+verdaccio:
+  ingress:
+    enabled: true
+    hosts:
+    - npm.ponglehub.co.uk
+    tls:
+    - hosts:
+      - npm.ponglehub.co.uk

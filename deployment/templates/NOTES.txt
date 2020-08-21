@@ -1,0 +1,3 @@
+PONGLEHUB deployment complete!
+
+  Api gateway hosts: {{ range .Values.kong.SVC.ingress.hosts -}}{{ . }} {{ end }}
