@@ -66,3 +66,6 @@ linkerd2:
     enabled: false
   ingress:
     hostname: linkerd.ponglehub.co.uk
+
+strimzi-kafka-operator:
+  enabled: true
