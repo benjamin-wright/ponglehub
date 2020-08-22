@@ -23,13 +23,13 @@ grafana:
       - id: prometheus
         name: Prometheus
         type: prometheus
-        url: http://basics-prometheus-server
+        url: http://infra-prometheus-server
         access: proxy
         isDefault: true
       - id: loki
         name: Loki
         type: loki
-        url: http://basics-loki:3100
+        url: http://infra-loki:3100
         access: proxy
   dashboardProviders:
     dashboardproviders.yaml:
@@ -59,3 +59,10 @@ verdaccio:
     tls:
     - hosts:
       - npm.ponglehub.co.uk
+
+linkerd2:
+  enabled: true
+  grafana:
+    enabled: false
+  ingress:
+    hostname: linkerd.ponglehub.co.uk

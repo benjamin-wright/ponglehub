@@ -39,3 +39,7 @@ dependencies:
     version: 0.10.0
     repository: https://charts.verdaccio.org
     condition: verdaccio.enabled
+  - name: linkerd2
+    version: "2.8.1"
+    repository: https://helm.linkerd.io/stable
+    condition: linkerd2.enabled

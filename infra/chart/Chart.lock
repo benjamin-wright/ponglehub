@@ -11,5 +11,8 @@ dependencies:
 - name: verdaccio
   repository: https://charts.verdaccio.org
   version: 0.10.0
-digest: sha256:fcb98b97c59be64fd6fed2de2b3de06fc2382617f6923611de1378988516ec24
-generated: "2020-08-21T13:55:09.031126+01:00"
+- name: linkerd2
+  repository: https://helm.linkerd.io/stable
+  version: 2.8.1
+digest: sha256:5b9ff2c263f27c9deed7504b5eab54c4e4c4115f774c3e8ede015a610f3a0728
+generated: "2020-08-22T08:17:25.16967+01:00"
