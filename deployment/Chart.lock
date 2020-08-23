@@ -1,6 +1,6 @@
 dependencies:
-- name: kong
-  repository: https://charts.konghq.com
-  version: 1.8.0
-digest: sha256:6056cbea14682849c1f305c6a2dec1f7da3cecdcd7abf5fcb397d3c740041e81
-generated: "2020-08-21T08:03:03.839718+01:00"
+- name: keycloak
+  repository: https://codecentric.github.io/helm-charts
+  version: '*'
+digest: sha256:1f20af2ae107e8d6142457de665d011e864cd619a0ff56f39c09baf510409964
+generated: "2020-08-23T20:19:17.547466+01:00"

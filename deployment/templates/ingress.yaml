@@ -1,0 +1,18 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ponglehub-keycloak
+spec:
+  rules:
+  - host: auth.ponglehub.co.uk
+    http:
+      paths:
+      - backend:
+          serviceName: ponglehub-keycloak-http
+          servicePort: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - auth.ponglehub.co.uk
+
