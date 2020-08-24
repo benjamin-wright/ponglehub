@@ -5,8 +5,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 )
+
+// FileStruct struct for umarshalling config data
+type FileStruct struct {
+	Node []RepoStruct `json:"node"`
+	Go   []RepoStruct `json:"go"`
+}
+
+// RepoStruct struct for unmarshalling config data
+type RepoStruct struct {
+	Name         string   `json:"name"`
+	Path         string   `json:"path"`
+	Dependencies []string `json:"dependencies"`
+}
 
 func (f FileStruct) toConfig() (Config, error) {
 	cfg := Config{
@@ -40,91 +52,6 @@ func (f FileStruct) toConfig() (Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func (c *Config) HasCircularDependencies() bool {
-	built := []string{}
-	building := true
-
-	isBuilt := func(name string) bool {
-		for _, b := range built {
-			if name == b {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	for building {
-		building = false
-		builds := []string{}
-
-		for _, r := range c.Repos {
-			if isBuilt(r.Name) {
-				continue
-			}
-
-			depsBuilt := true
-			for _, d := range r.DependsOn {
-				if !isBuilt(d) {
-					depsBuilt = false
-				}
-			}
-
-			if depsBuilt {
-				building = true
-				builds = append(builds, r.Name)
-			}
-		}
-	}
-
-	if len(built) != len(c.Repos) {
-		return true
-	}
-
-	return false
-}
-
-func (c *Config) Includes(name string) bool {
-	if c == nil {
-		return false
-	}
-
-	for _, repo := range c.Repos {
-		if repo.Name == name {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (c *Config) String() string {
-	if c == nil {
-		return "Nil config"
-	}
-
-	if len(c.Repos) == 0 {
-		return "Empty"
-	}
-
-	var sb strings.Builder
-	var first = true
-
-	for _, repo := range c.Repos {
-		if !first {
-			sb.WriteString(", ")
-		}
-
-		sb.WriteString(fmt.Sprintf("[%s: %s]", repo.Name, repo.RepoType))
-
-		if first {
-			first = false
-		}
-	}
-
-	return sb.String()
 }
 
 // FromFile create a new config object from the config file

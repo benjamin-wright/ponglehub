@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"ponglehub.co.uk/geppetto/builder"
+
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"ponglehub.co.uk/geppetto/config"
@@ -45,6 +47,11 @@ func main() {
 					cfg, err := config.FromFile(c.String("config"))
 					if err != nil {
 						return err
+					}
+
+					_, err = builder.FromConfig(cfg)
+					if err != nil {
+						logrus.Fatal(err)
 					}
 
 					logrus.Infof("Hi: %v", cfg)
