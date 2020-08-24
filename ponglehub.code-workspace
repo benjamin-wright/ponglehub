@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "ponglehub"
+		},
+		{
+			"path": "tools/geppetto",
+			"name": "geppetto"
+		}
+	],
+	"settings": {}
+}

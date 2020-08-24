@@ -2,3 +2,6 @@
 *.crt
 *.key
 *.DS_Store
+.envrc
+
+node_modules
