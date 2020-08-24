@@ -47,7 +47,7 @@ func main() {
 						return err
 					}
 
-					logrus.Infof("Hi: %+v", *cfg)
+					logrus.Infof("Hi: %v", cfg)
 
 					return nil
 				},

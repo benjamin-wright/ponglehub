@@ -7,7 +7,7 @@ const (
 	// Node repo is an NPM module
 	Node RepoType = "Node"
 	// Go repo is a GOLANG module
-	Go RepoType = "GoModule"
+	Go RepoType = "Go"
 )
 
 // Repo represents a code repo
@@ -25,4 +25,17 @@ type Repo struct {
 // Config represents the app configuration
 type Config struct {
 	Repos []Repo
+}
+
+// FileStruct struct for umarshalling config data
+type FileStruct struct {
+	Node []RepoStruct `json:"node"`
+	Go   []RepoStruct `json:"go"`
+}
+
+// RepoStruct struct for unmarshalling config data
+type RepoStruct struct {
+	Name         string   `json:"name"`
+	Path         string   `json:"path"`
+	Dependencies []string `json:"dependencies"`
 }
