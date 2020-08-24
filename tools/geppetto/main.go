@@ -49,12 +49,15 @@ func main() {
 						return err
 					}
 
-					_, err = builder.FromConfig(cfg)
+					b, err := builder.FromConfig(cfg)
 					if err != nil {
 						logrus.Fatal(err)
 					}
 
-					logrus.Infof("Hi: %v", cfg)
+					err = b.Build()
+					if err != nil {
+						logrus.Fatal(err)
+					}
 
 					return nil
 				},

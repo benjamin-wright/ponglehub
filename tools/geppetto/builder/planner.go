@@ -1,6 +1,9 @@
 package builder
 
-import "ponglehub.co.uk/geppetto/config"
+import (
+	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/geppetto/config"
+)
 
 type planner struct {
 	built   []string
@@ -60,14 +63,16 @@ func (p *planner) isRunning(task string) (bool, int) {
 
 func (p *planner) canBuild(repo config.Repo) bool {
 	if p.isBuilt(repo.Name) {
+		logrus.Debugf("Already built: %s", repo.Name)
 		return false
 	}
 
 	for _, dep := range repo.DependsOn {
 		if !p.isBuilt(dep) {
+			logrus.Debugf("Dependency not built for %s: %s", repo.Name, dep)
 			return false
 		}
 	}
 
-	return false
+	return true
 }
