@@ -11,6 +11,7 @@ type goBuilder struct {
 
 func (b goBuilder) build(repo config.Repo, signal chan<- buildSignal) {
 	logrus.Infof("Running GO build for %s", repo.Name)
+	logrus.Infof("Build for %s finished", repo.Name)
 	signal <- buildSignal{
 		repo: repo,
 		err:  nil,
