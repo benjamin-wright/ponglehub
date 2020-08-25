@@ -46,7 +46,7 @@ func (e NpmCommand) Run() error {
 	if !ok {
 		return errors.New("package.json did not include a 'version' field")
 	}
-	logrus.Infof("Current version: %s", version)
+	logrus.Infof("%s version: %s -> 1.0.0", e.repo.Name, version)
 
 	result["version"] = "1.0.0"
 
