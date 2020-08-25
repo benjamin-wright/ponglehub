@@ -13,3 +13,6 @@ deploy:
 	helm upgrade ponglehub deployment \
 		-i \
 		--namespace ponglehub
+
+npm:
+	./tools/npm-login.sh

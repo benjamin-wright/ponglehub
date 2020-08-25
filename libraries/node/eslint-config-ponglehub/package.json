@@ -1,5 +1,5 @@
 {
-  "name": "@minion-ci/eslint-config-minion",
+  "name": "@pongle/eslint-config-ponglehub",
   "version": "1.0.53",
   "description": "",
   "main": "lib/index.js",

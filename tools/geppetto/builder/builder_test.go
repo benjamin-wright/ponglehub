@@ -24,15 +24,15 @@ func TestCircularDependencies(t *testing.T) {
 			plan: planner{},
 			cfg: &config.Config{
 				Repos: []config.Repo{
-					config.Repo{
+					{
 						Name:      "repo1",
 						DependsOn: []string{"repo3"},
 					},
-					config.Repo{
+					{
 						Name:      "repo2",
 						DependsOn: []string{},
 					},
-					config.Repo{
+					{
 						Name:      "repo3",
 						DependsOn: []string{"repo2"},
 					},
@@ -50,15 +50,15 @@ func TestCircularDependencies(t *testing.T) {
 			plan: planner{},
 			cfg: &config.Config{
 				Repos: []config.Repo{
-					config.Repo{
+					{
 						Name:      "repo1",
 						DependsOn: []string{"repo3"},
 					},
-					config.Repo{
+					{
 						Name:      "repo2",
 						DependsOn: []string{},
 					},
-					config.Repo{
+					{
 						Name:      "repo3",
 						DependsOn: []string{"repo1"},
 					},
@@ -76,15 +76,15 @@ func TestCircularDependencies(t *testing.T) {
 			plan: planner{},
 			cfg: &config.Config{
 				Repos: []config.Repo{
-					config.Repo{
+					{
 						Name:      "repo1",
 						DependsOn: []string{"repo3"},
 					},
-					config.Repo{
+					{
 						Name:      "repo2",
 						DependsOn: []string{"repo1"},
 					},
-					config.Repo{
+					{
 						Name:      "repo3",
 						DependsOn: []string{"repo2"},
 					},

@@ -1,10 +1,7 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
 )
 
 // FileStruct struct for umarshalling config data
@@ -52,31 +49,4 @@ func (f FileStruct) toConfig() (Config, error) {
 	}
 
 	return cfg, nil
-}
-
-// FromFile create a new config object from the config file
-func FromFile(filepath string) (*Config, error) {
-	jsonFile, err := os.Open(filepath)
-	if err != nil {
-		return nil, err
-	}
-	defer jsonFile.Close()
-
-	byteValue, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return nil, err
-	}
-
-	var fileData FileStruct
-	err = json.Unmarshal(byteValue, &fileData)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := fileData.toConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
 }

@@ -5,7 +5,9 @@ import (
 	"ponglehub.co.uk/geppetto/config"
 )
 
-type goBuilder struct{}
+type goBuilder struct {
+	basePath string
+}
 
 func (b goBuilder) build(repo config.Repo, signal chan<- buildSignal) {
 	logrus.Infof("Running GO build for %s", repo.Name)

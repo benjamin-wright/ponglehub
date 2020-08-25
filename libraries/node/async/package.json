@@ -1,5 +1,5 @@
 {
-  "name": "@minion-ci/async",
+  "name": "@pongle/async",
   "version": "1.0.22",
   "description": "",
   "main": "lib/index.js",
@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@minion-ci/eslint-config-minion": "^1.0.33",
+    "@pongle/eslint-config-ponglehub": "^1.0.33",
     "eslint": "^7.6.0",
     "jest": "^26.2.2"
   }

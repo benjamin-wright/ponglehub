@@ -35,8 +35,8 @@ func FromConfig(cfg *config.Config) (*Builder, error) {
 		},
 		cfg:      cfg,
 		signals:  make(chan buildSignal),
-		npmAgent: npmBuilder{},
-		goAgent:  goBuilder{},
+		npmAgent: npmBuilder{basePath: cfg.BasePath},
+		goAgent:  goBuilder{basePath: cfg.BasePath},
 	}
 
 	if collisions, ok := builder.hasCircularDependencies(); !ok {

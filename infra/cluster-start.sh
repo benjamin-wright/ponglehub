@@ -89,6 +89,7 @@ function deploy-infra() {
   kubectl annotate namespace infra linkerd.io/inject=enabled --overwrite
   helm dep update $ROOT_DIR/chart
   helm upgrade --install infra $ROOT_DIR/chart \
+    --wait \
     --namespace infra \
     --set-file "grafana.dashboards.default.metrics.json=$ROOT_DIR/dashboards/default.json" \
     --set "secrets.admin.password=password" \

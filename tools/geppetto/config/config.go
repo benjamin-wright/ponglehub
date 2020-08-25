@@ -1,7 +1,11 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	path "path/filepath"
 	"strings"
 )
 
@@ -29,7 +33,8 @@ type Repo struct {
 
 // Config represents the app configuration
 type Config struct {
-	Repos []Repo
+	Repos    []Repo
+	BasePath string
 }
 
 // Includes returns true if the config includes the named repo
@@ -72,4 +77,36 @@ func (c *Config) String() string {
 	}
 
 	return sb.String()
+}
+
+// FromFile create a new config object from the config file
+func FromFile(filepath string) (*Config, error) {
+	jsonFile, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer jsonFile.Close()
+
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var fileData FileStruct
+	err = json.Unmarshal(byteValue, &fileData)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := fileData.toConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.BasePath, err = path.Abs(path.Dir(filepath))
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }
