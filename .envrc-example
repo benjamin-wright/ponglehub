@@ -1,14 +1,14 @@
 export REGISTRY_PORT=5000
-export REGISTRY_NAME=my-registry
-export NETWORK_NAME=my-network
-export CLUSTER_NAME=my-cluster
+export REGISTRY_NAME=pongle-registry
+export NETWORK_NAME=pongle-network
+export CLUSTER_NAME=pongle
 
-export KEYCLOAK_USER=
+export KEYCLOAK_USER=admin
 export KEYCLOAK_PASSWORD=
-export KEYCLOAK_EMAIL=
+export KEYCLOAK_EMAIL=admin@ponglehub.co.uk
 export KEYCLOAK_EMAIL_PASSWORD=
 
-export NPM_REGISTRY=https://npm.example.com
-export NPM_USERNAME=
+export NPM_REGISTRY=https://npm.ponglehub.co.uk
+export NPM_USERNAME=admin
 export NPM_PASSWORD=
-export NPM_EMAIL=
+export NPM_EMAIL=admin@ponglehub.co.uk
