@@ -2,6 +2,6 @@ package commands
 
 // Command an interface that represents a task in the building of a repo
 type Command interface {
-	Run() error
+	Run() (bool, error)
 	Stage() string
 }

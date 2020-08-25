@@ -46,7 +46,7 @@ EOL
     k3d cluster create $CLUSTER_NAME \
         --volume $ROOT_DIR/k3s/registries.yaml:/etc/rancher/k3s/registries.yaml:cached \
         --volume $ROOT_DIR/k3s/traefik.yaml:/var/lib/rancher/k3s/server/manifests/traefik.yaml:cached \
-        --agents 2 \
+        --agents $WORKER_NODES \
         --network "$NETWORK_NAME" \
         -p 80:80@loadbalancer \
         -p 443:443@loadbalancer
@@ -101,7 +101,7 @@ function deploy-infra() {
 
 function npm-login() {
   /usr/bin/expect <<EOD
-spawn npm login --registry "$NPM_REGISTRY" --strict-ssl false
+spawn npm login --registry "$NPM_REGISTRY" --scope=pongle --strict-ssl false
 expect {
   "Username:" {send "$NPM_USERNAME\r"; exp_continue}
   "Password:" {send "$NPM_PASSWORD\r"; exp_continue}

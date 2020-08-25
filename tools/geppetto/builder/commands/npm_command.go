@@ -26,18 +26,18 @@ func MakeNpmCommand(basePath string, repo *config.Repo, stage string, args []str
 }
 
 // Run run the NPM command and return an error if it fails
-func (e NpmCommand) Run() error {
+func (e NpmCommand) Run() (bool, error) {
 	cmd := exec.Command("npm", e.args...)
 	cmd.Dir = e.basePath + "/" + e.repo.Path
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		logrus.Error(string(out))
-		return err
+		return false, err
 	}
 
 	logrus.Debugf("Command npm %v output:\n%s", e.args, string(out))
-	return nil
+	return false, nil
 }
 
 // Stage get the name of the build stage
