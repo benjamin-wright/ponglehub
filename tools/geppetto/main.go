@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"ponglehub.co.uk/geppetto/rollback"
+
 	"ponglehub.co.uk/geppetto/builder"
 
 	"github.com/sirupsen/logrus"
@@ -58,6 +60,23 @@ func main() {
 					if err != nil {
 						logrus.Fatal(err)
 					}
+
+					return nil
+				},
+			},
+			{
+				Name:    "rollback",
+				Aliases: []string{"r"},
+				Usage:   "rollback all versions to 1.0.0",
+				Action: func(c *cli.Context) error {
+					initLogger(c)
+					cfg, err := config.FromFile(c.String("config"))
+					if err != nil {
+						return err
+					}
+
+					roller := rollback.FromConfig(cfg)
+					roller.Rollback()
 
 					return nil
 				},

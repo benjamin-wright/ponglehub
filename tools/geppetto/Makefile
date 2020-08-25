@@ -1,4 +1,4 @@
-.PHONY: test run debug
+.PHONY: test run debug rollback
 
 test:
 	go test ./...
@@ -8,3 +8,6 @@ run:
 
 debug:
 	go run . --debug --config ../../.geppetto.json build
+
+rollback:
+	go run . --debug --config ../../.geppetto.json rollback
