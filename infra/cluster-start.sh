@@ -99,6 +99,17 @@ function deploy-infra() {
     --set linkerd2.identity.issuer.crtExpiry=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ")
 }
 
+function npm-login() {
+  /usr/bin/expect <<EOD
+spawn npm login --registry "$NPM_REGISTRY" --strict-ssl false
+expect {
+  "Username:" {send "$NPM_USERNAME\r"; exp_continue}
+  "Password:" {send "$NPM_PASSWORD\r"; exp_continue}
+  "Email: (this IS public)" {send "$NPM_EMAIL\r"; exp_continue}
+}
+EOD
+}
+
 function overwrite-traefik-config() {
     cat >$ROOT_DIR/k3s/traefik.yaml <<EOL
 apiVersion: helm.cattle.io/v1
@@ -141,4 +152,5 @@ start-registry
 start-cluster
 make-certs
 deploy-infra
+npm-login
 overwrite-traefik-config
