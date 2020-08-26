@@ -13,7 +13,7 @@
   "main": "lib/index.js",
   "name": "@pongle/eslint-config-ponglehub",
   "peerDependencies": {
-    "eslint": "\u003e= 7"
+    "eslint": ">= 7"
   },
   "scripts": {
     "lint": "echo \"NA\"",

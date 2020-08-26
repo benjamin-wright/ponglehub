@@ -4,6 +4,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/builder/commands"
 	"ponglehub.co.uk/geppetto/config"
+	"ponglehub.co.uk/geppetto/services"
 )
 
 type npmBuilder struct {
@@ -13,12 +14,17 @@ type npmBuilder struct {
 func (b npmBuilder) build(repo config.Repo, signal chan<- buildSignal) {
 	logrus.Infof("Running NPM build for %s", repo.Name)
 
+	service, err := services.NewNpmRepo(b.basePath + "/" + repo.Path)
+	if err != nil {
+		logrus.Errorf("Build for %s failed: %+v", repo.Name, err)
+	}
+
 	for _, cmd := range []commands.Command{
 		commands.MakeNpmCheckCommand(b.basePath, &repo),
-		commands.MakeNpmCommand(b.basePath, &repo, "install", []string{"install", "--strict-ssl=false"}),
-		commands.MakeNpmCommand(b.basePath, &repo, "lint", []string{"run", "lint"}),
-		commands.MakeNpmCommand(b.basePath, &repo, "test", []string{"run", "test"}),
-		commands.MakeNpmCommand(b.basePath, &repo, "publish", []string{"publish", "--strict-ssl=false"}),
+		commands.CreateGeneric("install", func() (bool, error) { return false, service.Install() }),
+		commands.CreateGeneric("lint", func() (bool, error) { return false, service.Lint() }),
+		commands.CreateGeneric("test", func() (bool, error) { return false, service.Test() }),
+		commands.CreateGeneric("publish", func() (bool, error) { return false, service.Publish() }),
 	} {
 		logrus.Infof(" - %s stage %s", repo.Name, cmd.Stage())
 		skip, err := cmd.Run()
