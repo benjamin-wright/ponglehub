@@ -2,6 +2,7 @@
 
 ## Todo
 
+- refactor to provide a testable facade for system calls
 - add NPM package.json tidyup/reorganise (https://www.npmjs.com/package/prettier-package-json)
 - add GO lint
 - add GO test
