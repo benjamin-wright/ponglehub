@@ -75,7 +75,12 @@ func main() {
 						return err
 					}
 
-					roller := rollback.FromConfig(cfg)
+					roller, err := rollback.FromConfig(cfg)
+
+					if err != nil {
+						return err
+					}
+
 					roller.Rollback()
 
 					return nil

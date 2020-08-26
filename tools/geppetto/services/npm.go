@@ -1,8 +1,11 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 // NPMRepo collects methods related to NPM repos
@@ -67,4 +70,34 @@ func (r NPMRepo) Publish() error {
 	}
 
 	return nil
+}
+
+// GetLatestSHA get the SHA of the most recently published version of the module
+func (r NPMRepo) GetLatestSHA() (string, error) {
+	return run(r.path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
+}
+
+// GetCurrentSHA get the SHA of the current version of the module
+func (r NPMRepo) GetCurrentSHA() (string, error) {
+	return run(r.path, "npm publish --dry-run --json | jq '.shasum' -r")
+}
+
+// SetVersion update the version number in package.json
+func (r NPMRepo) SetVersion(version string) error {
+	path := r.path + "/package.json"
+
+	result, err := readJSON(path)
+	if err != nil {
+		return err
+	}
+
+	version, ok := result["version"].(string)
+	if !ok {
+		return errors.New("package.json did not include a 'version' field")
+	}
+	logrus.Infof("%s version: %s -> 1.0.0", result["name"], version)
+
+	result["version"] = "1.0.0"
+
+	return writeJSON(path, result)
 }

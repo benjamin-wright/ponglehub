@@ -3,44 +3,45 @@ package rollback
 import (
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/config"
-	"ponglehub.co.uk/geppetto/rollback/commands"
+	"ponglehub.co.uk/geppetto/services"
 )
 
 // Roller a manager for rolling back version numbers
 type Roller struct {
-	commands []commands.Command
+	npmRepos []npmRoller
+}
+
+type npmRoller struct {
+	name    string
+	service services.NPMRepo
 }
 
 // FromConfig create a Roller from the config
-func FromConfig(cfg *config.Config) Roller {
-	roller := Roller{commands: []commands.Command{}}
+func FromConfig(cfg *config.Config) (Roller, error) {
+	roller := Roller{npmRepos: []npmRoller{}}
 
 	for _, repo := range cfg.Repos {
 		switch repo.RepoType {
 		case config.Node:
-			roller.commands = append(
-				roller.commands,
-				commands.MakeNpmCommand(cfg.BasePath, repo),
-			)
+			npmRepo, err := services.NewNpmRepo(cfg.BasePath + "/" + repo.Path)
+			if err != nil {
+				return roller, err
+			}
+
+			roller.npmRepos = append(roller.npmRepos, npmRoller{name: repo.Name, service: npmRepo})
 		case config.Go:
-			roller.commands = append(
-				roller.commands,
-				commands.MakeGoCommand(cfg.BasePath, repo),
-			)
 		}
 	}
 
-	return roller
+	return roller, nil
 }
 
+// Rollback roll back all the versions
 func (r *Roller) Rollback() {
-	for _, command := range r.commands {
-		logrus.Infof("Rolling back %s", command.Name())
-		err := command.Run()
+	for _, repo := range r.npmRepos {
+		err := repo.service.SetVersion("1.0.0")
 		if err != nil {
-			logrus.Errorf("Failed to rollback %s: %+v", command.Name(), err)
-		} else {
-			logrus.Infof("Finished %s", command.Name())
+			logrus.Errorf("Failed to roll back %s: %+v", repo.name, err)
 		}
 	}
 }
