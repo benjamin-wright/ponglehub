@@ -1,18 +1,8 @@
 {
-    "src": [
-        "libraries"
-    ],
-    "node": [
-        {
-            "name": "async",
-            "path": "libraries/node/async",
-            "dependencies": [
-                "eslint"
-            ]
-        },
-        {
-            "name": "eslint",
-            "path": "libraries/node/eslint-config-ponglehub"
-        }
+    "depth": 3,
+    "ignore": [
+        "deployment",
+        "infra",
+        "tools"
     ]
 }

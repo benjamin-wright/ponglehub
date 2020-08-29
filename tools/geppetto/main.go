@@ -3,13 +3,10 @@ package main
 import (
 	"os"
 
-	"ponglehub.co.uk/geppetto/rollback"
-
-	"ponglehub.co.uk/geppetto/builder"
-
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"ponglehub.co.uk/geppetto/config"
+	"ponglehub.co.uk/geppetto/scanner"
 )
 
 func initLogger(c *cli.Context) {
@@ -33,6 +30,12 @@ func main() {
 				EnvVars: []string{"GEPETTO_DEBUG"},
 			},
 			&cli.StringFlag{
+				Name:    "target",
+				Value:   ".",
+				Usage:   "target directory",
+				EnvVars: []string{"GEPETTO_TARGET"},
+			},
+			&cli.StringFlag{
 				Name:    "config",
 				Value:   ".geppetto.json",
 				Usage:   "path to the config file",
@@ -46,20 +49,13 @@ func main() {
 				Usage:   "build everything",
 				Action: func(c *cli.Context) error {
 					initLogger(c)
-					cfg, err := config.FromFile(c.String("config"))
+					_, err := config.FromFile(c.String("config"))
 					if err != nil {
 						return err
 					}
 
-					b, err := builder.FromConfig(cfg)
-					if err != nil {
-						logrus.Fatal(err)
-					}
-
-					err = b.Build()
-					if err != nil {
-						logrus.Fatal(err)
-					}
+					scanner.New().ScanDir(c.String("target"))
+					logrus.Warn("Not implemented yet")
 
 					return nil
 				},
@@ -70,18 +66,12 @@ func main() {
 				Usage:   "rollback all versions to 1.0.0",
 				Action: func(c *cli.Context) error {
 					initLogger(c)
-					cfg, err := config.FromFile(c.String("config"))
+					_, err := config.FromFile(c.String("config"))
 					if err != nil {
 						return err
 					}
 
-					roller, err := rollback.FromConfig(cfg)
-
-					if err != nil {
-						return err
-					}
-
-					roller.Rollback()
+					logrus.Warn("Not implemented yet")
 
 					return nil
 				},
