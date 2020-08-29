@@ -8,12 +8,15 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
+// Scanner a file-system scanner for finding code projects
 type Scanner struct{}
 
+// New creates a new scanner instance
 func New() *Scanner {
 	return &Scanner{}
 }
 
+// ScanDir finds code directories and returns a list of Repo objects representing them
 func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 	filepath.Walk(targetDir, func(path string, info os.FileInfo, err error) error {
 		ignore := []string{"node_modules", ".git"}
