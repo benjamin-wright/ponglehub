@@ -7,7 +7,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func run(workDir string, command string) (string, error) {
+type defaultCommander struct{}
+
+func (c *defaultCommander) run(workDir string, command string) (string, error) {
 	cmd := exec.Command("/bin/bash", "-c", command)
 	cmd.Dir = workDir
 

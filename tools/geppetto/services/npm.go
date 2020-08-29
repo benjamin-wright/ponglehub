@@ -8,14 +8,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type fileIO interface {
+	readJSON(path string) (map[string]interface{}, error)
+	writeJSON(path string, data map[string]interface{}) error
+}
+
+type commander interface {
+	run(workDir string, command string) (string, error)
+}
+
 // NPMRepo collects methods related to NPM repos
 type NPMRepo struct {
 	path string
+	io   fileIO
+	cmd  commander
 }
 
 // NewNpmRepo create a new NPM repo instance, or error if the path doesn't contain a nodejs project
 func NewNpmRepo(path string) (NPMRepo, error) {
-	repo := NPMRepo{path: path}
+	repo := NPMRepo{path: path, io: &defaultIO{}, cmd: &defaultCommander{}}
 	empty := NPMRepo{}
 
 	packageJSON := path + "/package.json"
@@ -34,7 +45,7 @@ func NewNpmRepo(path string) (NPMRepo, error) {
 
 // Install run an NPM install
 func (r NPMRepo) Install() error {
-	output, err := run(r.path, "npm install --strict-ssl=false")
+	output, err := r.cmd.run(r.path, "npm install --strict-ssl=false")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -44,7 +55,7 @@ func (r NPMRepo) Install() error {
 
 // Lint run the NPM lint script
 func (r NPMRepo) Lint() error {
-	output, err := run(r.path, "npm run lint")
+	output, err := r.cmd.run(r.path, "npm run lint")
 	if err != nil {
 		return fmt.Errorf("Error linting NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -54,7 +65,7 @@ func (r NPMRepo) Lint() error {
 
 // Test run the NPM test
 func (r NPMRepo) Test() error {
-	output, err := run(r.path, "npm test")
+	output, err := r.cmd.run(r.path, "npm test")
 	if err != nil {
 		return fmt.Errorf("Error testing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -64,7 +75,7 @@ func (r NPMRepo) Test() error {
 
 // Publish push the repo up to its registry
 func (r NPMRepo) Publish() error {
-	output, err := run(r.path, "npm publish --strict-ssl=false")
+	output, err := r.cmd.run(r.path, "npm publish --strict-ssl=false")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -74,19 +85,19 @@ func (r NPMRepo) Publish() error {
 
 // GetLatestSHA get the SHA of the most recently published version of the module
 func (r NPMRepo) GetLatestSHA() (string, error) {
-	return run(r.path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
+	return r.cmd.run(r.path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
 }
 
 // GetCurrentSHA get the SHA of the current version of the module
 func (r NPMRepo) GetCurrentSHA() (string, error) {
-	return run(r.path, "npm publish --dry-run --json | jq '.shasum' -r")
+	return r.cmd.run(r.path, "npm publish --dry-run --json | jq '.shasum' -r")
 }
 
 // SetVersion update the version number in package.json
 func (r NPMRepo) SetVersion(version string) error {
 	path := r.path + "/package.json"
 
-	result, err := readJSON(path)
+	result, err := r.io.readJSON(path)
 	if err != nil {
 		return err
 	}
@@ -99,5 +110,5 @@ func (r NPMRepo) SetVersion(version string) error {
 
 	result["version"] = "1.0.0"
 
-	return writeJSON(path, result)
+	return r.io.writeJSON(path, result)
 }

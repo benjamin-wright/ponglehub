@@ -6,7 +6,9 @@ import (
 	"os"
 )
 
-func readJSON(path string) (map[string]interface{}, error) {
+type defaultIO struct{}
+
+func (w *defaultIO) readJSON(path string) (map[string]interface{}, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -27,7 +29,7 @@ func readJSON(path string) (map[string]interface{}, error) {
 	return result, nil
 }
 
-func writeJSON(path string, data map[string]interface{}) error {
+func (w *defaultIO) writeJSON(path string, data map[string]interface{}) error {
 	err := os.Remove(path)
 	if err != nil {
 		return err
