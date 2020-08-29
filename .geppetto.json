@@ -1,4 +1,7 @@
 {
+    "src": [
+        "libraries"
+    ],
     "node": [
         {
             "name": "async",
