@@ -54,8 +54,12 @@ func main() {
 						return err
 					}
 
-					scanner.New().ScanDir(c.String("target"))
-					logrus.Warn("Not implemented yet")
+					repos, err := scanner.New().ScanDir(c.String("target"))
+					if err != nil {
+						return err
+					}
+
+					logrus.Infof("Repos: %+v", repos)
 
 					return nil
 				},

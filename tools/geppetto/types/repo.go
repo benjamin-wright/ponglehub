@@ -6,6 +6,10 @@ type RepoType string
 const (
 	// Node repo is an NPM module
 	Node RepoType = "Node"
+	// Golang repo is a Go module / application
+	Golang RepoType = "Golang"
+	// Helm repo is a helm chart
+	Helm RepoType = "Helm"
 )
 
 // Repo represents a code repo

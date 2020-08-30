@@ -8,9 +8,9 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
-type fileIO interface {
-	readJSON(path string) (map[string]interface{}, error)
-	writeJSON(path string, data map[string]interface{}) error
+type io interface {
+	ReadJSON(path string) (map[string]interface{}, error)
+	WriteJSON(path string, data map[string]interface{}) error
 }
 
 type commander interface {
@@ -19,24 +19,13 @@ type commander interface {
 
 // NPM collects methods related to NPM repos
 type NPM struct {
-	io  fileIO
+	io  io
 	cmd commander
 }
 
 // NewNpmService create a new NPM repo instance, or error if the path doesn't contain a nodejs project
 func NewNpmService() NPM {
-	return NPM{io: &defaultIO{}, cmd: &defaultCommander{}}
-
-	// packageJSON := path + "/package.json"
-
-	// info, err := os.Stat(packageJSON)
-	// if err != nil {
-	// 	return empty, err
-	// }
-
-	// if info.IsDir() {
-	// 	return empty, fmt.Errorf("Expected %s to be a file, not a directory", packageJSON)
-	// }
+	return NPM{io: &IO{}, cmd: &defaultCommander{}}
 }
 
 // Install run an NPM install
@@ -89,11 +78,76 @@ func (r NPM) GetCurrentSHA(repo types.Repo) (string, error) {
 	return r.cmd.run(repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
 }
 
+// GetRepo returns a repo object representing the node project at the designated file path
+func (r NPM) GetRepo(path string) (types.Repo, error) {
+	empty := types.Repo{}
+
+	packageJSON := path + "/package.json"
+
+	data, err := r.io.ReadJSON(packageJSON)
+	if err != nil {
+		return empty, err
+	}
+
+	name, ok := data["name"]
+	if !ok {
+		return empty, fmt.Errorf("Failed to read name from package.json: %s", path)
+	}
+
+	nameString, ok := name.(string)
+	if !ok {
+		return empty, fmt.Errorf("Failed to read name from package.json: %v", name)
+	}
+
+	return types.Repo{
+		Name:      nameString,
+		Path:      path,
+		RepoType:  types.Node,
+		DependsOn: []string{},
+	}, nil
+}
+
+// GetDependencyNames returns an array containg the names of all this project's dependencies
+func (r NPM) GetDependencyNames(repo types.Repo) ([]string, error) {
+	packageJSON := repo.Path + "/package.json"
+
+	data, err := r.io.ReadJSON(packageJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	names := []string{}
+
+	if deps, ok := data["dependencies"]; ok {
+		depsMap, ok := deps.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("Dependencies found, but format was wrong: %+v", deps)
+		}
+
+		for key := range depsMap {
+			names = append(names, key)
+		}
+	}
+
+	if deps, ok := data["devDependencies"]; ok {
+		depsMap, ok := deps.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("Dev dependencies found, but format was wrong: %+v", deps)
+		}
+
+		for key := range depsMap {
+			names = append(names, key)
+		}
+	}
+
+	return names, nil
+}
+
 // SetVersion update the version number in package.json
 func (r NPM) SetVersion(repo types.Repo, version string) error {
 	path := repo.Path + "/package.json"
 
-	result, err := r.io.readJSON(path)
+	result, err := r.io.ReadJSON(path)
 	if err != nil {
 		return err
 	}
@@ -106,5 +160,5 @@ func (r NPM) SetVersion(repo types.Repo, version string) error {
 
 	result["version"] = "1.0.0"
 
-	return r.io.writeJSON(path, result)
+	return r.io.WriteJSON(path, result)
 }
