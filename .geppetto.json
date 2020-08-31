@@ -1,8 +1,0 @@
-{
-    "depth": 3,
-    "ignore": [
-        "deployment",
-        "infra",
-        "tools"
-    ]
-}
