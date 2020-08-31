@@ -5,7 +5,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"ponglehub.co.uk/geppetto/config"
 	"ponglehub.co.uk/geppetto/scanner"
 )
 
@@ -49,11 +48,6 @@ func main() {
 				Usage:   "build everything",
 				Action: func(c *cli.Context) error {
 					initLogger(c)
-					_, err := config.FromFile(c.String("config"))
-					if err != nil {
-						return err
-					}
-
 					repos, err := scanner.New().ScanDir(c.String("target"))
 					if err != nil {
 						return err
@@ -70,11 +64,6 @@ func main() {
 				Usage:   "rollback all versions to 1.0.0",
 				Action: func(c *cli.Context) error {
 					initLogger(c)
-					_, err := config.FromFile(c.String("config"))
-					if err != nil {
-						return err
-					}
-
 					logrus.Warn("Not implemented yet")
 
 					return nil

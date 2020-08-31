@@ -14,7 +14,7 @@ type io interface {
 }
 
 type commander interface {
-	run(workDir string, command string) (string, error)
+	Run(workDir string, command string) (string, error)
 }
 
 // NPM collects methods related to NPM repos
@@ -25,12 +25,12 @@ type NPM struct {
 
 // NewNpmService create a new NPM repo instance, or error if the path doesn't contain a nodejs project
 func NewNpmService() NPM {
-	return NPM{io: &IO{}, cmd: &defaultCommander{}}
+	return NPM{io: &IO{}, cmd: &Commander{}}
 }
 
 // Install run an NPM install
 func (r NPM) Install(repo types.Repo) error {
-	output, err := r.cmd.run(repo.Path, "npm install --strict-ssl=false")
+	output, err := r.cmd.Run(repo.Path, "npm install --strict-ssl=false")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -40,7 +40,7 @@ func (r NPM) Install(repo types.Repo) error {
 
 // Lint run the NPM lint script
 func (r NPM) Lint(repo types.Repo) error {
-	output, err := r.cmd.run(repo.Path, "npm run lint")
+	output, err := r.cmd.Run(repo.Path, "npm run lint")
 	if err != nil {
 		return fmt.Errorf("Error linting NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -50,7 +50,7 @@ func (r NPM) Lint(repo types.Repo) error {
 
 // Test run the NPM test
 func (r NPM) Test(repo types.Repo) error {
-	output, err := r.cmd.run(repo.Path, "npm test")
+	output, err := r.cmd.Run(repo.Path, "npm test")
 	if err != nil {
 		return fmt.Errorf("Error testing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -60,7 +60,7 @@ func (r NPM) Test(repo types.Repo) error {
 
 // Publish push the repo up to its registry
 func (r NPM) Publish(repo types.Repo) error {
-	output, err := r.cmd.run(repo.Path, "npm publish --strict-ssl=false")
+	output, err := r.cmd.Run(repo.Path, "npm publish --strict-ssl=false")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -70,12 +70,12 @@ func (r NPM) Publish(repo types.Repo) error {
 
 // GetLatestSHA get the SHA of the most recently published version of the module
 func (r NPM) GetLatestSHA(repo types.Repo) (string, error) {
-	return r.cmd.run(repo.Path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
+	return r.cmd.Run(repo.Path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
 }
 
 // GetCurrentSHA get the SHA of the current version of the module
 func (r NPM) GetCurrentSHA(repo types.Repo) (string, error) {
-	return r.cmd.run(repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
+	return r.cmd.Run(repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
 }
 
 // GetRepo returns a repo object representing the node project at the designated file path
