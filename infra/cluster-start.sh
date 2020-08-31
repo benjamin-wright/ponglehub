@@ -51,13 +51,21 @@ EOL
         -p 80:80@loadbalancer \
         -p 443:443@loadbalancer
 
-    sleep 5
-
     local nodes=$(kubectl get nodes -o go-template --template='{{range .items}}{{printf "%s\n" .metadata.name}}{{end}}')
     for node in $nodes; do
         kubectl annotate node "${node}" tilt.dev/registry=localhost:${REGISTRY_PORT};
         docker exec "$node" sysctl fs.inotify.max_user_watches=524288
         docker exec "$node" sysctl fs.inotify.max_user_instances=512
+    done
+
+    looping=true
+    while $looping; do
+      value=$(kubectl get apiservices v1beta1.metrics.k8s.io -o json | jq '.status.conditions[] | .status' -r | tr -d '\n')
+      if [ "$value" == "True" ]; then
+        looping=false
+      else
+        sleep 0.5
+      fi
     done
 }
 

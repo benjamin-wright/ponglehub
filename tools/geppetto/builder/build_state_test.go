@@ -43,27 +43,27 @@ func stringToState(code string) State {
 }
 
 func stateFromCode(code string) BuildState {
-	orders := []repoState{}
+	repos := []repoState{}
 
 	if code == "" {
-		return BuildState{orders: orders}
+		return BuildState{repos: repos}
 	}
 
 	for _, c := range strings.Split(code, ",") {
 		parts := strings.Split(c, ":")
-		orders = append(orders, repoState{
+		repos = append(repos, repoState{
 			repo:  parts[0],
 			state: stringToState(parts[1]),
 		})
 	}
 
-	return BuildState{orders: orders}
+	return BuildState{repos: repos}
 }
 
 func assertCode(t *testing.T, code string, state BuildState) {
 	b := strings.Builder{}
 
-	for i, order := range state.orders {
+	for i, order := range state.repos {
 		if i > 0 {
 			b.WriteRune(',')
 		}
@@ -83,14 +83,14 @@ func TestBuildStateGetState(t *testing.T) {
 
 	for _, state := range []State{BuildingState, BlockedState, ErroredState, BuiltState} {
 		t.Run(fmt.Sprintf("In state: %s", state), func(t *testing.T) {
-			s := BuildState{orders: []repoState{{repo: "repo1", state: state}}}
+			s := BuildState{repos: []repoState{{repo: "repo1", state: state}}}
 			assert.Equal(t, state, s.GetState("repo1"))
 		})
 	}
 
 	for _, state := range []State{BuildingState, BlockedState, ErroredState, BuiltState} {
 		t.Run(fmt.Sprintf("Other in state: %s", state), func(t *testing.T) {
-			s := BuildState{orders: []repoState{{repo: "2", state: state}}}
+			s := BuildState{repos: []repoState{{repo: "2", state: state}}}
 			assert.Equal(t, NoneState, s.GetState("1"))
 		})
 	}
@@ -325,6 +325,34 @@ func TestBuildStateCanBuild(t *testing.T) {
 			ok, blocked := s.CanBuild(test.repo, test.dependencies)
 			assert.False(t, ok)
 			assert.True(t, blocked)
+		})
+	}
+}
+
+func TestCount(t *testing.T) {
+	for _, test := range []struct {
+		code     string
+		state    State
+		expected int
+	}{
+		{code: "", state: BuildingState, expected: 0},
+		{code: "a:build", state: BuildingState, expected: 1},
+		{code: "a:block", state: BuildingState, expected: 0},
+		{code: "a:error", state: BuildingState, expected: 0},
+		{code: "a:built", state: BuildingState, expected: 0},
+		{code: "a:build,b:build", state: BuildingState, expected: 2},
+		{code: "a:block,b:build", state: BuildingState, expected: 1},
+		{code: "a:error,b:build", state: BuildingState, expected: 1},
+		{code: "a:built,b:build", state: BuildingState, expected: 1},
+		{code: "a:build,b:build", state: ErroredState, expected: 0},
+		{code: "a:block,b:build", state: ErroredState, expected: 0},
+		{code: "a:error,b:build", state: ErroredState, expected: 1},
+		{code: "a:built,b:build", state: ErroredState, expected: 0},
+	} {
+		t.Run(fmt.Sprintf("Code %s gives %d repos when looking for %s state", test.code, test.expected, test.state), func(t *testing.T) {
+			s := stateFromCode(test.code)
+			count := s.Count(test.state)
+			assert.Equal(t, test.expected, count)
 		})
 	}
 }

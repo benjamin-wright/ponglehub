@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"ponglehub.co.uk/geppetto/builder"
+
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"ponglehub.co.uk/geppetto/config"
@@ -60,6 +62,12 @@ func main() {
 					}
 
 					logrus.Infof("Repos: %+v", repos)
+
+					b := builder.New()
+					err = b.Build(repos)
+					if err != nil {
+						return err
+					}
 
 					return nil
 				},

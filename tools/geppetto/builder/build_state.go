@@ -13,22 +13,22 @@ type repoState struct {
 
 // BuildState represents the current state of all the builds
 type BuildState struct {
-	orders []repoState
+	repos []repoState
 }
 
 // NewBuildState creates a new empty build state
 func NewBuildState() BuildState {
-	return BuildState{orders: []repoState{}}
+	return BuildState{repos: []repoState{}}
 }
 
 func (s *BuildState) add(repo string, state State) {
-	s.orders = append(s.orders, repoState{repo: repo, state: state})
+	s.repos = append(s.repos, repoState{repo: repo, state: state})
 }
 
 func (s *BuildState) find(repo string) *repoState {
-	for index, order := range s.orders {
+	for index, order := range s.repos {
 		if order.repo == repo {
-			return &s.orders[index]
+			return &s.repos[index]
 		}
 	}
 
@@ -49,6 +49,19 @@ func (s *BuildState) setEndState(repo string, state State) error {
 
 	existing.state = state
 	return nil
+}
+
+// Count return the number of repos in the requested state
+func (s *BuildState) Count(state State) int {
+	counted := 0
+
+	for _, repo := range s.repos {
+		if repo.state == state {
+			counted++
+		}
+	}
+
+	return counted
 }
 
 // GetState returns the build state for the given repo

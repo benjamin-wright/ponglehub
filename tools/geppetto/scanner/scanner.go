@@ -23,20 +23,6 @@ func New() *Scanner {
 	}
 }
 
-func (s *Scanner) getNPMModuleNames(repos []types.Repo) []string {
-	names := []string{}
-
-	for _, repo := range repos {
-		if repo.RepoType != types.Node {
-			continue
-		}
-
-		names = append(names, repo.Name)
-	}
-
-	return names
-}
-
 // ScanDir finds code directories and returns a list of Repo objects representing them
 func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 	repos := []types.Repo{}
@@ -121,4 +107,18 @@ func (s *Scanner) linkNPMRepos(repos []types.Repo) error {
 	}
 
 	return nil
+}
+
+func (s *Scanner) getNPMModuleNames(repos []types.Repo) []string {
+	names := []string{}
+
+	for _, repo := range repos {
+		if repo.RepoType != types.Node {
+			continue
+		}
+
+		names = append(names, repo.Name)
+	}
+
+	return names
 }
