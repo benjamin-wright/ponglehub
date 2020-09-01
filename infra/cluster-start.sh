@@ -98,6 +98,7 @@ function deploy-infra() {
   helm dep update $ROOT_DIR/chart
   helm upgrade --install infra $ROOT_DIR/chart \
     --wait \
+    --timeout 10m0s \
     --namespace infra \
     --set-file "grafana.dashboards.default.metrics.json=$ROOT_DIR/dashboards/default.json" \
     --set "secrets.admin.password=password" \
