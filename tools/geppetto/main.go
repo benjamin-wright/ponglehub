@@ -58,7 +58,7 @@ func main() {
 					logrus.Infof("Repos: %+v", repos)
 
 					b := builder.New()
-					err = b.Build(repos)
+					_, err = b.Build(repos)
 					if err != nil {
 						return err
 					}

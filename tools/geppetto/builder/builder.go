@@ -28,7 +28,7 @@ func New() *Builder {
 }
 
 // Build build your repos
-func (b *Builder) Build(repos []types.Repo) error {
+func (b *Builder) Build(repos []types.Repo) (BuildState, error) {
 	state := NewBuildState()
 	signals := make(chan buildSignal)
 
@@ -47,7 +47,8 @@ func (b *Builder) Build(repos []types.Repo) error {
 					logrus.Infof("Skipping build for %s, %s repos not implemented yet", repo.Name, repo.RepoType)
 					state.Complete(repo.Name)
 				default:
-					return fmt.Errorf("Unknown repo type: %s", repo.RepoType)
+					state.Error(repo.Name)
+					return state, fmt.Errorf("Unknown repo type: %s", repo.RepoType)
 				}
 			}
 			if block {
@@ -73,5 +74,5 @@ func (b *Builder) Build(repos []types.Repo) error {
 		state.Complete(signal.repo)
 	}
 
-	return nil
+	return state, nil
 }
