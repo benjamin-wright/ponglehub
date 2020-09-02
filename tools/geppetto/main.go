@@ -63,6 +63,11 @@ func main() {
 
 					if !c.Bool("debug") {
 						go disp.Start(progress, finished)
+					} else {
+						go func(prg chan []types.RepoStatus) {
+							for range prg {
+							}
+						}(progress)
 					}
 
 					repos, err := scanner.New().ScanDir(c.String("target"))
@@ -75,8 +80,6 @@ func main() {
 
 					b := builder.New()
 					err = b.Build(repos, progress)
-
-					// progress <- state
 
 					close(progress)
 

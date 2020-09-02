@@ -40,20 +40,3 @@ func (d *Display) Start(progress <-chan []types.RepoStatus, finished chan<- inte
 
 	finished <- "done"
 }
-
-func (d *Display) End(status []types.RepoStatus) {
-	tm.Clear()
-	tm.MoveCursor(1, 1)
-	tm.Println(time.Now().Format(time.RFC1123))
-	tm.MoveCursor(1, 3)
-	for _, r := range status {
-		if r.Built {
-			tm.Println(fmt.Sprintf("%s: ✅", r.Repo.Name))
-		} else if r.Blocked {
-			tm.Println(fmt.Sprintf("%s: ❌", r.Repo.Name))
-		} else if r.Error {
-			tm.Println(fmt.Sprintf("%s: 🔥", r.Repo.Name))
-		}
-	}
-	tm.Flush()
-}
