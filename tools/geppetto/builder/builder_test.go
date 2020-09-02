@@ -33,7 +33,7 @@ func TestBuilderBuild(t *testing.T) {
 		})
 
 		assert.Nil(t, err)
-		assert.Equal(t, state.repos, []repoState{
+		assert.Equal(t, state.Repos, []RepoState{
 			{repo: "repo1", state: BuiltState},
 			{repo: "repo2", state: BuiltState},
 			{repo: "repo3", state: BuiltState},
@@ -58,7 +58,7 @@ func TestBuilderBuild(t *testing.T) {
 		})
 
 		assert.Nil(t, err)
-		assert.Equal(t, state.repos, []repoState{
+		assert.Equal(t, state.Repos, []RepoState{
 			{repo: "repo3", state: BuiltState},
 			{repo: "repo1", state: BuiltState},
 			{repo: "repo2", state: BuiltState},
@@ -77,7 +77,7 @@ func TestBuilderBuild(t *testing.T) {
 		})
 
 		assert.Error(t, err)
-		assert.Equal(t, state.repos, []repoState{
+		assert.Equal(t, state.Repos, []RepoState{
 			{repo: "repo1", state: BuildingState},
 			{repo: "repo2", state: ErroredState},
 		})

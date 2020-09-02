@@ -28,9 +28,11 @@ func New() *Builder {
 }
 
 // Build build your repos
-func (b *Builder) Build(repos []types.Repo) (BuildState, error) {
+func (b *Builder) Build(repos []types.Repo, progress chan<- BuildState) (BuildState, error) {
 	state := NewBuildState()
 	signals := make(chan buildSignal)
+
+	progress <- state
 
 	for {
 		for _, repo := range repos {
@@ -57,6 +59,8 @@ func (b *Builder) Build(repos []types.Repo) (BuildState, error) {
 			}
 		}
 
+		progress <- state
+
 		count := state.Count(BuildingState)
 		if count == 0 {
 			break
@@ -70,7 +74,11 @@ func (b *Builder) Build(repos []types.Repo) (BuildState, error) {
 			continue
 		}
 
-		logrus.Infof("Finished building repo: %s", signal.repo)
+		if signal.skip {
+			logrus.Infof("Skipping repo: %s", signal.repo)
+		} else {
+			logrus.Infof("Finished building repo: %s", signal.repo)
+		}
 		state.Complete(signal.repo)
 	}
 

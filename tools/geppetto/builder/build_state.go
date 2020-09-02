@@ -6,29 +6,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type repoState struct {
+// RepoState the state of a repo
+type RepoState struct {
 	repo  string
 	state State
 }
 
 // BuildState represents the current state of all the builds
 type BuildState struct {
-	repos []repoState
+	Repos []RepoState
 }
 
 // NewBuildState creates a new empty build state
 func NewBuildState() BuildState {
-	return BuildState{repos: []repoState{}}
+	return BuildState{Repos: []RepoState{}}
 }
 
 func (s *BuildState) add(repo string, state State) {
-	s.repos = append(s.repos, repoState{repo: repo, state: state})
+	s.Repos = append(s.Repos, RepoState{repo: repo, state: state})
 }
 
-func (s *BuildState) find(repo string) *repoState {
-	for index, order := range s.repos {
+func (s *BuildState) find(repo string) *RepoState {
+	for index, order := range s.Repos {
 		if order.repo == repo {
-			return &s.repos[index]
+			return &s.Repos[index]
 		}
 	}
 
@@ -51,11 +52,11 @@ func (s *BuildState) setEndState(repo string, state State) error {
 	return nil
 }
 
-// Count return the number of repos in the requested state
+// Count return the number of Repos in the requested state
 func (s *BuildState) Count(state State) int {
 	counted := 0
 
-	for _, repo := range s.repos {
+	for _, repo := range s.Repos {
 		if repo.state == state {
 			counted++
 		}

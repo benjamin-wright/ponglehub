@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"ponglehub.co.uk/geppetto/display"
+
 	"ponglehub.co.uk/geppetto/builder"
 
 	"github.com/sirupsen/logrus"
@@ -15,7 +17,7 @@ func initLogger(c *cli.Context) {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("Debug logging enabled")
 	} else {
-		logrus.SetLevel(logrus.InfoLevel)
+		logrus.SetLevel(logrus.FatalLevel)
 	}
 }
 
@@ -50,19 +52,29 @@ func main() {
 				Usage:   "build everything",
 				Action: func(c *cli.Context) error {
 					initLogger(c)
+					disp := display.Display{}
+					progress := make(chan builder.BuildState, 3)
+					stopper := make(chan interface{}, 1)
+					if !c.Bool("debug") {
+						go disp.Start(progress, stopper)
+					}
+
 					repos, err := scanner.New().ScanDir(c.String("target"))
 					if err != nil {
+						stopper <- true
 						return err
 					}
 
 					logrus.Infof("Repos: %+v", repos)
 
 					b := builder.New()
-					_, err = b.Build(repos)
+					_, err = b.Build(repos, progress)
 					if err != nil {
+						stopper <- true
 						return err
 					}
 
+					stopper <- true
 					return nil
 				},
 			},

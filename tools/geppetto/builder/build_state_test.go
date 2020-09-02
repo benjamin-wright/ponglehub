@@ -43,27 +43,27 @@ func stringToState(code string) State {
 }
 
 func stateFromCode(code string) BuildState {
-	repos := []repoState{}
+	repos := []RepoState{}
 
 	if code == "" {
-		return BuildState{repos: repos}
+		return BuildState{Repos: repos}
 	}
 
 	for _, c := range strings.Split(code, ",") {
 		parts := strings.Split(c, ":")
-		repos = append(repos, repoState{
+		repos = append(repos, RepoState{
 			repo:  parts[0],
 			state: stringToState(parts[1]),
 		})
 	}
 
-	return BuildState{repos: repos}
+	return BuildState{Repos: repos}
 }
 
 func assertCode(t *testing.T, code string, state BuildState) {
 	b := strings.Builder{}
 
-	for i, order := range state.repos {
+	for i, order := range state.Repos {
 		if i > 0 {
 			b.WriteRune(',')
 		}
@@ -83,14 +83,14 @@ func TestBuildStateGetState(t *testing.T) {
 
 	for _, state := range []State{BuildingState, BlockedState, ErroredState, BuiltState} {
 		t.Run(fmt.Sprintf("In state: %s", state), func(t *testing.T) {
-			s := BuildState{repos: []repoState{{repo: "repo1", state: state}}}
+			s := BuildState{Repos: []RepoState{{repo: "repo1", state: state}}}
 			assert.Equal(t, state, s.GetState("repo1"))
 		})
 	}
 
 	for _, state := range []State{BuildingState, BlockedState, ErroredState, BuiltState} {
 		t.Run(fmt.Sprintf("Other in state: %s", state), func(t *testing.T) {
-			s := BuildState{repos: []repoState{{repo: "2", state: state}}}
+			s := BuildState{Repos: []RepoState{{repo: "2", state: state}}}
 			assert.Equal(t, NoneState, s.GetState("1"))
 		})
 	}
