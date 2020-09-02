@@ -8,62 +8,62 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func stateToString(state State) string {
+func stateToString(state state) string {
 	switch state {
-	case NoneState:
+	case noneState:
 		return "none"
-	case BuildingState:
+	case buildingState:
 		return "build"
-	case ErroredState:
+	case erroredState:
 		return "error"
-	case BlockedState:
+	case blockedState:
 		return "block"
-	case BuiltState:
+	case builtState:
 		return "built"
 	}
 
 	panic(fmt.Sprintf("Unrecognised state: %s", state))
 }
 
-func stringToState(code string) State {
+func stringToState(code string) state {
 	switch code {
 	case "none":
-		return NoneState
+		return noneState
 	case "build":
-		return BuildingState
+		return buildingState
 	case "error":
-		return ErroredState
+		return erroredState
 	case "block":
-		return BlockedState
+		return blockedState
 	case "built":
-		return BuiltState
+		return builtState
 	}
 
 	panic(fmt.Sprintf("Unrecognised state rune: %s", code))
 }
 
-func stateFromCode(code string) BuildState {
-	repos := []RepoState{}
+func stateFromCode(code string) buildState {
+	repos := []repoState{}
 
 	if code == "" {
-		return BuildState{Repos: repos}
+		return buildState{repos: repos}
 	}
 
 	for _, c := range strings.Split(code, ",") {
 		parts := strings.Split(c, ":")
-		repos = append(repos, RepoState{
+		repos = append(repos, repoState{
 			repo:  parts[0],
 			state: stringToState(parts[1]),
 		})
 	}
 
-	return BuildState{Repos: repos}
+	return buildState{repos: repos}
 }
 
-func assertCode(t *testing.T, code string, state BuildState) {
+func assertCode(t *testing.T, code string, state buildState) {
 	b := strings.Builder{}
 
-	for i, order := range state.Repos {
+	for i, order := range state.repos {
 		if i > 0 {
 			b.WriteRune(',')
 		}
@@ -78,20 +78,20 @@ func assertCode(t *testing.T, code string, state BuildState) {
 func TestBuildStateGetState(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		s := stateFromCode("")
-		assert.Equal(t, NoneState, s.GetState("a"))
+		assert.Equal(t, noneState, s.GetState("a"))
 	})
 
-	for _, state := range []State{BuildingState, BlockedState, ErroredState, BuiltState} {
+	for _, state := range []state{buildingState, blockedState, erroredState, builtState} {
 		t.Run(fmt.Sprintf("In state: %s", state), func(t *testing.T) {
-			s := BuildState{Repos: []RepoState{{repo: "repo1", state: state}}}
+			s := buildState{repos: []repoState{{repo: "repo1", state: state}}}
 			assert.Equal(t, state, s.GetState("repo1"))
 		})
 	}
 
-	for _, state := range []State{BuildingState, BlockedState, ErroredState, BuiltState} {
+	for _, state := range []state{buildingState, blockedState, erroredState, builtState} {
 		t.Run(fmt.Sprintf("Other in state: %s", state), func(t *testing.T) {
-			s := BuildState{Repos: []RepoState{{repo: "2", state: state}}}
-			assert.Equal(t, NoneState, s.GetState("1"))
+			s := buildState{repos: []repoState{{repo: "2", state: state}}}
+			assert.Equal(t, noneState, s.GetState("1"))
 		})
 	}
 }
@@ -332,22 +332,22 @@ func TestBuildStateCanBuild(t *testing.T) {
 func TestCount(t *testing.T) {
 	for _, test := range []struct {
 		code     string
-		state    State
+		state    state
 		expected int
 	}{
-		{code: "", state: BuildingState, expected: 0},
-		{code: "a:build", state: BuildingState, expected: 1},
-		{code: "a:block", state: BuildingState, expected: 0},
-		{code: "a:error", state: BuildingState, expected: 0},
-		{code: "a:built", state: BuildingState, expected: 0},
-		{code: "a:build,b:build", state: BuildingState, expected: 2},
-		{code: "a:block,b:build", state: BuildingState, expected: 1},
-		{code: "a:error,b:build", state: BuildingState, expected: 1},
-		{code: "a:built,b:build", state: BuildingState, expected: 1},
-		{code: "a:build,b:build", state: ErroredState, expected: 0},
-		{code: "a:block,b:build", state: ErroredState, expected: 0},
-		{code: "a:error,b:build", state: ErroredState, expected: 1},
-		{code: "a:built,b:build", state: ErroredState, expected: 0},
+		{code: "", state: buildingState, expected: 0},
+		{code: "a:build", state: buildingState, expected: 1},
+		{code: "a:block", state: buildingState, expected: 0},
+		{code: "a:error", state: buildingState, expected: 0},
+		{code: "a:built", state: buildingState, expected: 0},
+		{code: "a:build,b:build", state: buildingState, expected: 2},
+		{code: "a:block,b:build", state: buildingState, expected: 1},
+		{code: "a:error,b:build", state: buildingState, expected: 1},
+		{code: "a:built,b:build", state: buildingState, expected: 1},
+		{code: "a:build,b:build", state: erroredState, expected: 0},
+		{code: "a:block,b:build", state: erroredState, expected: 0},
+		{code: "a:error,b:build", state: erroredState, expected: 1},
+		{code: "a:built,b:build", state: erroredState, expected: 0},
 	} {
 		t.Run(fmt.Sprintf("Code %s gives %d repos when looking for %s state", test.code, test.expected, test.state), func(t *testing.T) {
 			s := stateFromCode(test.code)

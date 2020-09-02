@@ -27,12 +27,33 @@ func New() *Builder {
 	}
 }
 
+func stateToProgress(repos []types.Repo, state buildState) []types.RepoStatus {
+	statuses := []types.RepoStatus{}
+
+	for _, repo := range repos {
+		repoState := state.GetState(repo.Name)
+		repoPhase := state.GetPhase(repo.Name)
+
+		statuses = append(statuses, types.RepoStatus{
+			Repo:     repo,
+			Blocked:  repoState == blockedState,
+			Building: repoState == buildingState,
+			Built:    repoState == builtState,
+			Skipped:  repoState == skippedState,
+			Error:    repoState == erroredState,
+			Phase:    repoPhase,
+		})
+	}
+
+	return statuses
+}
+
 // Build build your repos
-func (b *Builder) Build(repos []types.Repo, progress chan<- BuildState) (BuildState, error) {
-	state := NewBuildState()
+func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) error {
+	state := newBuildState()
 	signals := make(chan buildSignal)
 
-	progress <- state
+	progress <- stateToProgress(repos, state)
 
 	for {
 		for _, repo := range repos {
@@ -50,7 +71,7 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- BuildState) (BuildSt
 					state.Complete(repo.Name)
 				default:
 					state.Error(repo.Name)
-					return state, fmt.Errorf("Unknown repo type: %s", repo.RepoType)
+					return fmt.Errorf("Unknown repo type: %s", repo.RepoType)
 				}
 			}
 			if block {
@@ -59,9 +80,9 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- BuildState) (BuildSt
 			}
 		}
 
-		progress <- state
+		progress <- stateToProgress(repos, state)
 
-		count := state.Count(BuildingState)
+		count := state.Count(buildingState)
 		if count == 0 {
 			break
 		}
@@ -76,11 +97,18 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- BuildState) (BuildSt
 
 		if signal.skip {
 			logrus.Infof("Skipping repo: %s", signal.repo)
-		} else {
-			logrus.Infof("Finished building repo: %s", signal.repo)
+			state.Skip(signal.repo)
+			continue
 		}
+
+		if signal.phase != "" {
+			state.Progress(signal.repo, signal.phase)
+			continue
+		}
+
+		logrus.Infof("Finished building repo: %s", signal.repo)
 		state.Complete(signal.repo)
 	}
 
-	return state, nil
+	return nil
 }

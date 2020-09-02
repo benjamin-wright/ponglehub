@@ -1,17 +1,19 @@
 package builder
 
-// State represents a build state
-type State string
+// state represents a build state
+type state string
 
 const (
 	// NoneState repo build is pending
-	NoneState State = "None"
+	noneState state = "None"
 	// BuildingState repo is currently being built
-	BuildingState State = "Building"
+	buildingState state = "Building"
 	// ErroredState repo build failed unexpectedly
-	ErroredState State = "Errored"
+	erroredState state = "Errored"
 	// BlockedState repo cannot be built because one of its dependencies failed to build
-	BlockedState State = "Blocked"
+	blockedState state = "Blocked"
 	// BuiltState repo has been successfully built
-	BuiltState State = "Built"
+	builtState state = "Built"
+	// skippedState repo has been built before
+	skippedState state = "Skipped"
 )
