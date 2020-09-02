@@ -11,6 +11,7 @@ type repoState struct {
 	repo  string
 	state state
 	phase string
+	err   error
 }
 
 // buildState represents the current state of all the builds
@@ -85,6 +86,15 @@ func (s *buildState) GetPhase(repo string) string {
 	return ""
 }
 
+func (s *buildState) GetError(repo string) error {
+	order := s.find(repo)
+	if order != nil {
+		return order.err
+	}
+
+	return nil
+}
+
 func (s *buildState) Progress(repo string, phase string) error {
 	order := s.find(repo)
 	if order.state != buildingState {
@@ -122,8 +132,19 @@ func (s *buildState) Block(repo string) error {
 }
 
 // Error signal that a repo build has failed
-func (s *buildState) Error(repo string) error {
-	return s.setEndState(repo, erroredState)
+func (s *buildState) Error(repo string, err error) error {
+	existing := s.find(repo)
+
+	if existing == nil {
+		s.add(repo, erroredState)
+		existing = s.find(repo)
+	} else if existing.state != buildingState {
+		return fmt.Errorf("Cannot put repo %s into errored state when already in %s", repo, existing.state)
+	}
+
+	existing.state = erroredState
+	existing.err = err
+	return nil
 }
 
 // CanBuild returns true if the repo itself is not in a building, built, errored or blocked state

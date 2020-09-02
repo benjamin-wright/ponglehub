@@ -7,6 +7,6 @@ type RepoStatus struct {
 	Building bool
 	Built    bool
 	Skipped  bool
-	Error    bool
+	Error    error
 	Phase    string
 }

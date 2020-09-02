@@ -11,7 +11,7 @@ module.exports = {
         "sourceType": "module"
     },
     "globals": {
-        "module": true,
+        "module": true
         "Promise": true,
     },
     "rules": {

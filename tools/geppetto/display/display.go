@@ -8,8 +8,10 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
+// Display a collection of methods for drawing fullscreen ascii UI outputs
 type Display struct{}
 
+// Start begin drawing updates of build progress
 func (d *Display) Start(progress <-chan []types.RepoStatus, finished chan<- interface{}) {
 	for p := range progress {
 		tm.Clear()
@@ -23,7 +25,7 @@ func (d *Display) Start(progress <-chan []types.RepoStatus, finished chan<- inte
 				tm.Println(fmt.Sprintf("%s: 🔄", r.Repo.Name))
 			} else if r.Blocked {
 				tm.Println(fmt.Sprintf("%s: ❌", r.Repo.Name))
-			} else if r.Error {
+			} else if r.Error != nil {
 				tm.Println(fmt.Sprintf("%s: 🔥", r.Repo.Name))
 			} else if r.Building {
 				if r.Phase == "check" {

@@ -33,6 +33,7 @@ func stateToProgress(repos []types.Repo, state buildState) []types.RepoStatus {
 	for _, repo := range repos {
 		repoState := state.GetState(repo.Name)
 		repoPhase := state.GetPhase(repo.Name)
+		repoError := state.GetError(repo.Name)
 
 		statuses = append(statuses, types.RepoStatus{
 			Repo:     repo,
@@ -40,7 +41,7 @@ func stateToProgress(repos []types.Repo, state buildState) []types.RepoStatus {
 			Building: repoState == buildingState,
 			Built:    repoState == builtState,
 			Skipped:  repoState == skippedState,
-			Error:    repoState == erroredState,
+			Error:    repoError,
 			Phase:    repoPhase,
 		})
 	}
@@ -70,7 +71,7 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) 
 					logrus.Infof("Skipping build for %s, %s repos not implemented yet", repo.Name, repo.RepoType)
 					state.Complete(repo.Name)
 				default:
-					state.Error(repo.Name)
+					state.Error(repo.Name, fmt.Errorf("Unknown repo type: %s", repo.RepoType))
 					return fmt.Errorf("Unknown repo type: %s", repo.RepoType)
 				}
 			}
@@ -91,7 +92,7 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) 
 		signal := <-signals
 		if signal.err != nil {
 			logrus.Errorf("Failed to build %s: %+v", signal.repo, signal.err)
-			state.Error(signal.repo)
+			state.Error(signal.repo, signal.err)
 			continue
 		}
 
