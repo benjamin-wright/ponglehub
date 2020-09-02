@@ -27,41 +27,21 @@ func New() *Builder {
 	}
 }
 
-func stateToProgress(repos []types.Repo, state buildState) []types.RepoStatus {
-	statuses := []types.RepoStatus{}
-
-	for _, repo := range repos {
-		repoState := state.GetState(repo.Name)
-		repoPhase := state.GetPhase(repo.Name)
-		repoError := state.GetError(repo.Name)
-
-		statuses = append(statuses, types.RepoStatus{
-			Repo:     repo,
-			Blocked:  repoState == blockedState,
-			Building: repoState == buildingState,
-			Built:    repoState == builtState,
-			Skipped:  repoState == skippedState,
-			Error:    repoError,
-			Phase:    repoPhase,
-		})
-	}
-
-	return statuses
-}
-
 // Build build your repos
 func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) error {
-	state := newBuildState()
+	state := newBuildState(repos)
 	signals := make(chan buildSignal)
 
-	progress <- stateToProgress(repos, state)
+	progress <- state.repos
 
 	for {
 		for _, repo := range repos {
-			ok, block := state.CanBuild(repo.Name, repo.DependsOn)
+			ok, block := state.canBuild(repo.Name)
+
 			if ok {
 				logrus.Infof("Repo building: %s", repo.Name)
-				state.Build(repo.Name)
+				state.find(repo.Name).SetBuilding()
+
 				switch repo.RepoType {
 				case types.Node:
 					go b.worker.buildNPM(repo, signals)
@@ -69,21 +49,21 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) 
 					fallthrough
 				case types.Helm:
 					logrus.Infof("Skipping build for %s, %s repos not implemented yet", repo.Name, repo.RepoType)
-					state.Complete(repo.Name)
+					state.find(repo.Name).SetComplete()
 				default:
-					state.Error(repo.Name, fmt.Errorf("Unknown repo type: %s", repo.RepoType))
-					return fmt.Errorf("Unknown repo type: %s", repo.RepoType)
+					state.find(repo.Name).SetError(fmt.Errorf("Unknown repo type: %s", repo.RepoType))
 				}
 			}
+
 			if block {
 				logrus.Infof("Repo blocked: %s", repo.Name)
-				state.Block(repo.Name)
+				state.find(repo.Name).SetBlocked()
 			}
 		}
 
-		progress <- stateToProgress(repos, state)
+		progress <- state.repos
 
-		count := state.Count(buildingState)
+		count := state.numBuilding()
 		if count == 0 {
 			break
 		}
@@ -92,23 +72,23 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) 
 		signal := <-signals
 		if signal.err != nil {
 			logrus.Errorf("Failed to build %s: %+v", signal.repo, signal.err)
-			state.Error(signal.repo, signal.err)
+			state.find(signal.repo).SetError(signal.err)
 			continue
 		}
 
 		if signal.skip {
 			logrus.Infof("Skipping repo: %s", signal.repo)
-			state.Skip(signal.repo)
+			state.find(signal.repo).SetSkipped()
 			continue
 		}
 
 		if signal.phase != "" {
-			state.Progress(signal.repo, signal.phase)
+			state.find(signal.repo).Phase = signal.phase
 			continue
 		}
 
 		logrus.Infof("Finished building repo: %s", signal.repo)
-		state.Complete(signal.repo)
+		state.find(signal.repo).SetComplete()
 	}
 
 	return nil

@@ -1,36 +1,31 @@
 package builder
 
 import (
-	"fmt"
-
 	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/geppetto/types"
 )
-
-// repoState the state of a repo
-type repoState struct {
-	repo  string
-	state state
-	phase string
-	err   error
-}
 
 // buildState represents the current state of all the builds
 type buildState struct {
-	repos []repoState
+	repos []types.RepoStatus
 }
 
 // NewbuildState creates a new empty build state
-func newBuildState() buildState {
-	return buildState{repos: []repoState{}}
+func newBuildState(repos []types.Repo) buildState {
+	state := buildState{repos: []types.RepoStatus{}}
+
+	for _, repo := range repos {
+		state.repos = append(state.repos, types.RepoStatus{
+			Repo: repo,
+		})
+	}
+
+	return state
 }
 
-func (s *buildState) add(repo string, state state) {
-	s.repos = append(s.repos, repoState{repo: repo, state: state})
-}
-
-func (s *buildState) find(repo string) *repoState {
-	for index, order := range s.repos {
-		if order.repo == repo {
+func (s *buildState) find(repo string) *types.RepoStatus {
+	for index, state := range s.repos {
+		if state.Repo.Name == repo {
 			return &s.repos[index]
 		}
 	}
@@ -38,28 +33,12 @@ func (s *buildState) find(repo string) *repoState {
 	return nil
 }
 
-func (s *buildState) setEndState(repo string, state state) error {
-	existing := s.find(repo)
-
-	if existing == nil {
-		s.add(repo, state)
-		return nil
-	}
-
-	if existing.state != buildingState {
-		return fmt.Errorf("Cannot put repo %s into %s state when already in %s", repo, state, existing.state)
-	}
-
-	existing.state = state
-	return nil
-}
-
-// Count return the number of repos in the requested state
-func (s *buildState) Count(state state) int {
+// NumBuilding return the number of repos in the requested state
+func (s *buildState) numBuilding() int {
 	counted := 0
 
 	for _, repo := range s.repos {
-		if repo.state == state {
+		if repo.Building {
 			counted++
 		}
 	}
@@ -67,100 +46,29 @@ func (s *buildState) Count(state state) int {
 	return counted
 }
 
-// GetState returns the build state for the given repo
-func (s *buildState) GetState(repo string) state {
-	order := s.find(repo)
-	if order != nil {
-		return order.state
-	}
-
-	return noneState
-}
-
-func (s *buildState) GetPhase(repo string) string {
-	order := s.find(repo)
-	if order != nil {
-		return order.phase
-	}
-
-	return ""
-}
-
-func (s *buildState) GetError(repo string) error {
-	order := s.find(repo)
-	if order != nil {
-		return order.err
-	}
-
-	return nil
-}
-
-func (s *buildState) Progress(repo string, phase string) error {
-	order := s.find(repo)
-	if order.state != buildingState {
-		return fmt.Errorf("Cannot set phase %s on repo %s, state is %s", phase, repo, order.state)
-	}
-
-	order.phase = phase
-	return nil
-}
-
-// Build signal that a repo is being built
-func (s *buildState) Build(repo string) error {
-	state := s.GetState(repo)
-	if state != noneState {
-		return fmt.Errorf("Cannot put repo %s into building state when already in %s", repo, state)
-	}
-
-	s.add(repo, buildingState)
-	return nil
-}
-
-// Complete signal that a repo build has finished
-func (s *buildState) Complete(repo string) error {
-	return s.setEndState(repo, builtState)
-}
-
-// Skip signal that a repo build has been built before
-func (s *buildState) Skip(repo string) error {
-	return s.setEndState(repo, skippedState)
-}
-
-// Block signal that a repo build has been blocked by a dependency build failure
-func (s *buildState) Block(repo string) error {
-	return s.setEndState(repo, blockedState)
-}
-
-// Error signal that a repo build has failed
-func (s *buildState) Error(repo string, err error) error {
-	existing := s.find(repo)
-
-	if existing == nil {
-		s.add(repo, erroredState)
-		existing = s.find(repo)
-	} else if existing.state != buildingState {
-		return fmt.Errorf("Cannot put repo %s into errored state when already in %s", repo, existing.state)
-	}
-
-	existing.state = erroredState
-	existing.err = err
-	return nil
-}
-
 // CanBuild returns true if the repo itself is not in a building, built, errored or blocked state
-func (s *buildState) CanBuild(repo string, deps []string) (ok bool, block bool) {
-	state := s.GetState(repo)
+func (s *buildState) canBuild(repo string) (ok bool, block bool) {
+	state := s.find(repo)
 
-	if state != noneState {
-		logrus.Debugf("Not building %s because state is %s", repo, state)
+	if !state.Pending() {
+		logrus.Debugf("Not building %s because build is finished", repo, state)
 		return false, false
 	}
 
-	for _, dep := range deps {
-		if state := s.GetState(dep); state != builtState && state != skippedState {
-			logrus.Debugf("Not building %s because dep %s state is %s", repo, dep, state)
-			return false, state == erroredState || state == blockedState
+	for _, dep := range state.Repo.DependsOn {
+		depState := s.find(dep)
+
+		if depState.Success() {
+			continue
 		}
+
+		if depState.Blocker() {
+			logrus.Debugf("Not building %s because dep %s state is blocking", repo, dep)
+			return false, true
+		}
+
+		logrus.Debugf("Not building %s because dep %s state is not built yet", repo, dep)
+		return false, false
 	}
 
 	return true, false
