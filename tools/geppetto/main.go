@@ -53,6 +53,27 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
+				Name:    "watch",
+				Aliases: []string{"w"},
+				Usage:   "build everything whenever it changes",
+				Action: func(c *cli.Context) error {
+					cfg := getConfig(c)
+					initLogger(cfg)
+
+					scan := scanner.New()
+					disp := display.Display{}
+
+					repos, err := scan.ScanDir(cfg.Target)
+					if err != nil {
+						return err
+					}
+
+					triggers, errors, stopper := scan.WatchDir(repos)
+
+					disp.Watch(triggers, errors)
+				},
+			},
+			{
 				Name:    "build",
 				Aliases: []string{"b"},
 				Usage:   "build everything",
@@ -62,7 +83,7 @@ func main() {
 
 					disp := display.Display{}
 					progress := make(chan []types.RepoState, 3)
-					finished := make(chan interface{})
+					finished := make(chan bool)
 
 					if !cfg.Debug {
 						go disp.Start(progress, finished)
