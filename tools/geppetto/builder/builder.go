@@ -3,8 +3,6 @@ package builder
 import (
 	"fmt"
 
-	"ponglehub.co.uk/geppetto/services"
-
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/types"
 )
@@ -21,9 +19,7 @@ type Builder struct {
 // New create a new builder object
 func New() *Builder {
 	return &Builder{
-		worker: &defaultWorker{
-			npm: services.NewNpmService(),
-		},
+		worker: newDefaultWorker(),
 	}
 }
 

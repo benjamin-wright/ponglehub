@@ -10,6 +10,12 @@ type defaultWorker struct {
 	npm services.NPM
 }
 
+func newDefaultWorker() *defaultWorker {
+	return &defaultWorker{
+		npm: services.NewNpmService(),
+	}
+}
+
 func (w *defaultWorker) buildNPM(repo types.Repo, signals chan<- buildSignal) {
 	logrus.Debugf("Building NPM repo: %s", repo.Name)
 
