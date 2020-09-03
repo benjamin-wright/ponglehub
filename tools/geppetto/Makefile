@@ -4,10 +4,10 @@ test:
 	go test ./...
 
 run:
-	go run . --config ../../.geppetto.json --target ../.. build
+	go run . --target ../.. build
 
 debug:
-	go run . --debug --config ../../.geppetto.json --target ../.. build
+	go run . --debug --target ../.. build
 
 rollback:
-	go run . --debug --config ../../.geppetto.json --target ../.. rollback
+	go run . --debug --target ../.. rollback

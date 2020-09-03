@@ -49,7 +49,7 @@ func (s *buildState) canBuild(repo string) (ok bool, block bool) {
 	state := s.find(repo)
 
 	if !state.Pending() {
-		logrus.Debugf("Not building %s because build is finished", repo, state)
+		logrus.Debugf("Not building %s because build is finished", repo)
 		return false, false
 	}
 

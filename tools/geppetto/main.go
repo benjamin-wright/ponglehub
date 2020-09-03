@@ -13,8 +13,15 @@ import (
 	"ponglehub.co.uk/geppetto/scanner"
 )
 
-func initLogger(c *cli.Context) {
-	if c.Bool("debug") {
+func getConfig(c *cli.Context) types.Config {
+	return types.Config{
+		Debug:  c.Bool("debug"),
+		Target: c.String("target"),
+	}
+}
+
+func initLogger(cfg types.Config) {
+	if cfg.Debug {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("Debug logging enabled")
 	} else {
@@ -43,12 +50,6 @@ func main() {
 				Usage:   "target directory",
 				EnvVars: []string{"GEPETTO_TARGET"},
 			},
-			&cli.StringFlag{
-				Name:    "config",
-				Value:   ".geppetto.json",
-				Usage:   "path to the config file",
-				EnvVars: []string{"GEPETTO_CONFIG"},
-			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -56,12 +57,14 @@ func main() {
 				Aliases: []string{"b"},
 				Usage:   "build everything",
 				Action: func(c *cli.Context) error {
-					initLogger(c)
+					cfg := getConfig(c)
+					initLogger(cfg)
+
 					disp := display.Display{}
 					progress := make(chan []types.RepoState, 3)
 					finished := make(chan interface{})
 
-					if !c.Bool("debug") {
+					if !cfg.Debug {
 						go disp.Start(progress, finished)
 					} else {
 						go func(prg chan []types.RepoState) {
@@ -70,7 +73,7 @@ func main() {
 						}(progress)
 					}
 
-					repos, err := scanner.New().ScanDir(c.String("target"))
+					repos, err := scanner.New().ScanDir(cfg.Target)
 					if err != nil {
 						close(progress)
 						return err
@@ -83,7 +86,7 @@ func main() {
 
 					close(progress)
 
-					if !c.Bool("debug") {
+					if !cfg.Debug {
 						<-finished
 					}
 
@@ -95,7 +98,9 @@ func main() {
 				Aliases: []string{"r"},
 				Usage:   "rollback all versions to 1.0.0",
 				Action: func(c *cli.Context) error {
-					initLogger(c)
+					cfg := getConfig(c)
+					initLogger(cfg)
+
 					logrus.Warn("Not implemented yet")
 
 					return nil
