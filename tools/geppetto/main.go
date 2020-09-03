@@ -18,12 +18,12 @@ func initLogger(c *cli.Context) {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("Debug logging enabled")
 	} else {
-		logrus.SetLevel(logrus.FatalLevel)
+		f, err := os.OpenFile("gepetto.log", os.O_WRONLY|os.O_CREATE, 0755)
+		if err != nil {
+			logrus.Fatalf("Failed to redirect logs to file: %+v", err)
+		}
+		logrus.SetOutput(f)
 	}
-}
-
-func enableLogging() {
-	logrus.SetLevel(logrus.DebugLevel)
 }
 
 func main() {
@@ -58,13 +58,13 @@ func main() {
 				Action: func(c *cli.Context) error {
 					initLogger(c)
 					disp := display.Display{}
-					progress := make(chan []types.RepoStatus, 3)
+					progress := make(chan []types.RepoState, 3)
 					finished := make(chan interface{})
 
 					if !c.Bool("debug") {
 						go disp.Start(progress, finished)
 					} else {
-						go func(prg chan []types.RepoStatus) {
+						go func(prg chan []types.RepoState) {
 							for range prg {
 							}
 						}(progress)

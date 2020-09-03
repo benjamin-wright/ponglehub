@@ -28,7 +28,7 @@ func New() *Builder {
 }
 
 // Build build your repos
-func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) error {
+func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoState) error {
 	state := newBuildState(repos)
 	signals := make(chan buildSignal)
 
@@ -40,7 +40,7 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) 
 
 			if ok {
 				logrus.Infof("Repo building: %s", repo.Name)
-				state.find(repo.Name).SetBuilding()
+				state.find(repo.Name).Start()
 
 				switch repo.RepoType {
 				case types.Node:
@@ -49,15 +49,15 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) 
 					fallthrough
 				case types.Helm:
 					logrus.Infof("Skipping build for %s, %s repos not implemented yet", repo.Name, repo.RepoType)
-					state.find(repo.Name).SetComplete()
+					state.find(repo.Name).Block()
 				default:
-					state.find(repo.Name).SetError(fmt.Errorf("Unknown repo type: %s", repo.RepoType))
+					state.find(repo.Name).Error(fmt.Errorf("Unknown repo type: %s", repo.RepoType))
 				}
 			}
 
 			if block {
 				logrus.Infof("Repo blocked: %s", repo.Name)
-				state.find(repo.Name).SetBlocked()
+				state.find(repo.Name).Block()
 			}
 		}
 
@@ -72,23 +72,23 @@ func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoStatus) 
 		signal := <-signals
 		if signal.err != nil {
 			logrus.Errorf("Failed to build %s: %+v", signal.repo, signal.err)
-			state.find(signal.repo).SetError(signal.err)
+			state.find(signal.repo).Error(signal.err)
 			continue
 		}
 
 		if signal.skip {
 			logrus.Infof("Skipping repo: %s", signal.repo)
-			state.find(signal.repo).SetSkipped()
+			state.find(signal.repo).Skip()
 			continue
 		}
 
 		if signal.phase != "" {
-			state.find(signal.repo).Phase = signal.phase
+			state.find(signal.repo).Progress(signal.phase)
 			continue
 		}
 
 		logrus.Infof("Finished building repo: %s", signal.repo)
-		state.find(signal.repo).SetComplete()
+		state.find(signal.repo).Complete()
 	}
 
 	return nil

@@ -7,25 +7,23 @@ import (
 
 // buildState represents the current state of all the builds
 type buildState struct {
-	repos []types.RepoStatus
+	repos []types.RepoState
 }
 
 // NewbuildState creates a new empty build state
 func newBuildState(repos []types.Repo) buildState {
-	state := buildState{repos: []types.RepoStatus{}}
+	state := buildState{repos: []types.RepoState{}}
 
 	for _, repo := range repos {
-		state.repos = append(state.repos, types.RepoStatus{
-			Repo: repo,
-		})
+		state.repos = append(state.repos, types.NewRepoState(repo))
 	}
 
 	return state
 }
 
-func (s *buildState) find(repo string) *types.RepoStatus {
+func (s *buildState) find(repo string) *types.RepoState {
 	for index, state := range s.repos {
-		if state.Repo.Name == repo {
+		if state.Repo().Name == repo {
 			return &s.repos[index]
 		}
 	}
@@ -38,7 +36,7 @@ func (s *buildState) numBuilding() int {
 	counted := 0
 
 	for _, repo := range s.repos {
-		if repo.Building {
+		if repo.Building() {
 			counted++
 		}
 	}
@@ -55,14 +53,14 @@ func (s *buildState) canBuild(repo string) (ok bool, block bool) {
 		return false, false
 	}
 
-	for _, dep := range state.Repo.DependsOn {
+	for _, dep := range state.Repo().DependsOn {
 		depState := s.find(dep)
 
 		if depState.Success() {
 			continue
 		}
 
-		if depState.Blocker() {
+		if depState.Blocked() {
 			logrus.Debugf("Not building %s because dep %s state is blocking", repo, dep)
 			return false, true
 		}

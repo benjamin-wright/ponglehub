@@ -50,6 +50,14 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 
 		if s.io.FileExists(path + "/chart.yaml") {
 			logrus.Infof("HELM: %s", path)
+			repo := types.Repo{
+				Name:      name,
+				Path:      path,
+				RepoType:  types.Helm,
+				DependsOn: []string{},
+			}
+
+			repos = append(repos, repo)
 			return filepath.SkipDir
 		}
 
@@ -66,6 +74,14 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 
 		if s.io.FileExists(path + "/go.mod") {
 			logrus.Infof("GOLANG: %s", path)
+			repo := types.Repo{
+				Name:      name,
+				Path:      path,
+				RepoType:  types.Golang,
+				DependsOn: []string{},
+			}
+
+			repos = append(repos, repo)
 			return filepath.SkipDir
 		}
 
@@ -88,6 +104,10 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 func (s *Scanner) linkNPMRepos(repos []types.Repo) error {
 	names := s.getNPMModuleNames(repos)
 	for index, repo := range repos {
+		if repo.RepoType != types.Node {
+			continue
+		}
+
 		deps, err := s.npm.GetDependencyNames(repo)
 		if err != nil {
 			return err
