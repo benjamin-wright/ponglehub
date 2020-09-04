@@ -4,5 +4,6 @@
 *.DS_Store
 .envrc
 infra/k3s/*
+*.log
 
 node_modules

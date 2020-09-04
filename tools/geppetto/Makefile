@@ -6,6 +6,9 @@ test:
 run:
 	go run . --target ../.. build
 
+watch:
+	go run . --target ../.. watch
+
 debug:
 	go run . --debug --target ../.. build
 

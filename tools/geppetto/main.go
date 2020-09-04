@@ -68,9 +68,10 @@ func main() {
 						return err
 					}
 
-					triggers, errors, stopper := scan.WatchDir(repos)
+					triggers, errors, _ := scan.WatchDir(repos)
 
 					disp.Watch(triggers, errors)
+					return nil
 				},
 			},
 			{
