@@ -22,15 +22,17 @@ func (k *keyboard) start() <-chan command {
 				case tcell.KeyESC:
 					commands <- quitCommand
 				case tcell.KeyUp:
+					logrus.Info("Up key pressed")
 					commands <- upCommand
 				case tcell.KeyDown:
+					logrus.Info("Down key pressed")
 					commands <- downCommand
 				case tcell.KeyEnter:
 					commands <- selectCommand
 				}
 			case nil:
 				logrus.Info("Keyboard listener loop stopped: screen finalised")
-				break
+				return
 			}
 		}
 	}()

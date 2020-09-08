@@ -4,27 +4,38 @@ import (
 	"fmt"
 	"time"
 
+	"ponglehub.co.uk/geppetto/builder"
+
 	tm "github.com/buger/goterm"
 	"github.com/gdamore/tcell/v2"
 	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/geppetto/scanner"
 	"ponglehub.co.uk/geppetto/types"
 )
 
-// Display a collection of methods for drawing fullscreen ascii UI outputs
+// UI a collection of methods for drawing fullscreen ascii UI outputs
 type UI struct {
+	builder  *builder.Builder
 	screen   tcell.Screen
 	display  display
 	keyboard keyboard
-}
-
-// Stop stop all watchers and close the console writer
-func (ui *UI) Stop() {
-	ui.display.stop()
-	ui.screen.Fini()
+	scan     *scanner.Scanner
 }
 
 // Watch UI for file watching
-func (ui *UI) Watch(progress <-chan []types.RepoState, errors <-chan error) {
+func (ui *UI) Watch(target string) error {
+	ui.scan = scanner.New()
+	repos, err := ui.scan.ScanDir(target)
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("Repos: %+v", repos)
+
+	triggers, _, _ := ui.scan.WatchDir(repos)
+
+	progress := make(chan []types.RepoState, 3)
+
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		logrus.Fatalf("Error making screen: %+v", err)
@@ -39,46 +50,38 @@ func (ui *UI) Watch(progress <-chan []types.RepoState, errors <-chan error) {
 
 	ui.keyboard = keyboard{screen: screen}
 	ui.display = display{screen: screen}
+	ui.builder = builder.New()
 
 	commands := ui.keyboard.start()
-	ui.display.start(progress, commands)
+	ui.display.draw()
+	waiting := true
 
-	// go func() {
-	// 	for {
-	// 		event := screen.PollEvent()
-	// 		switch e := event.(type) {
-	// 		case *tcell.EventKey:
-	// 			switch e.Key() {
-	// 			case tcell.KeyESC:
-	// 				screen.Fini()
-	// 				logrus.Fatalf("Killed it!")
-	// 			case tcell.KeyRune:
-	// 				inputs <- e.Rune()
-	// 			default:
-	// 				inputs <- 'y'
-	// 			}
-	// 		}
-	// 	}
-	// }()
-
-	// for {
-	// 	// var repo types.Repo
-	// 	// var err error
-	// 	var input rune
-	// 	select {
-	// 	// case repo = <-triggers:
-	// 	// case err = <-errors:
-	// 	case input = <-inputs:
-	// 	}
-
-	// 	screen.Clear()
-	// 	screen.SetContent(1, 1, input, nil, tcell.StyleDefault)
-	// 	screen.Show()
-	// }
+	for {
+		select {
+		case cmd := <-commands:
+			switch cmd {
+			case quitCommand:
+				return nil
+			}
+		case repo := <-triggers:
+			logrus.Infof("Got trigger for %s", repo.Name)
+			if waiting {
+				waiting = false
+				go func() {
+					logrus.Info("Building...")
+					err = ui.builder.Build(repos, progress)
+					waiting = true
+				}()
+			}
+		case state := <-progress:
+			ui.display.state = state
+			ui.display.draw()
+		}
+	}
 }
 
 // Start begin drawing updates of build progress
-func (d *UI) Start(progress <-chan []types.RepoState, finished chan<- bool) {
+func (ui *UI) Start(progress <-chan []types.RepoState, finished chan<- bool) {
 	for p := range progress {
 		tm.Clear()
 		tm.MoveCursor(1, 1)

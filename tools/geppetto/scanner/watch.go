@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/types"
 )
 
@@ -23,7 +24,6 @@ func (s *Scanner) WatchDir(repos []types.Repo) (<-chan types.Repo, <-chan error,
 		case types.Node:
 			go s.watchNpm(repo, triggers, errors, repoStopper)
 		default:
-
 		}
 	}
 
@@ -58,6 +58,7 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors c
 			select {
 			// watch for events
 			case <-watcher.Events:
+				logrus.Infof("Sending trigger for %s", repo.Name)
 				triggers <- repo
 
 				// watch for errors

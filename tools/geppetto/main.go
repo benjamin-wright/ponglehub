@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"ponglehub.co.uk/geppetto/display"
 	"ponglehub.co.uk/geppetto/types"
+	"ponglehub.co.uk/geppetto/ui"
 
 	"ponglehub.co.uk/geppetto/builder"
 
@@ -60,17 +60,9 @@ func main() {
 					cfg := getConfig(c)
 					initLogger(cfg)
 
-					scan := scanner.New()
-					disp := display.Display{}
+					ui := ui.UI{}
 
-					repos, err := scan.ScanDir(cfg.Target)
-					if err != nil {
-						return err
-					}
-
-					triggers, errors, _ := scan.WatchDir(repos)
-
-					disp.Watch(triggers, errors)
+					ui.Watch(cfg.Target)
 					return nil
 				},
 			},
@@ -82,12 +74,12 @@ func main() {
 					cfg := getConfig(c)
 					initLogger(cfg)
 
-					disp := display.Display{}
+					ui := ui.UI{}
 					progress := make(chan []types.RepoState, 3)
 					finished := make(chan bool)
 
 					if !cfg.Debug {
-						go disp.Start(progress, finished)
+						go ui.Start(progress, finished)
 					} else {
 						go func(prg chan []types.RepoState) {
 							for range prg {
