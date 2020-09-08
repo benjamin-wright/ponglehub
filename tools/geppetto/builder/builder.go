@@ -8,7 +8,7 @@ import (
 )
 
 type worker interface {
-	buildNPM(repo types.Repo, signals chan<- buildSignal)
+	buildNPM(repo types.Repo, signals chan<- signal)
 }
 
 // Builder builds your application
@@ -26,7 +26,7 @@ func New() *Builder {
 // Build build your repos
 func (b *Builder) Build(repos []types.Repo, progress chan<- []types.RepoState) error {
 	state := newBuildState(repos)
-	signals := make(chan buildSignal)
+	signals := make(chan signal)
 
 	progress <- state.repos
 

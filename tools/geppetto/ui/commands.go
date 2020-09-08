@@ -1,11 +1,11 @@
 package ui
 
-type watchCommand uint8
+type command uint8
 
 const (
-	redrawCommand watchCommand = 0
-	quitCommand   watchCommand = 1
-	upCommand     watchCommand = 2
-	downCommand   watchCommand = 3
-	selectCommand watchCommand = 4
+	redrawCommand command = 0
+	quitCommand   command = 1
+	upCommand     command = 2
+	downCommand   command = 3
+	selectCommand command = 4
 )

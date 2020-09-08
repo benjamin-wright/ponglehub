@@ -11,10 +11,20 @@ import (
 )
 
 // Display a collection of methods for drawing fullscreen ascii UI outputs
-type Display struct{}
+type UI struct {
+	screen   tcell.Screen
+	display  display
+	keyboard keyboard
+}
+
+// Stop stop all watchers and close the console writer
+func (ui *UI) Stop() {
+	ui.display.stop()
+	ui.screen.Fini()
+}
 
 // Watch UI for file watching
-func (d *Display) Watch(triggers <-chan types.Repo, errors <-chan error) {
+func (ui *UI) Watch(progress <-chan []types.RepoState, errors <-chan error) {
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		logrus.Fatalf("Error making screen: %+v", err)
@@ -27,22 +37,11 @@ func (d *Display) Watch(triggers <-chan types.Repo, errors <-chan error) {
 
 	defer screen.Fini()
 
-	keyboardCtrl := watchInput{screen: screen}
-	uiCtrl := watchUI{screen: screen}
-	inputs := keyboardCtrl.start()
-	uiCtrl.start(triggers, inputs)
+	ui.keyboard = keyboard{screen: screen}
+	ui.display = display{screen: screen}
 
-	// inputs := make(chan rune)
-
-	// screen, err := tcell.NewScreen()
-	// if err != nil {
-	// 	logrus.Fatalf("Error making screen: %+v", err)
-	// }
-
-	// err = screen.Init()
-	// if err != nil {
-	// 	logrus.Fatalf("Error initing screen: %+v", err)
-	// }
+	commands := ui.keyboard.start()
+	ui.display.start(progress, commands)
 
 	// go func() {
 	// 	for {
@@ -79,7 +78,7 @@ func (d *Display) Watch(triggers <-chan types.Repo, errors <-chan error) {
 }
 
 // Start begin drawing updates of build progress
-func (d *Display) Start(progress <-chan []types.RepoState, finished chan<- bool) {
+func (d *UI) Start(progress <-chan []types.RepoState, finished chan<- bool) {
 	for p := range progress {
 		tm.Clear()
 		tm.MoveCursor(1, 1)

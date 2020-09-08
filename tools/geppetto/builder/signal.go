@@ -1,6 +1,6 @@
 package builder
 
-type buildSignal struct {
+type signal struct {
 	repo     string
 	err      error
 	skip     bool

@@ -16,50 +16,50 @@ func newDefaultWorker() *defaultWorker {
 	}
 }
 
-func (w *defaultWorker) buildNPM(repo types.Repo, signals chan<- buildSignal) {
+func (w *defaultWorker) buildNPM(repo types.Repo, signals chan<- signal) {
 	logrus.Debugf("Building NPM repo: %s", repo.Name)
 
-	signals <- buildSignal{repo: repo.Name, phase: "check"}
+	signals <- signal{repo: repo.Name, phase: "check"}
 	currentSHA, err := w.npm.GetCurrentSHA(repo)
 	if err != nil {
-		signals <- buildSignal{repo: repo.Name, err: err}
+		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
 	latestSHA, err := w.npm.GetLatestSHA(repo)
 	if err != nil {
-		signals <- buildSignal{repo: repo.Name, err: err}
+		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
 	if currentSHA == latestSHA {
-		signals <- buildSignal{repo: repo.Name, skip: true}
+		signals <- signal{repo: repo.Name, skip: true}
 		return
 	}
 
-	signals <- buildSignal{repo: repo.Name, phase: "install"}
+	signals <- signal{repo: repo.Name, phase: "install"}
 	if err := w.npm.Install(repo); err != nil {
-		signals <- buildSignal{repo: repo.Name, err: err}
+		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
-	signals <- buildSignal{repo: repo.Name, phase: "lint"}
+	signals <- signal{repo: repo.Name, phase: "lint"}
 	if err := w.npm.Lint(repo); err != nil {
-		signals <- buildSignal{repo: repo.Name, err: err}
+		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
-	signals <- buildSignal{repo: repo.Name, phase: "test"}
+	signals <- signal{repo: repo.Name, phase: "test"}
 	if err := w.npm.Test(repo); err != nil {
-		signals <- buildSignal{repo: repo.Name, err: err}
+		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
-	signals <- buildSignal{repo: repo.Name, phase: "publish"}
+	signals <- signal{repo: repo.Name, phase: "publish"}
 	if err := w.npm.Publish(repo); err != nil {
-		signals <- buildSignal{repo: repo.Name, err: err}
+		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
-	signals <- buildSignal{repo: repo.Name, finished: true}
+	signals <- signal{repo: repo.Name, finished: true}
 }

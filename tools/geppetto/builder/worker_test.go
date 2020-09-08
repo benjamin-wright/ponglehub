@@ -17,13 +17,13 @@ type mockWorker struct {
 	calls chan<- call
 }
 
-func (m *mockWorker) buildNPM(repo types.Repo, signals chan<- buildSignal) {
+func (m *mockWorker) buildNPM(repo types.Repo, signals chan<- signal) {
 	m.calls <- call{
 		repo: repo.Name,
 		lang: "npm",
 	}
 
-	signals <- buildSignal{
+	signals <- signal{
 		repo: repo.Name,
 		err:  m.err,
 	}

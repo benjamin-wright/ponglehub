@@ -5,9 +5,15 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
-type watchUI struct {
+type display struct {
 	screen tcell.Screen
 }
 
-func (w *watchUI) start(progress <-chan []types.RepoState, commands <-chan watchCommand) {}
-func (w *watchUI) stop()                                                                 {}
+func (d *display) start(progress <-chan []types.RepoState, commands <-chan command) {
+	for {
+		d.screen.Clear()
+
+		d.screen.
+	}
+}
+func (d *display) stop()                                                            {}
