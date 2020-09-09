@@ -53,8 +53,13 @@ func (ui *UI) Watch(target string) error {
 	ui.builder = builder.New()
 
 	commands := ui.keyboard.start()
+	ui.display.building = true
 	ui.display.draw()
-	waiting := true
+	go func() {
+		logrus.Info("Building...")
+		ui.builder.Build(repos, progress)
+		ui.display.building = false
+	}()
 
 	for {
 		select {
@@ -62,21 +67,29 @@ func (ui *UI) Watch(target string) error {
 			switch cmd {
 			case quitCommand:
 				return nil
+			case upCommand:
+				if ui.display.selected > 0 {
+					ui.display.selected--
+				}
+			case downCommand:
+				if ui.display.selected < len(ui.display.state)-1 {
+					ui.display.selected++
+				}
 			}
 		case repo := <-triggers:
 			logrus.Infof("Got trigger for %s", repo.Name)
-			if waiting {
-				waiting = false
+			if !ui.display.building {
+				ui.display.building = true
 				go func() {
 					logrus.Info("Building...")
-					err = ui.builder.Build(repos, progress)
-					waiting = true
+					ui.builder.Build(repos, progress)
+					ui.display.building = false
 				}()
 			}
 		case state := <-progress:
 			ui.display.state = state
-			ui.display.draw()
 		}
+		ui.display.draw()
 	}
 }
 

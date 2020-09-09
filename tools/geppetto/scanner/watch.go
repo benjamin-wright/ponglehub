@@ -63,6 +63,7 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors c
 
 				// watch for errors
 			case err := <-watcher.Errors:
+				logrus.Infof("Error! %s", repo.Name)
 				errors <- err
 			}
 		}
