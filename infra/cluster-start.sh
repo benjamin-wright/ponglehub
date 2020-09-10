@@ -58,6 +58,7 @@ EOL
         docker exec "$node" sysctl fs.inotify.max_user_instances=512
     done
 
+    echo "waiting for kube services to be ready"
     looping=true
     while $looping; do
       value=$(kubectl get apiservices v1beta1.metrics.k8s.io -o json | jq '.status.conditions[] | .status' -r | tr -d '\n')
@@ -179,12 +180,10 @@ start-registry
 start-cluster
 
 if [ "$mode" == "all" ]; then
-  echo "deploying everything..."
   make-certs
   deploy-infra
   npm-login
 elif [ "$mode" == "repos" ]; then
-  echo "deploying just the repos..."
   deploy-repos
   npm-login
 else
