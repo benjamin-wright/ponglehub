@@ -9,7 +9,7 @@ module.exports = {
     },
     "parserOptions": {
         "sourceType": "module"
-    },
+    }
     "globals": {
         "module": true,
         "Promise": true

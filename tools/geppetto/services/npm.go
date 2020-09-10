@@ -40,7 +40,7 @@ func (r NPM) Install(repo types.Repo) error {
 
 // Lint run the NPM lint script
 func (r NPM) Lint(repo types.Repo) error {
-	output, err := r.cmd.Run(repo.Path, "npm run lint")
+	output, err := r.cmd.Run(repo.Path, "npm run lint --silent")
 	if err != nil {
 		return fmt.Errorf("Error linting NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -50,7 +50,7 @@ func (r NPM) Lint(repo types.Repo) error {
 
 // Test run the NPM test
 func (r NPM) Test(repo types.Repo) error {
-	output, err := r.cmd.Run(repo.Path, "npm test")
+	output, err := r.cmd.Run(repo.Path, "npm test --silent")
 	if err != nil {
 		return fmt.Errorf("Error testing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}

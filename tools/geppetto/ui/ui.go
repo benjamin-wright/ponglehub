@@ -49,7 +49,7 @@ func (ui *UI) Watch(target string) error {
 	defer screen.Fini()
 
 	ui.keyboard = keyboard{screen: screen}
-	ui.display = watchView{screen: screen}
+	ui.display = watchView{screen: screen, highlighted: 0, selected: -1}
 	ui.builder = builder.New()
 
 	commands := ui.keyboard.start()
@@ -66,14 +66,24 @@ func (ui *UI) Watch(target string) error {
 		case cmd := <-commands:
 			switch cmd {
 			case quitCommand:
-				return nil
+				if ui.display.selected != -1 {
+					ui.display.selected = -1
+				} else {
+					return nil
+				}
 			case upCommand:
-				if ui.display.selected > 0 {
-					ui.display.selected--
+				if ui.display.highlighted > 0 {
+					ui.display.highlighted--
 				}
 			case downCommand:
-				if ui.display.selected < len(ui.display.state)-1 {
-					ui.display.selected++
+				if ui.display.highlighted < len(ui.display.state)-1 {
+					ui.display.highlighted++
+				}
+			case selectCommand:
+				if ui.display.selected == ui.display.highlighted {
+					ui.display.selected = -1
+				} else {
+					ui.display.selected = ui.display.highlighted
 				}
 			}
 		case repo := <-triggers:
