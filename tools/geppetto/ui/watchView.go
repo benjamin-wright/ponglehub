@@ -84,6 +84,12 @@ func drawContent(screen tcell.Screen, state []types.RepoState, highlighted int, 
 				screen.SetContent(x, line+offset, ' ', nil, style)
 			}
 		}
+		if line == selected {
+			style = style.Foreground(tcell.ColorLightSlateGray)
+			for x := 3; x <= width-3; x++ {
+				screen.SetContent(x, line+offset, ' ', nil, style)
+			}
+		}
 
 		screen.SetContent(2, line+offset, icon, nil, style)
 
@@ -105,7 +111,7 @@ func drawContent(screen tcell.Screen, state []types.RepoState, highlighted int, 
 				drawText(screen, "💡", 60, line+offset, 5, style)
 			} else {
 				drawText(screen, "🏗️", 60, line+offset, 7, style)
-				drawText(screen, repo.Phase(), 70, line+offset, 20, style)
+				drawText(screen, repo.Phase(), 64, line+offset, 20, style)
 			}
 		} else {
 			drawText(screen, "⏳", 60, line+offset, 5, style)
