@@ -1,7 +1,10 @@
 .PHONY: init clean deploy
 
 init:
-	@./infra/cluster-start.sh
+	@./infra/cluster-start.sh all
+
+repos:
+	@./infra/cluster-start.sh repos
 
 clean:
 	@./infra/cluster-stop.sh

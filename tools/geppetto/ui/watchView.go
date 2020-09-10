@@ -7,14 +7,14 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
-type display struct {
+type watchView struct {
 	screen   tcell.Screen
 	state    []types.RepoState
 	selected int
 	building bool
 }
 
-func (d *display) draw() {
+func (d *watchView) draw() {
 	d.screen.Clear()
 	width, height := d.screen.Size()
 	drawBorder(d.screen, width, height)
@@ -98,7 +98,9 @@ func drawContent(screen tcell.Screen, state []types.RepoState, selected int, wid
 			if repo.Phase() == "check" {
 				drawText(screen, "💡", 60, line+3, 5, style)
 			} else {
-				drawText(screen, "🏗️", 60, line+3, 5, style)
+				drawText(screen, "🏗️", 60, line+3, 7, style)
+				drawText(screen, repo.Phase(), 66, line+3, 20, style)
+				logrus.Infof("Phase: %s", repo.Phase())
 			}
 		} else {
 			drawText(screen, "⏳", 60, line+3, 5, style)
@@ -109,6 +111,7 @@ func drawContent(screen tcell.Screen, state []types.RepoState, selected int, wid
 func drawText(screen tcell.Screen, content string, x int, y int, maxLength int, style tcell.Style) {
 	ellipse := false
 	if len(content) > maxLength {
+		logrus.Infof("Content length: %d %s", len(content), content)
 		ellipse = true
 	}
 

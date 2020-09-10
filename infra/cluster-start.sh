@@ -108,6 +108,22 @@ function deploy-infra() {
     --set linkerd2.identity.issuer.crtExpiry=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ")
 }
 
+function deploy-repos() {
+  echo "Deploying/upgrading just repo infrastructure..."
+  kubectl get ns | grep infra || kubectl create ns infra
+  kubectl annotate namespace infra linkerd.io/inject=enabled --overwrite
+  helm dep update $ROOT_DIR/chart
+  helm upgrade --install infra $ROOT_DIR/chart \
+    --wait \
+    --timeout 10m0s \
+    --namespace infra \
+    --set linkerd2.enabled=false \
+    --set prometheus.enabled=false \
+    --set grafana.enabled=false \
+    --set loki-stack.enabled=false \
+    --set strimzi-kafka-operator.enabled=false
+}
+
 function npm-login() {
   /usr/bin/expect <<EOD
 spawn npm login --registry "$NPM_REGISTRY" --scope=pongle --strict-ssl false
@@ -156,10 +172,23 @@ spec:
 EOL
 }
 
+mode="$1"
+
 create-network
 start-registry
 start-cluster
-make-certs
-deploy-infra
-npm-login
+
+if [ "$mode" == "all" ]; then
+  echo "deploying everything..."
+  make-certs
+  deploy-infra
+  npm-login
+elif [ "$mode" == "repos" ]; then
+  echo "deploying just the repos..."
+  deploy-repos
+  npm-login
+else
+  echo "mode $mode not recognised"
+fi
+
 overwrite-traefik-config

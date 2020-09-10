@@ -17,7 +17,7 @@ import (
 type UI struct {
 	builder  *builder.Builder
 	screen   tcell.Screen
-	display  display
+	display  watchView
 	keyboard keyboard
 	scan     *scanner.Scanner
 }
@@ -49,7 +49,7 @@ func (ui *UI) Watch(target string) error {
 	defer screen.Fini()
 
 	ui.keyboard = keyboard{screen: screen}
-	ui.display = display{screen: screen}
+	ui.display = watchView{screen: screen}
 	ui.builder = builder.New()
 
 	commands := ui.keyboard.start()

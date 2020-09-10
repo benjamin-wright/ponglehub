@@ -19,5 +19,5 @@
     "lint": "echo \"NA\"",
     "test": "echo \"NA\""
   },
-  "version": "1.0.3"
+  "version": "1.0.4"
 }
