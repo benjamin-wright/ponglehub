@@ -107,7 +107,7 @@ func (ui *UI) Watch(target string) error {
 	}
 }
 
-// Start begin drawing updates of build progress
+// Start drawing updates of build progress
 func (ui *UI) Start(progress <-chan []types.RepoState, finished chan<- bool) {
 	for p := range progress {
 		tm.Clear()
