@@ -12,60 +12,63 @@ type watchView struct {
 	highlighted int
 	selected    int
 	building    bool
+	scroll      int
+	maxScroll   int
 }
 
 func (d *watchView) draw() {
 	d.screen.Clear()
 	width, height := d.screen.Size()
-	drawBorder(d.screen, width, height)
-	drawTitle(d.screen, d.building, width, height)
-	drawContent(d.screen, d.state, d.highlighted, d.selected, width, height)
+	d.drawBorder(width, height)
+	d.drawTitle(width, height)
+	d.drawContent(width, height)
 	d.screen.Show()
 }
 
-func drawBorder(screen tcell.Screen, width int, height int) {
+func (d *watchView) drawBorder(width int, height int) {
 	style := tcell.StyleDefault
 	style = style.Foreground(tcell.ColorGreen)
 
 	for x := 1; x < width-1; x++ {
-		screen.SetContent(x, 0, '-', nil, style)
-		screen.SetContent(x, height-1, '-', nil, style)
+		d.screen.SetContent(x, 0, '-', nil, style)
+		d.screen.SetContent(x, height-1, '-', nil, style)
 	}
 
 	for y := 1; y < height-1; y++ {
-		screen.SetContent(0, y, '|', nil, style)
-		screen.SetContent(width-1, y, '|', nil, style)
+		d.screen.SetContent(0, y, '|', nil, style)
+		d.screen.SetContent(width-1, y, '|', nil, style)
 	}
 
-	screen.SetContent(0, 0, '+', nil, style)
-	screen.SetContent(0, height-1, '+', nil, style)
-	screen.SetContent(width-1, 0, '+', nil, style)
-	screen.SetContent(width-1, height-1, '+', nil, style)
+	d.screen.SetContent(0, 0, '+', nil, style)
+	d.screen.SetContent(0, height-1, '+', nil, style)
+	d.screen.SetContent(width-1, 0, '+', nil, style)
+	d.screen.SetContent(width-1, height-1, '+', nil, style)
 }
 
-func drawTitle(screen tcell.Screen, building bool, width int, height int) {
+func (d *watchView) drawTitle(width int, height int) {
 	title := "GEPPETTO"
 	titleStart := width/2 - len(title)/2
 
 	style := tcell.StyleDefault
 	style = style.Foreground(tcell.ColorGreen)
 
-	drawText(screen, title, titleStart, 1, len(title), style)
+	d.drawText(title, titleStart, 1, len(title), style)
 
-	if building {
-		drawText(screen, "🏗️", width-4, 1, 10, style)
+	if d.building {
+		d.drawText("🏗️", width-4, 1, 10, style)
 	} else {
-		drawText(screen, "⏳", width-4, 1, 10, style)
+		d.drawText("⏳", width-4, 1, 10, style)
 	}
 }
 
-func drawContent(screen tcell.Screen, state []types.RepoState, highlighted int, selected int, width int, height int) {
+func (d *watchView) drawContent(width int, height int) {
 	logrus.Infof("Drawing content into %d, %d", width, height)
 
 	offset := 3
-	spareLines := height - 6 - len(state)
+	spareLines := height - 6 - len(d.state)
+	d.maxScroll = 0
 
-	for line, repo := range state {
+	for line, repo := range d.state {
 		icon := '?'
 		switch repo.Repo().RepoType {
 		case types.Node:
@@ -78,48 +81,55 @@ func drawContent(screen tcell.Screen, state []types.RepoState, highlighted int, 
 
 		style := tcell.StyleDefault
 
-		if line == highlighted {
+		if line == d.highlighted {
 			style = style.Background(tcell.ColorDarkGreen)
 			for x := 3; x <= width-3; x++ {
-				screen.SetContent(x, line+offset, ' ', nil, style)
+				d.screen.SetContent(x, line+offset, ' ', nil, style)
 			}
 		}
-		if line == selected {
+		if line == d.selected {
 			style = style.Foreground(tcell.ColorLightSlateGray)
 			for x := 3; x <= width-3; x++ {
-				screen.SetContent(x, line+offset, ' ', nil, style)
+				d.screen.SetContent(x, line+offset, ' ', nil, style)
 			}
 		}
 
-		screen.SetContent(2, line+offset, icon, nil, style)
+		d.screen.SetContent(2, line+offset, icon, nil, style)
 
-		drawText(screen, repo.Repo().Name, 5, line+offset, 50, style)
+		d.drawText(repo.Repo().Name, 5, line+offset, 50, style)
 		if repo.Built() {
-			drawText(screen, "✅", 60, line+offset, 5, style)
+			d.drawText("✅", 60, line+offset, 5, style)
 		} else if repo.Skipped() {
-			drawText(screen, "🔄", 60, line+offset, 5, style)
+			d.drawText("🔄", 60, line+offset, 5, style)
 		} else if repo.Blocked() {
-			drawText(screen, "❌", 60, line+offset, 5, style)
+			d.drawText("❌", 60, line+offset, 5, style)
 		} else if repo.Errored() != nil {
-			drawText(screen, "🔥", 60, line+offset, 5, style)
-			if line == selected {
-				lines := drawMultiline(screen, repo.Errored().Error(), 3, line+4, width-6, spareLines, tcell.StyleDefault)
+			d.drawText("🔥", 60, line+offset, 5, style)
+			if line == d.selected {
+				lines := d.drawMultiline(repo.Errored().Error(), 3, line+4, width-6, spareLines, d.scroll, tcell.StyleDefault)
+				d.maxScroll = d.getScrollHeight(spareLines, lines)
+				if d.scroll > d.maxScroll {
+					d.scroll = d.maxScroll
+				}
+				if lines > spareLines {
+					lines = spareLines
+				}
 				offset = offset + 1 + lines
 			}
 		} else if repo.Building() {
 			if repo.Phase() == "check" {
-				drawText(screen, "💡", 60, line+offset, 5, style)
+				d.drawText("💡", 60, line+offset, 5, style)
 			} else {
-				drawText(screen, "🏗️", 60, line+offset, 7, style)
-				drawText(screen, repo.Phase(), 64, line+offset, 20, style)
+				d.drawText("🏗️", 60, line+offset, 7, style)
+				d.drawText(repo.Phase(), 64, line+offset, 20, style)
 			}
 		} else {
-			drawText(screen, "⏳", 60, line+offset, 5, style)
+			d.drawText("⏳", 60, line+offset, 5, style)
 		}
 	}
 }
 
-func drawText(screen tcell.Screen, content string, x int, y int, maxLength int, style tcell.Style) {
+func (d *watchView) drawText(content string, x int, y int, maxLength int, style tcell.Style) {
 	ellipse := false
 	if len(content) > maxLength {
 		logrus.Infof("Content length: %d %s", len(content), content)
@@ -129,17 +139,17 @@ func drawText(screen tcell.Screen, content string, x int, y int, maxLength int, 
 	for char, rune := range content {
 		if char >= maxLength-3 && ellipse {
 			if char < maxLength {
-				screen.SetContent(x+char, y, '.', nil, style)
+				d.screen.SetContent(x+char, y, '.', nil, style)
 			}
 
 			continue
 		}
 
-		screen.SetContent(x+char, y, rune, nil, style)
+		d.screen.SetContent(x+char, y, rune, nil, style)
 	}
 }
 
-func drawMultiline(screen tcell.Screen, content string, x int, y int, width int, height int, style tcell.Style) int {
+func (d *watchView) drawMultiline(content string, x int, y int, width int, height int, scroll int, style tcell.Style) int {
 	runes := []rune(content)
 
 	xCoord := 0
@@ -157,12 +167,18 @@ func drawMultiline(screen tcell.Screen, content string, x int, y int, width int,
 			yCoord++
 		}
 
-		if yCoord > height {
-			return yCoord - 1
+		if yCoord > scroll && yCoord < height+scroll {
+			d.screen.SetContent(x+xCoord, y+yCoord-scroll, rune, nil, style)
 		}
-
-		screen.SetContent(x+xCoord, y+yCoord, rune, nil, style)
 	}
 
-	return yCoord
+	return yCoord + 1
+}
+
+func (d *watchView) getScrollHeight(height int, lines int) int {
+	if lines > height {
+		return lines - height
+	}
+
+	return 0
 }

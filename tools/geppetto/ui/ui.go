@@ -72,11 +72,15 @@ func (ui *UI) Watch(target string) error {
 					return nil
 				}
 			case upCommand:
-				if ui.display.highlighted > 0 {
+				if ui.display.highlighted == ui.display.selected && ui.display.maxScroll > 0 && ui.display.scroll > 0 {
+					ui.display.scroll--
+				} else if ui.display.highlighted > 0 {
 					ui.display.highlighted--
 				}
 			case downCommand:
-				if ui.display.highlighted < len(ui.display.state)-1 {
+				if ui.display.highlighted == ui.display.selected && ui.display.maxScroll > 0 && ui.display.scroll < ui.display.maxScroll {
+					ui.display.scroll++
+				} else if ui.display.highlighted < len(ui.display.state)-1 {
 					ui.display.highlighted++
 				}
 			case selectCommand:
