@@ -50,7 +50,7 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors c
 		select {
 		// watch for events
 		case event := <-watcher.Events:
-			repo.Reinstall = filepath.Base(event.Name) == "package.json" || filepath.Base(event.Name) == "package-lock.json"
+			repo.Reinstall = filepath.Base(event.Name) == "package.json"
 			triggers <- repo
 			logrus.Infof("Sending trigger for %s for %s", repo.Name, filepath.Base(event.Name))
 
