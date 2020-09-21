@@ -99,8 +99,30 @@ func (d *devices) drawIcon(t types.RepoType, x int, y int, style tcell.Style) {
 	d.screen.SetContent(x, y, icon, nil, style)
 }
 
-func (d *devices) getNumLines(content string, width int) int { return 0 }
-func (d *devices) getSize() (int, int)                       { return d.screen.Size() }
+func (d *devices) getNumLines(content string, width int) int {
+	runes := []rune(content)
+	xCoord := 0
+	yCoord := 1
+
+	for _, rune := range runes {
+		xCoord++
+		if xCoord > width {
+			xCoord = 0
+			yCoord++
+			continue
+		}
+
+		if rune == '\n' {
+			xCoord = 0
+			yCoord++
+			continue
+		}
+	}
+
+	return yCoord
+}
+
+func (d *devices) getSize() (int, int) { return d.screen.Size() }
 
 func (d *devices) drawMultiline(
 	content string,
@@ -111,6 +133,32 @@ func (d *devices) drawMultiline(
 	scroll int,
 	style tcell.Style,
 ) {
+	runes := []rune(content)
+
+	xCoord := 0
+	yCoord := 0
+
+	for _, rune := range runes {
+		xCoord++
+		if xCoord > width {
+			xCoord = 0
+			yCoord++
+		}
+
+		if rune == '\n' {
+			xCoord = 0
+			yCoord++
+			continue
+		}
+
+		if yCoord >= height+scroll {
+			return
+		}
+
+		if yCoord > scroll && yCoord < height+scroll {
+			d.screen.SetContent(x+xCoord, y+yCoord-scroll, rune, nil, style)
+		}
+	}
 }
 
 func (d *devices) listen() <-chan command {

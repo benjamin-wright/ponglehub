@@ -91,8 +91,9 @@ func (w *Watcher) Start(target string) error {
 			if event == nil {
 				building = false
 				progressEvents = make(chan []types.RepoState)
+			} else {
+				state = event
 			}
-			state = event
 		case err := <-errorEvents:
 			logrus.Fatalf("Error during run: %+v", err)
 		}
@@ -130,17 +131,26 @@ func (w *Watcher) Start(target string) error {
 				w.devices.drawText("🔥", 60, line+offset, 5, style)
 				if line == selected {
 					errorMsg := repo.Errored().Error()
-					lines := w.devices.getNumLines(errorMsg, width)
+					lines := w.devices.getNumLines(errorMsg, width-6)
 
-					if lines > height {
-						maxScroll = lines - height
+					logrus.Infof("Message length: %d", lines)
+					logrus.Infof("Screen height: %d", height)
+
+					if lines > spareLines {
+						maxScroll = lines - spareLines
 					} else {
 						maxScroll = 0
 					}
 
+					logrus.Infof("Max Scroll: %d", maxScroll)
+					logrus.Infof("Lines: %d", lines)
+
 					if lines > spareLines {
 						lines = spareLines
 					}
+
+					logrus.Infof("Spare lines: %d", spareLines)
+					logrus.Infof("Lines: %d", lines)
 
 					w.devices.drawMultiline(errorMsg, 3, line+4, width-6, spareLines, scroll, tcell.StyleDefault)
 					offset = offset + 1 + lines
