@@ -22,4 +22,6 @@ type Repo struct {
 	RepoType RepoType
 	// The paths of other repos one which this one depends
 	DependsOn []string
+	// True if the repo dependencies should be updated
+	Reinstall bool
 }

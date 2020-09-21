@@ -16,7 +16,6 @@ import (
 type UI struct {
 	builder *builder.Builder
 	screen  tcell.Screen
-	display watchView
 	scan    *scanner.Scanner
 }
 

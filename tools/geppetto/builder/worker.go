@@ -37,10 +37,12 @@ func (w *defaultWorker) buildNPM(repo types.Repo, signals chan<- signal) {
 		return
 	}
 
-	signals <- signal{repo: repo.Name, phase: "install"}
-	if err := w.npm.Install(repo); err != nil {
-		signals <- signal{repo: repo.Name, err: err}
-		return
+	if repo.Reinstall {
+		signals <- signal{repo: repo.Name, phase: "install"}
+		if err := w.npm.Install(repo); err != nil {
+			signals <- signal{repo: repo.Name, err: err}
+			return
+		}
 	}
 
 	signals <- signal{repo: repo.Name, phase: "lint"}

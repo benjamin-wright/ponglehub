@@ -49,11 +49,12 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors c
 	for {
 		select {
 		// watch for events
-		case <-watcher.Events:
-			logrus.Infof("Sending trigger for %s", repo.Name)
+		case event := <-watcher.Events:
+			repo.Reinstall = filepath.Base(event.Name) == "package.json" || filepath.Base(event.Name) == "package-lock.json"
 			triggers <- repo
+			logrus.Infof("Sending trigger for %s for %s", repo.Name, filepath.Base(event.Name))
 
-			// watch for errors
+		// watch for errors
 		case err := <-watcher.Errors:
 			logrus.Infof("Error! %s", repo.Name)
 			errors <- err

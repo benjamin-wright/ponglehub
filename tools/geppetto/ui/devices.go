@@ -58,7 +58,21 @@ func (d *devices) drawBorder(width int, height int) {
 	d.screen.SetContent(width-1, height-1, '+', nil, style)
 }
 
-func (d *devices) drawTitle(content string, width int, height int) {}
+func (d *devices) drawTitle(content string, width int, building bool) {
+	title := "GEPPETTO"
+	titleStart := width/2 - len(title)/2
+
+	style := tcell.StyleDefault
+	style = style.Foreground(tcell.ColorGreen)
+
+	d.drawText(title, titleStart, 1, len(title), style)
+
+	if building {
+		d.drawText("🏗️", width-4, 1, 10, style)
+	} else {
+		d.drawText("⏳", width-4, 1, 10, style)
+	}
+}
 
 func (d *devices) highlightLine(y int, width int, style tcell.Style) {
 	for x := 3; x <= width-3; x++ {

@@ -152,13 +152,13 @@ func (r NPM) SetVersion(repo types.Repo, version string) error {
 		return err
 	}
 
-	version, ok := result["version"].(string)
+	current, ok := result["version"].(string)
 	if !ok {
 		return errors.New("package.json did not include a 'version' field")
 	}
-	logrus.Infof("%s version: %s -> 1.0.0", result["name"], version)
+	logrus.Infof("%s version: %s -> %s", result["name"], current, version)
 
-	result["version"] = "1.0.0"
+	result["version"] = version
 
 	return r.io.WriteJSON(path, result)
 }

@@ -82,6 +82,13 @@ func (w *Watcher) Start(target string) error {
 			}
 		case repo := <-watchEvents:
 			logrus.Infof("Got trigger for %s", repo.Name)
+
+			for i, r := range repos {
+				if r.Name == repo.Name {
+					repos[i] = repo
+				}
+			}
+
 			if !building {
 				logrus.Info("Building...")
 				building = true
@@ -102,7 +109,7 @@ func (w *Watcher) Start(target string) error {
 
 		w.devices.clear()
 		w.devices.drawBorder(width, height)
-		w.devices.drawTitle("GEPPETTO", width, height)
+		w.devices.drawTitle("GEPPETTO", width, building)
 
 		offset := 3
 		spareLines := height - 6 - len(state)
