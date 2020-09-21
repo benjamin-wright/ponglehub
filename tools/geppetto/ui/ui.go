@@ -8,103 +8,16 @@ import (
 
 	tm "github.com/buger/goterm"
 	"github.com/gdamore/tcell/v2"
-	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/scanner"
 	"ponglehub.co.uk/geppetto/types"
 )
 
 // UI a collection of methods for drawing fullscreen ascii UI outputs
 type UI struct {
-	builder  *builder.Builder
-	screen   tcell.Screen
-	display  watchView
-	keyboard keyboard
-	scan     *scanner.Scanner
-}
-
-// Watch UI for file watching
-func (ui *UI) Watch(target string) error {
-	ui.scan = scanner.New()
-	repos, err := ui.scan.ScanDir(target)
-	if err != nil {
-		return err
-	}
-
-	logrus.Infof("Repos: %+v", repos)
-
-	triggers, _, _ := ui.scan.WatchDir(repos)
-
-	progress := make(chan []types.RepoState, 3)
-
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		logrus.Fatalf("Error making screen: %+v", err)
-	}
-
-	err = screen.Init()
-	if err != nil {
-		logrus.Fatalf("Error initing screen: %+v", err)
-	}
-
-	defer screen.Fini()
-
-	ui.keyboard = keyboard{screen: screen}
-	ui.display = watchView{screen: screen, highlighted: 0, selected: -1}
-	ui.builder = builder.New()
-
-	commands := ui.keyboard.start()
-	ui.display.building = true
-	ui.display.draw()
-	go func() {
-		logrus.Info("Building...")
-		ui.builder.Build(repos, progress)
-		ui.display.building = false
-	}()
-
-	for {
-		select {
-		case cmd := <-commands:
-			switch cmd {
-			case quitCommand:
-				if ui.display.selected != -1 {
-					ui.display.selected = -1
-				} else {
-					return nil
-				}
-			case upCommand:
-				if ui.display.highlighted == ui.display.selected && ui.display.maxScroll > 0 && ui.display.scroll > 0 {
-					ui.display.scroll--
-				} else if ui.display.highlighted > 0 {
-					ui.display.highlighted--
-				}
-			case downCommand:
-				if ui.display.highlighted == ui.display.selected && ui.display.maxScroll > 0 && ui.display.scroll < ui.display.maxScroll {
-					ui.display.scroll++
-				} else if ui.display.highlighted < len(ui.display.state)-1 {
-					ui.display.highlighted++
-				}
-			case selectCommand:
-				if ui.display.selected == ui.display.highlighted {
-					ui.display.selected = -1
-				} else {
-					ui.display.selected = ui.display.highlighted
-				}
-			}
-		case repo := <-triggers:
-			logrus.Infof("Got trigger for %s", repo.Name)
-			if !ui.display.building {
-				ui.display.building = true
-				go func() {
-					logrus.Info("Building...")
-					ui.builder.Build(repos, progress)
-					ui.display.building = false
-				}()
-			}
-		case state := <-progress:
-			ui.display.state = state
-		}
-		ui.display.draw()
-	}
+	builder *builder.Builder
+	screen  tcell.Screen
+	display watchView
+	scan    *scanner.Scanner
 }
 
 // Start drawing updates of build progress

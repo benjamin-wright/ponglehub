@@ -9,35 +9,22 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
-func (s *Scanner) WatchDir(repos []types.Repo) (<-chan types.Repo, <-chan error, <-chan bool) {
+func (s *Scanner) WatchDir(repos []types.Repo) (<-chan types.Repo, <-chan error) {
 	triggers := make(chan types.Repo)
 	errors := make(chan error)
-	stopper := make(chan bool)
-
-	stoppers := []chan bool{}
 
 	for _, repo := range repos {
-		repoStopper := make(chan bool)
-		stoppers = append(stoppers, repoStopper)
-
 		switch repo.RepoType {
 		case types.Node:
-			go s.watchNpm(repo, triggers, errors, repoStopper)
+			go s.watchNpm(repo, triggers, errors)
 		default:
 		}
 	}
 
-	go func() {
-		<-stopper
-		for _, s := range stoppers {
-			s <- true
-		}
-	}()
-
-	return triggers, errors, stopper
+	return triggers, errors
 }
 
-func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors chan<- error, stopper <-chan bool) {
+func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors chan<- error) {
 	watcher, _ := fsnotify.NewWatcher()
 	defer watcher.Close()
 
@@ -59,21 +46,17 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors c
 		errors <- err
 	}
 
-	go func() {
-		for {
-			select {
-			// watch for events
-			case <-watcher.Events:
-				logrus.Infof("Sending trigger for %s", repo.Name)
-				triggers <- repo
+	for {
+		select {
+		// watch for events
+		case <-watcher.Events:
+			logrus.Infof("Sending trigger for %s", repo.Name)
+			triggers <- repo
 
-				// watch for errors
-			case err := <-watcher.Errors:
-				logrus.Infof("Error! %s", repo.Name)
-				errors <- err
-			}
+			// watch for errors
+		case err := <-watcher.Errors:
+			logrus.Infof("Error! %s", repo.Name)
+			errors <- err
 		}
-	}()
-
-	<-stopper
+	}
 }

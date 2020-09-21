@@ -1,6 +1,7 @@
 *.tgz
 *.crt
 *.key
+*.csr
 *.DS_Store
 .envrc
 infra/k3s/*

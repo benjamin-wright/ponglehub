@@ -4,13 +4,14 @@ init:
 	@./infra/cluster-start.sh all
 
 repos:
-	@./infra/cluster-start.sh repos
+	# @./infra/cluster-start.sh repos
+	@./infra/local-repos/start.sh
 
 clean:
 	@./infra/cluster-stop.sh
 
 reset:
-	@./infra/reset-npm.sh
+	@./infra/local-repos/stop.sh
 
 deploy:
 	kubectl get ns | grep ponglehub || kubectl create ns ponglehub

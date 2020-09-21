@@ -60,9 +60,13 @@ func main() {
 					cfg := getConfig(c)
 					initLogger(cfg)
 
-					ui := ui.UI{}
+					watcher, err := ui.NewWatcher()
+					if err != nil {
+						logrus.Fatalf("Failed to create watcher instance: %+v", watcher)
+					}
 
-					ui.Watch(cfg.Target)
+					watcher.Start(cfg.Target)
+					defer watcher.Destroy()
 					return nil
 				},
 			},
@@ -75,30 +79,26 @@ func main() {
 					initLogger(cfg)
 
 					ui := ui.UI{}
-					progress := make(chan []types.RepoState, 3)
 					finished := make(chan bool)
-
-					if !cfg.Debug {
-						go ui.Start(progress, finished)
-					} else {
-						go func(prg chan []types.RepoState) {
-							for range prg {
-							}
-						}(progress)
-					}
 
 					repos, err := scanner.New().ScanDir(cfg.Target)
 					if err != nil {
-						close(progress)
 						return err
 					}
 
 					logrus.Infof("Repos: %+v", repos)
 
 					b := builder.New()
-					err = b.Build(repos, progress)
+					progress := b.Build(repos)
 
-					close(progress)
+					if !cfg.Debug {
+						go ui.Start(progress, finished)
+					} else {
+						go func(prg <-chan []types.RepoState) {
+							for range prg {
+							}
+						}(progress)
+					}
 
 					if !cfg.Debug {
 						<-finished
