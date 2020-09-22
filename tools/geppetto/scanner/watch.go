@@ -9,8 +9,8 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
-func (s *Scanner) WatchDir(repos []types.Repo) (<-chan types.Repo, <-chan error) {
-	triggers := make(chan types.Repo)
+func (s *Scanner) WatchDir(repos []types.Repo) (<-chan types.RepoUpdate, <-chan error) {
+	triggers := make(chan types.RepoUpdate)
 	errors := make(chan error)
 
 	for _, repo := range repos {
@@ -24,7 +24,7 @@ func (s *Scanner) WatchDir(repos []types.Repo) (<-chan types.Repo, <-chan error)
 	return triggers, errors
 }
 
-func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors chan<- error) {
+func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.RepoUpdate, errors chan<- error) {
 	watcher, _ := fsnotify.NewWatcher()
 	defer watcher.Close()
 
@@ -54,8 +54,11 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.Repo, errors c
 				continue
 			}
 
-			repo.Reinstall = filepath.Base(event.Name) == "package.json"
-			triggers <- repo
+			triggers <- types.RepoUpdate{
+				Name:    repo.Name,
+				Install: filepath.Base(event.Name) == "package.json",
+			}
+
 			logrus.Infof("Sending trigger for %s for %s", repo.Name, filepath.Base(event.Name))
 
 		// watch for errors

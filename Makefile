@@ -1,16 +1,15 @@
-.PHONY: init clean deploy
+.PHONY: init clean deploy quick stop
 
 init:
 	@./infra/cluster-start.sh all
 
-repos:
-	# @./infra/cluster-start.sh repos
-	@./infra/local-repos/start.sh
-
 clean:
 	@./infra/cluster-stop.sh
 
-reset:
+quick:
+	@./infra/local-repos/start.sh
+
+stop:
 	@./infra/local-repos/stop.sh
 
 deploy:

@@ -49,7 +49,7 @@ func (w *Watcher) Start(target string) error {
 
 	watchEvents, errorEvents := w.scanner.WatchDir(repos)
 	commandEvents := w.devices.listen()
-	progressEvents := w.builder.Build(repos)
+	progressEvents := w.builder.Build(repos, watchEvents)
 
 	for {
 		select {
@@ -80,25 +80,11 @@ func (w *Watcher) Start(target string) error {
 					selected = highlighted
 				}
 			}
-		case repo := <-watchEvents:
-			logrus.Infof("Got trigger for %s", repo.Name)
-
-			for i, r := range repos {
-				if r.Name == repo.Name {
-					repos[i] = repo
-				}
-			}
-
-			if !building {
-				logrus.Info("Building...")
-				building = true
-				progressEvents = w.builder.Build(repos)
-			}
 		case event := <-progressEvents:
 			if event == nil {
 				building = false
-				progressEvents = make(chan []types.RepoState)
 			} else {
+				building = true
 				state = event
 			}
 		case err := <-errorEvents:

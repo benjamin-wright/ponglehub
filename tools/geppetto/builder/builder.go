@@ -8,7 +8,7 @@ import (
 )
 
 type worker interface {
-	buildNPM(repo types.Repo, signals chan<- signal)
+	buildNPM(repo types.Repo, reinstall bool, signals chan<- signal)
 }
 
 // Builder builds your application
@@ -24,7 +24,7 @@ func New() *Builder {
 }
 
 // Build build your repos
-func (b *Builder) Build(repos []types.Repo) <-chan []types.RepoState {
+func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-chan []types.RepoState {
 	state := newBuildState(repos)
 	signals := make(chan signal)
 	progress := make(chan []types.RepoState, 5)
@@ -38,11 +38,11 @@ func (b *Builder) Build(repos []types.Repo) <-chan []types.RepoState {
 
 				if ok {
 					logrus.Infof("Repo building: %s", repo.Name)
-					state.find(repo.Name).Start()
+					reinstall := state.find(repo.Name).Start()
 
 					switch repo.RepoType {
 					case types.Node:
-						go b.worker.buildNPM(repo, signals)
+						go b.worker.buildNPM(repo, reinstall, signals)
 					case types.Golang:
 						fallthrough
 					case types.Helm:
@@ -62,31 +62,37 @@ func (b *Builder) Build(repos []types.Repo) <-chan []types.RepoState {
 			progress <- state.repos
 
 			count := state.numBuilding()
-			if count == 0 {
-				break
-			}
-			logrus.Debugf("Building %d repos", count)
-
-			signal := <-signals
-			if signal.err != nil {
-				logrus.Errorf("Failed to build %s: %+v", signal.repo, signal.err)
-				state.find(signal.repo).Error(signal.err)
-				continue
+			if count > 0 {
+				logrus.Debugf("Building %d repos", count)
+			} else {
+				progress <- nil
+				logrus.Debugf("Waiting for updates...")
 			}
 
-			if signal.skip {
-				logrus.Infof("Skipping repo: %s", signal.repo)
-				state.find(signal.repo).Skip()
-				continue
-			}
+			select {
+			case update := <-updates:
+				state.invalidate(update.Name, update.Install)
+			case signal := <-signals:
+				if signal.err != nil {
+					logrus.Errorf("Failed to build %s: %+v", signal.repo, signal.err)
+					state.find(signal.repo).Error(signal.err)
+					continue
+				}
 
-			if signal.phase != "" {
-				state.find(signal.repo).Progress(signal.phase)
-				continue
-			}
+				if signal.skip {
+					logrus.Infof("Skipping repo: %s", signal.repo)
+					state.find(signal.repo).Skip()
+					continue
+				}
 
-			logrus.Infof("Finished building repo: %s", signal.repo)
-			state.find(signal.repo).Complete()
+				if signal.phase != "" {
+					state.find(signal.repo).Progress(signal.phase)
+					continue
+				}
+
+				logrus.Infof("Finished building repo: %s", signal.repo)
+				state.find(signal.repo).Complete()
+			}
 		}
 
 		close(progress)

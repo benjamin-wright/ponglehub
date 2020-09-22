@@ -16,7 +16,7 @@ func newDefaultWorker() *defaultWorker {
 	}
 }
 
-func (w *defaultWorker) buildNPM(repo types.Repo, signals chan<- signal) {
+func (w *defaultWorker) buildNPM(repo types.Repo, reinstall bool, signals chan<- signal) {
 	logrus.Debugf("Building NPM repo: %s", repo.Name)
 
 	signals <- signal{repo: repo.Name, phase: "check"}
@@ -37,7 +37,7 @@ func (w *defaultWorker) buildNPM(repo types.Repo, signals chan<- signal) {
 		return
 	}
 
-	if repo.Reinstall {
+	if reinstall {
 		signals <- signal{repo: repo.Name, phase: "install"}
 		if err := w.npm.Install(repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}

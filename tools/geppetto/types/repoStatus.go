@@ -3,12 +3,13 @@ package types
 type state string
 
 const (
-	pending  state = "pending"
-	blocked  state = "blocked"
-	building state = "building"
-	built    state = "built"
-	skipped  state = "skipped"
-	errored  state = "errored"
+	pending   state = "pending"
+	reinstall state = "reinstall"
+	blocked   state = "blocked"
+	building  state = "building"
+	built     state = "built"
+	skipped   state = "skipped"
+	errored   state = "errored"
 )
 
 // RepoState the build state of a repo
@@ -36,7 +37,7 @@ func (r *RepoState) Repo() Repo {
 
 // Pending returns true if the repo is still waiting to build
 func (r *RepoState) Pending() bool {
-	return r.state == pending
+	return r.state == pending || r.state == reinstall
 }
 
 // Building returns true if the repo is building
@@ -97,9 +98,26 @@ func (r *RepoState) Success() bool {
 	}
 }
 
-// Start set the state to building
-func (r *RepoState) Start() {
+// Invalidate the previous build
+func (r *RepoState) Invalidate() {
+	r.state = pending
+	r.phase = ""
+	r.err = nil
+}
+
+// Reinstall invalidates the previous build and request a dependency reinstall
+func (r *RepoState) Reinstall() {
+	r.state = reinstall
+	r.phase = ""
+	r.err = nil
+}
+
+// Start set the state to building and return true if a reinstall is needed
+func (r *RepoState) Start() bool {
+	shouldReinstall := r.state == reinstall
 	r.state = building
+
+	return shouldReinstall
 }
 
 // Progress advance the build phase

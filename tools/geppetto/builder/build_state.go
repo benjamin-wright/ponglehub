@@ -29,6 +29,29 @@ func (s *buildState) find(repo string) *types.RepoState {
 	return nil
 }
 
+func (s *buildState) invalidate(repo string, reinstall bool) {
+	logrus.Debugf("Invalidating %s", repo)
+	r := s.find(repo)
+	if !r.Building() {
+		if reinstall {
+			r.Reinstall()
+		} else {
+			r.Invalidate()
+		}
+	} else {
+		logrus.Warnf("Already building %s", r.Repo().Name)
+	}
+
+	for _, r := range s.repos {
+		for _, dep := range r.Repo().DependsOn {
+			if dep == repo {
+				logrus.Debugf("Invalidating %s with dependency %s", r.Repo().Name, dep)
+				s.invalidate(r.Repo().Name, true)
+			}
+		}
+	}
+}
+
 func (s *buildState) numBuilding() int {
 	counted := 0
 

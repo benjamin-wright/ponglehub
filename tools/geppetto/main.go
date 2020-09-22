@@ -6,11 +6,8 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 	"ponglehub.co.uk/geppetto/ui"
 
-	"ponglehub.co.uk/geppetto/builder"
-
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"ponglehub.co.uk/geppetto/scanner"
 )
 
 func getConfig(c *cli.Context) types.Config {
@@ -25,6 +22,7 @@ func initLogger(cfg types.Config) {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("Debug logging enabled")
 	} else {
+		logrus.SetLevel(logrus.DebugLevel)
 		f, err := os.OpenFile("gepetto.log", os.O_WRONLY|os.O_CREATE, 0755)
 		if err != nil {
 			logrus.Fatalf("Failed to redirect logs to file: %+v", err)
@@ -70,43 +68,43 @@ func main() {
 					return nil
 				},
 			},
-			{
-				Name:    "build",
-				Aliases: []string{"b"},
-				Usage:   "build everything",
-				Action: func(c *cli.Context) error {
-					cfg := getConfig(c)
-					initLogger(cfg)
+			// {
+			// 	Name:    "build",
+			// 	Aliases: []string{"b"},
+			// 	Usage:   "build everything",
+			// 	Action: func(c *cli.Context) error {
+			// 		cfg := getConfig(c)
+			// 		initLogger(cfg)
 
-					ui := ui.UI{}
-					finished := make(chan bool)
+			// 		ui := ui.UI{}
+			// 		finished := make(chan bool)
 
-					repos, err := scanner.New().ScanDir(cfg.Target)
-					if err != nil {
-						return err
-					}
+			// 		repos, err := scanner.New().ScanDir(cfg.Target)
+			// 		if err != nil {
+			// 			return err
+			// 		}
 
-					logrus.Infof("Repos: %+v", repos)
+			// 		logrus.Infof("Repos: %+v", repos)
 
-					b := builder.New()
-					progress := b.Build(repos)
+			// 		b := builder.New()
+			// 		progress := b.Build(repos)
 
-					if !cfg.Debug {
-						go ui.Start(progress, finished)
-					} else {
-						go func(prg <-chan []types.RepoState) {
-							for range prg {
-							}
-						}(progress)
-					}
+			// 		if !cfg.Debug {
+			// 			go ui.Start(progress, finished)
+			// 		} else {
+			// 			go func(prg <-chan []types.RepoState) {
+			// 				for range prg {
+			// 				}
+			// 			}(progress)
+			// 		}
 
-					if !cfg.Debug {
-						<-finished
-					}
+			// 		if !cfg.Debug {
+			// 			<-finished
+			// 		}
 
-					return err
-				},
-			},
+			// 		return err
+			// 	},
+			// },
 			{
 				Name:    "rollback",
 				Aliases: []string{"r"},
