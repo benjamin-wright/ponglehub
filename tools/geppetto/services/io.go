@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v2"
 )
 
 // IO mockable functions for interacting with the file system
@@ -32,6 +34,28 @@ func (io *IO) ReadJSON(path string) (map[string]interface{}, error) {
 	return result, nil
 }
 
+// ReadYAML reads arbitrary data from a yaml file
+func (io *IO) ReadYAML(path string) (map[string]interface{}, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	byteData, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	err = yaml.Unmarshal([]byte(byteData), &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // WriteJSON writes arbitrary data to a json file
 func (io *IO) WriteJSON(path string, data map[string]interface{}) error {
 	err := os.Remove(path)
@@ -40,6 +64,21 @@ func (io *IO) WriteJSON(path string, data map[string]interface{}) error {
 	}
 
 	byteData, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path, byteData, 0644)
+}
+
+// WriteYAML writes arbitrary data to a yaml file
+func (io *IO) WriteYAML(path string, data map[string]interface{}) error {
+	err := os.Remove(path)
+	if err != nil {
+		return err
+	}
+
+	byteData, err := yaml.Marshal(data)
 	if err != nil {
 		return err
 	}

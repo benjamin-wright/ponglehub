@@ -41,15 +41,6 @@ func (s *buildState) invalidate(repo string, reinstall bool) {
 	} else {
 		logrus.Warnf("Already building %s", r.Repo().Name)
 	}
-
-	for _, r := range s.repos {
-		for _, dep := range r.Repo().DependsOn {
-			if dep == repo {
-				logrus.Debugf("Invalidating %s with dependency %s", r.Repo().Name, dep)
-				s.invalidate(r.Repo().Name, true)
-			}
-		}
-	}
 }
 
 func (s *buildState) numBuilding() int {

@@ -24,7 +24,7 @@ type RepoState struct {
 func NewRepoState(repo Repo) RepoState {
 	return RepoState{
 		repo:  repo,
-		state: pending,
+		state: reinstall,
 		err:   nil,
 		phase: "",
 	}

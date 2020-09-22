@@ -59,4 +59,6 @@ docker run \
   -v $PWD/infra/local-repos/ssl/private.key:/etc/nginx/ssl/private.key \
   docker.io/nginx
 
+sleep 5
+
 npm-login

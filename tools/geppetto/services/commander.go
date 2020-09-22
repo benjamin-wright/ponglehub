@@ -7,6 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type commander interface {
+	Run(workDir string, command string) (string, error)
+}
+
 // Commander runs shell commands
 type Commander struct{}
 

@@ -9,6 +9,7 @@ import (
 
 type worker interface {
 	buildNPM(repo types.Repo, reinstall bool, signals chan<- signal)
+	buildHelm(repo types.Repo, reinstall bool, signals chan<- signal)
 }
 
 // Builder builds your application
@@ -43,9 +44,9 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-c
 					switch repo.RepoType {
 					case types.Node:
 						go b.worker.buildNPM(repo, reinstall, signals)
-					case types.Golang:
-						fallthrough
 					case types.Helm:
+						go b.worker.buildHelm(repo, reinstall, signals)
+					case types.Golang:
 						logrus.Infof("Skipping build for %s, %s repos not implemented yet", repo.Name, repo.RepoType)
 						state.find(repo.Name).Block()
 					default:
@@ -91,11 +92,19 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-c
 				}
 
 				logrus.Infof("Finished building repo: %s", signal.repo)
-				state.find(signal.repo).Complete()
+				repo := state.find(signal.repo)
+				repo.Complete()
+
+				for _, r := range state.repos {
+					for _, dep := range r.Repo().DependsOn {
+						if dep == repo.Repo().Name {
+							logrus.Debugf("Invalidating %s with dependency %s", r.Repo().Name, dep)
+							state.invalidate(r.Repo().Name, true)
+						}
+					}
+				}
 			}
 		}
-
-		close(progress)
 	}()
 
 	return progress

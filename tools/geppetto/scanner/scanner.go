@@ -11,15 +11,17 @@ import (
 
 // Scanner a file-system scanner for finding code projects
 type Scanner struct {
-	io  services.IO
-	npm services.NPM
+	io   services.IO
+	npm  services.NPM
+	helm services.Helm
 }
 
 // New creates a new scanner instance
 func New() *Scanner {
 	return &Scanner{
-		io:  services.IO{},
-		npm: services.NewNpmService(),
+		io:   services.IO{},
+		npm:  services.NewNpmService(),
+		helm: services.NewHelmService(),
 	}
 }
 
@@ -50,11 +52,9 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 
 		if s.io.FileExists(path + "/chart.yaml") {
 			logrus.Infof("HELM: %s", path)
-			repo := types.Repo{
-				Name:      name,
-				Path:      path,
-				RepoType:  types.Helm,
-				DependsOn: []string{},
+			repo, err := s.helm.GetRepo(path)
+			if err != nil {
+				return err
 			}
 
 			repos = append(repos, repo)

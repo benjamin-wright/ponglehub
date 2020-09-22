@@ -1,0 +1,15 @@
+secrets:
+  admin:
+    username: username
+    password: password
+
+global:
+  identityTrustAnchorsPEM: ca-cert-file
+
+linkerd2:
+  identity:
+    issuer:
+      tls:
+        crtPEM: issuer-cert-file
+        keyPEM: issuer-key-file
+      crtExpiry: a-date

@@ -76,8 +76,12 @@ func (w *Watcher) Start(target string) error {
 			case selectCommand:
 				if selected == highlighted {
 					selected = -1
+					maxScroll = 0
+					scroll = 0
 				} else {
 					selected = highlighted
+					maxScroll = 0
+					scroll = 0
 				}
 			}
 		case event := <-progressEvents:

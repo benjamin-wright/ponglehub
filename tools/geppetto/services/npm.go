@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/types"
@@ -11,10 +13,6 @@ import (
 type io interface {
 	ReadJSON(path string) (map[string]interface{}, error)
 	WriteJSON(path string, data map[string]interface{}) error
-}
-
-type commander interface {
-	Run(workDir string, command string) (string, error)
 }
 
 // NPM collects methods related to NPM repos
@@ -29,8 +27,8 @@ func NewNpmService() NPM {
 }
 
 // Install run an NPM install
-func (r NPM) Install(repo types.Repo) error {
-	output, err := r.cmd.Run(repo.Path, "npm install --strict-ssl=false")
+func (n NPM) Install(repo types.Repo) error {
+	output, err := n.cmd.Run(repo.Path, "npm install --strict-ssl=false")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -39,8 +37,8 @@ func (r NPM) Install(repo types.Repo) error {
 }
 
 // Lint run the NPM lint script
-func (r NPM) Lint(repo types.Repo) error {
-	output, err := r.cmd.Run(repo.Path, "npm run lint --silent")
+func (n NPM) Lint(repo types.Repo) error {
+	output, err := n.cmd.Run(repo.Path, "npm run lint --silent")
 	if err != nil {
 		return fmt.Errorf("Error linting NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -49,8 +47,8 @@ func (r NPM) Lint(repo types.Repo) error {
 }
 
 // Test run the NPM test
-func (r NPM) Test(repo types.Repo) error {
-	output, err := r.cmd.Run(repo.Path, "npm test --silent")
+func (n NPM) Test(repo types.Repo) error {
+	output, err := n.cmd.Run(repo.Path, "npm test --silent")
 	if err != nil {
 		return fmt.Errorf("Error testing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -59,8 +57,8 @@ func (r NPM) Test(repo types.Repo) error {
 }
 
 // Publish push the repo up to its registry
-func (r NPM) Publish(repo types.Repo) error {
-	output, err := r.cmd.Run(repo.Path, "npm publish --strict-ssl=false")
+func (n NPM) Publish(repo types.Repo) error {
+	output, err := n.cmd.Run(repo.Path, "npm publish --strict-ssl=false --force --access restricted")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -69,22 +67,22 @@ func (r NPM) Publish(repo types.Repo) error {
 }
 
 // GetLatestSHA get the SHA of the most recently published version of the module
-func (r NPM) GetLatestSHA(repo types.Repo) (string, error) {
-	return r.cmd.Run(repo.Path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
+func (n NPM) GetLatestSHA(repo types.Repo) (string, error) {
+	return n.cmd.Run(repo.Path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
 }
 
 // GetCurrentSHA get the SHA of the current version of the module
-func (r NPM) GetCurrentSHA(repo types.Repo) (string, error) {
-	return r.cmd.Run(repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
+func (n NPM) GetCurrentSHA(repo types.Repo) (string, error) {
+	return n.cmd.Run(repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
 }
 
 // GetRepo returns a repo object representing the node project at the designated file path
-func (r NPM) GetRepo(path string) (types.Repo, error) {
+func (n NPM) GetRepo(path string) (types.Repo, error) {
 	empty := types.Repo{}
 
 	packageJSON := path + "/package.json"
 
-	data, err := r.io.ReadJSON(packageJSON)
+	data, err := n.io.ReadJSON(packageJSON)
 	if err != nil {
 		return empty, err
 	}
@@ -108,10 +106,10 @@ func (r NPM) GetRepo(path string) (types.Repo, error) {
 }
 
 // GetDependencyNames returns an array containg the names of all this project's dependencies
-func (r NPM) GetDependencyNames(repo types.Repo) ([]string, error) {
+func (n NPM) GetDependencyNames(repo types.Repo) ([]string, error) {
 	packageJSON := repo.Path + "/package.json"
 
-	data, err := r.io.ReadJSON(packageJSON)
+	data, err := n.io.ReadJSON(packageJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -144,10 +142,10 @@ func (r NPM) GetDependencyNames(repo types.Repo) ([]string, error) {
 }
 
 // SetVersion update the version number in package.json
-func (r NPM) SetVersion(repo types.Repo, version string) error {
+func (n NPM) SetVersion(repo types.Repo, version string) error {
 	path := repo.Path + "/package.json"
 
-	result, err := r.io.ReadJSON(path)
+	result, err := n.io.ReadJSON(path)
 	if err != nil {
 		return err
 	}
@@ -156,9 +154,20 @@ func (r NPM) SetVersion(repo types.Repo, version string) error {
 	if !ok {
 		return errors.New("package.json did not include a 'version' field")
 	}
+
+	if version == "" {
+		components := strings.Split(current, ".")
+		patch, err := strconv.Atoi(components[2])
+		if err != nil {
+			return fmt.Errorf("Failed to convert patch version '%s' in semver: %s", components[2], current)
+		}
+
+		version = fmt.Sprintf("%s.%s.%d", components[0], components[1], patch+1)
+	}
+
 	logrus.Infof("%s version: %s -> %s", result["name"], current, version)
 
 	result["version"] = version
 
-	return r.io.WriteJSON(path, result)
+	return n.io.WriteJSON(path, result)
 }

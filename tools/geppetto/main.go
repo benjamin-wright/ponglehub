@@ -68,43 +68,6 @@ func main() {
 					return nil
 				},
 			},
-			// {
-			// 	Name:    "build",
-			// 	Aliases: []string{"b"},
-			// 	Usage:   "build everything",
-			// 	Action: func(c *cli.Context) error {
-			// 		cfg := getConfig(c)
-			// 		initLogger(cfg)
-
-			// 		ui := ui.UI{}
-			// 		finished := make(chan bool)
-
-			// 		repos, err := scanner.New().ScanDir(cfg.Target)
-			// 		if err != nil {
-			// 			return err
-			// 		}
-
-			// 		logrus.Infof("Repos: %+v", repos)
-
-			// 		b := builder.New()
-			// 		progress := b.Build(repos)
-
-			// 		if !cfg.Debug {
-			// 			go ui.Start(progress, finished)
-			// 		} else {
-			// 			go func(prg <-chan []types.RepoState) {
-			// 				for range prg {
-			// 				}
-			// 			}(progress)
-			// 		}
-
-			// 		if !cfg.Debug {
-			// 			<-finished
-			// 		}
-
-			// 		return err
-			// 	},
-			// },
 			{
 				Name:    "rollback",
 				Aliases: []string{"r"},
