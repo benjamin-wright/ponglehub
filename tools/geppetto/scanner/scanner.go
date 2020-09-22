@@ -11,17 +11,19 @@ import (
 
 // Scanner a file-system scanner for finding code projects
 type Scanner struct {
-	io   services.IO
-	npm  services.NPM
-	helm services.Helm
+	io     services.IO
+	npm    services.NPM
+	helm   services.Helm
+	golang services.Golang
 }
 
 // New creates a new scanner instance
 func New() *Scanner {
 	return &Scanner{
-		io:   services.IO{},
-		npm:  services.NewNpmService(),
-		helm: services.NewHelmService(),
+		io:     services.IO{},
+		npm:    services.NewNpmService(),
+		helm:   services.NewHelmService(),
+		golang: services.NewGolangService(),
 	}
 }
 
@@ -74,12 +76,11 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 
 		if s.io.FileExists(path + "/go.mod") {
 			logrus.Infof("GOLANG: %s", path)
-			repo := types.Repo{
-				Name:      name,
-				Path:      path,
-				RepoType:  types.Golang,
-				DependsOn: []string{},
+			repo, err := s.golang.GetRepo(path)
+			if err != nil {
+				return err
 			}
+			logrus.Infof("repo: %+v", repo)
 
 			repos = append(repos, repo)
 			return filepath.SkipDir

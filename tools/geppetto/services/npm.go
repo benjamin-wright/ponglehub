@@ -21,7 +21,7 @@ type NPM struct {
 	cmd commander
 }
 
-// NewNpmService create a new NPM repo instance, or error if the path doesn't contain a nodejs project
+// NewNpmService create a new NPM service instance
 func NewNpmService() NPM {
 	return NPM{io: &IO{}, cmd: &Commander{}}
 }

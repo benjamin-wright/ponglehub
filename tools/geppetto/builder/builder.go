@@ -10,6 +10,7 @@ import (
 type worker interface {
 	buildNPM(repo types.Repo, reinstall bool, signals chan<- signal)
 	buildHelm(repo types.Repo, reinstall bool, signals chan<- signal)
+	buildGolang(repo types.Repo, reinstall bool, signals chan<- signal)
 }
 
 // Builder builds your application
@@ -47,8 +48,7 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-c
 					case types.Helm:
 						go b.worker.buildHelm(repo, reinstall, signals)
 					case types.Golang:
-						logrus.Infof("Skipping build for %s, %s repos not implemented yet", repo.Name, repo.RepoType)
-						state.find(repo.Name).Block()
+						go b.worker.buildGolang(repo, reinstall, signals)
 					default:
 						state.find(repo.Name).Error(fmt.Errorf("Unknown repo type: %s", repo.RepoType))
 					}

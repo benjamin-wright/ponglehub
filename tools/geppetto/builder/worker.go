@@ -7,15 +7,37 @@ import (
 )
 
 type defaultWorker struct {
-	npm  services.NPM
-	helm services.Helm
+	npm    services.NPM
+	helm   services.Helm
+	golang services.Golang
 }
 
 func newDefaultWorker() *defaultWorker {
 	return &defaultWorker{
-		npm:  services.NewNpmService(),
-		helm: services.NewHelmService(),
+		npm:    services.NewNpmService(),
+		helm:   services.NewHelmService(),
+		golang: services.NewGolangService(),
 	}
+}
+
+func (w *defaultWorker) buildGolang(repo types.Repo, reinstall bool, signals chan<- signal) {
+	logrus.Debugf("Building Golang repo: %s", repo.Name)
+
+	if reinstall {
+		signals <- signal{repo: repo.Name, phase: "tidy"}
+		if err := w.golang.Tidy(repo); err != nil {
+			signals <- signal{repo: repo.Name, err: err}
+			return
+		}
+
+		signals <- signal{repo: repo.Name, phase: "install"}
+		if err := w.golang.Install(repo); err != nil {
+			signals <- signal{repo: repo.Name, err: err}
+			return
+		}
+	}
+
+	signals <- signal{repo: repo.Name, finished: true}
 }
 
 func (w *defaultWorker) buildHelm(repo types.Repo, reinstall bool, signals chan<- signal) {

@@ -18,7 +18,7 @@ type Helm struct {
 	cmd commander
 }
 
-// NewHelmService create a new Helm repo instance, or error if the path doesn't contain a nodejs project
+// NewHelmService create a new Helm service instance
 func NewHelmService() Helm {
 	return Helm{
 		cmd: &Commander{},

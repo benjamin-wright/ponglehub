@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang.org/x/mod/modfile"
 	"gopkg.in/yaml.v2"
 )
 
@@ -54,6 +55,36 @@ func (io *IO) ReadYAML(path string) (map[string]interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// ReadModfile reads data from a golang go.mod file
+func (io *IO) ReadModfile(path string) (map[string]interface{}, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	byteData, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	fileData, err := modfile.Parse(absPath, byteData, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string]interface{}{
+		"name": fileData.Module.Mod.Path,
+	}
+
+	return data, nil
 }
 
 // WriteJSON writes arbitrary data to a json file
