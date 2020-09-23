@@ -59,6 +59,12 @@ func (w *defaultWorker) buildHelm(repo types.Repo, reinstall bool, signals chan<
 		return
 	}
 
+	signals <- signal{repo: repo.Name, phase: "bump"}
+	if err := w.helm.SetVersion(repo, ""); err != nil {
+		signals <- signal{repo: repo.Name, err: err}
+		return
+	}
+
 	signals <- signal{repo: repo.Name, phase: "publish"}
 	if err := w.helm.Publish(repo, w.chartRepo); err != nil {
 		signals <- signal{repo: repo.Name, err: err}

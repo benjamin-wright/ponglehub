@@ -3,7 +3,97 @@ entries:
   ponglehub:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2020-09-23T13:17:30.227451767Z"
+    created: "2020-09-23T19:46:08.3720516Z"
+    dependencies:
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: https://codecentric.github.io/helm-charts
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 09ac50490e00da45021c3a22169c9ca0b562b0f04123949697044da121a2bb9c
+    name: ponglehub
+    type: application
+    urls:
+    - charts/ponglehub-1.0.5.tgz
+    version: 1.0.5
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:45:23.1331912Z"
+    dependencies:
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: https://codecentric.github.io/helm-charts
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 2cf1548fb4cb6b595905a92248a706e2f78b475b2d5557a374cc30d91d3c8838
+    name: ponglehub
+    type: application
+    urls:
+    - charts/ponglehub-1.0.4.tgz
+    version: 1.0.4
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:44:12.6262713Z"
+    dependencies:
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: https://codecentric.github.io/helm-charts
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: f8db1465b924095aadfec0186d96028edce08da97bce86282b6c044b2b4a7e42
+    name: ponglehub
+    type: application
+    urls:
+    - charts/ponglehub-1.0.3.tgz
+    version: 1.0.3
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:43:45.8194448Z"
+    dependencies:
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: https://codecentric.github.io/helm-charts
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 7e492dfba2cdfefda06158cc4afe4c115eed192795e1ca5c8fd5e6cbf001fc21
+    name: ponglehub
+    type: application
+    urls:
+    - charts/ponglehub-1.0.2.tgz
+    version: 1.0.2
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:43:00.1306074Z"
+    dependencies:
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: https://codecentric.github.io/helm-charts
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 1c8d412467c026b72ef764a039f387deffbac06031ccbe2b52b50a672e7bc3f0
+    name: ponglehub
+    type: application
+    urls:
+    - charts/ponglehub-1.0.1.tgz
+    version: 1.0.1
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:38:22.6008691Z"
+    dependencies:
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: https://codecentric.github.io/helm-charts
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 73387187e0d9a810606a4b56707eb88266a551a6d6e49d7adbb1eccf11777097
+    name: ponglehub
+    type: application
+    urls:
+    - charts/ponglehub-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T18:38:06.0057599Z"
     dependencies:
     - condition: keycloak.enabled
       name: keycloak
@@ -19,7 +109,7 @@ entries:
   ponglehub-infra:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2020-09-23T13:17:44.37365678Z"
+    created: "2020-09-23T19:46:23.0521122Z"
     dependencies:
     - condition: prometheus.enabled
       name: prometheus
@@ -46,11 +136,151 @@ entries:
       repository: https://strimzi.io/charts/
       version: '*'
     description: A Helm chart for Kubernetes
-    digest: 5cb2815c4a7c0298df51062475906f2fbc19b4e5757ea97c3de8a690cb99d605
+    digest: 25edd9adff0d0673f654ec6cdd2d23cd24c5f923c54248fe36aa79cb96887e61
+    name: ponglehub-infra
+    type: application
+    urls:
+    - charts/ponglehub-infra-1.0.3.tgz
+    version: 1.0.3
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:45:37.7447372Z"
+    dependencies:
+    - condition: prometheus.enabled
+      name: prometheus
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~11.1.5
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~5.0.23
+    - condition: loki-stack.enabled
+      name: loki-stack
+      repository: https://grafana.github.io/loki/charts
+      version: '*'
+    - condition: verdaccio.enabled
+      name: verdaccio
+      repository: https://charts.verdaccio.org
+      version: 0.10.0
+    - condition: linkerd2.enabled
+      name: linkerd2
+      repository: https://helm.linkerd.io/stable
+      version: 2.8.1
+    - condition: strimzi-kafka-operator.enabled
+      name: strimzi-kafka-operator
+      repository: https://strimzi.io/charts/
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 855a872518f0a3ade06abde4a3d76c1bf35d0dd119276454017fd6f00831d885
+    name: ponglehub-infra
+    type: application
+    urls:
+    - charts/ponglehub-infra-1.0.2.tgz
+    version: 1.0.2
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:43:14.9189472Z"
+    dependencies:
+    - condition: prometheus.enabled
+      name: prometheus
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~11.1.5
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~5.0.23
+    - condition: loki-stack.enabled
+      name: loki-stack
+      repository: https://grafana.github.io/loki/charts
+      version: '*'
+    - condition: verdaccio.enabled
+      name: verdaccio
+      repository: https://charts.verdaccio.org
+      version: 0.10.0
+    - condition: linkerd2.enabled
+      name: linkerd2
+      repository: https://helm.linkerd.io/stable
+      version: 2.8.1
+    - condition: strimzi-kafka-operator.enabled
+      name: strimzi-kafka-operator
+      repository: https://strimzi.io/charts/
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 894bfee41285c0a38f8f41de7077ad4f87b42e2af4b7d18abd541119ab650a07
+    name: ponglehub-infra
+    type: application
+    urls:
+    - charts/ponglehub-infra-1.0.1.tgz
+    version: 1.0.1
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T19:38:38.470746Z"
+    dependencies:
+    - condition: prometheus.enabled
+      name: prometheus
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~11.1.5
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~5.0.23
+    - condition: loki-stack.enabled
+      name: loki-stack
+      repository: https://grafana.github.io/loki/charts
+      version: '*'
+    - condition: verdaccio.enabled
+      name: verdaccio
+      repository: https://charts.verdaccio.org
+      version: 0.10.0
+    - condition: linkerd2.enabled
+      name: linkerd2
+      repository: https://helm.linkerd.io/stable
+      version: 2.8.1
+    - condition: strimzi-kafka-operator.enabled
+      name: strimzi-kafka-operator
+      repository: https://strimzi.io/charts/
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: b97998596a54818a122b644b0b6c0720ea04fb364ae29e9a38484adf6ad6a74e
+    name: ponglehub-infra
+    type: application
+    urls:
+    - charts/ponglehub-infra-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-09-23T18:38:27.0713301Z"
+    dependencies:
+    - condition: prometheus.enabled
+      name: prometheus
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~11.1.5
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ~5.0.23
+    - condition: loki-stack.enabled
+      name: loki-stack
+      repository: https://grafana.github.io/loki/charts
+      version: '*'
+    - condition: verdaccio.enabled
+      name: verdaccio
+      repository: https://charts.verdaccio.org
+      version: 0.10.0
+    - condition: linkerd2.enabled
+      name: linkerd2
+      repository: https://helm.linkerd.io/stable
+      version: 2.8.1
+    - condition: strimzi-kafka-operator.enabled
+      name: strimzi-kafka-operator
+      repository: https://strimzi.io/charts/
+      version: '*'
+    description: A Helm chart for Kubernetes
+    digest: 59503ae6a471cd05663b1eaa4a7397934a3b6d2e673e0bb009d23439a3273b74
     name: ponglehub-infra
     type: application
     urls:
     - charts/ponglehub-infra-0.1.0.tgz
     version: 0.1.0
-generated: "2020-09-23T13:17:44Z"
+generated: "2020-09-23T19:46:23Z"
 serverInfo: {}

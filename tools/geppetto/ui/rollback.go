@@ -45,11 +45,15 @@ func (r *Rollback) Start(target string) error {
 
 	for index, repo := range repos {
 		npm := services.NewNpmService()
+		helm := services.NewHelmService()
 		go func(repo types.Repo, timeout int) {
 			switch repo.RepoType {
 			case types.Node:
 				npm.SetVersion(repo, "1.0.0")
 				npm.Install(repo)
+			case types.Helm:
+				helm.SetVersion(repo, "1.0.0")
+				helm.Install(repo)
 			}
 			rollbackEvents <- repo.Name
 		}(repo, index)

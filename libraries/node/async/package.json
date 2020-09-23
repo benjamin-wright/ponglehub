@@ -1,17 +1,17 @@
 {
-  "author": "",
-  "description": "",
-  "devDependencies": {
-    "@pongle/eslint-config-ponglehub": "^1.0.33",
-    "eslint": "^7.6.0",
-    "jest": "^26.2.2"
-  },
-  "license": "ISC",
-  "main": "lib/index.js",
   "name": "@pongle/async",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "version": "1.0.3",
+  "main": "lib/index.js",
   "scripts": {
     "lint": "eslint .",
     "test": "jest ."
   },
-  "version": "1.0.6"
+  "devDependencies": {
+    "@pongle/eslint-config-ponglehub": "^1.0.33",
+    "eslint": "^7.6.0",
+    "jest": "^26.2.2"
+  }
 }

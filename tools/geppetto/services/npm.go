@@ -26,6 +26,35 @@ func NewNpmService() NPM {
 	return NPM{io: &IO{}, cmd: &Commander{}}
 }
 
+// GetRepo returns a repo object representing the node project at the designated file path
+func (n NPM) GetRepo(path string) (types.Repo, error) {
+	empty := types.Repo{}
+
+	packageJSON := path + "/package.json"
+
+	data, err := n.io.ReadJSON(packageJSON)
+	if err != nil {
+		return empty, err
+	}
+
+	name, ok := data["name"]
+	if !ok {
+		return empty, fmt.Errorf("Failed to read name from package.json: %s", path)
+	}
+
+	nameString, ok := name.(string)
+	if !ok {
+		return empty, fmt.Errorf("Failed to read name from package.json: %v", name)
+	}
+
+	return types.Repo{
+		Name:      nameString,
+		Path:      path,
+		RepoType:  types.Node,
+		DependsOn: []string{},
+	}, nil
+}
+
 // Install run an NPM install
 func (n NPM) Install(repo types.Repo) error {
 	output, err := n.cmd.Run(repo.Path, "npm install --strict-ssl=false")
@@ -58,7 +87,7 @@ func (n NPM) Test(repo types.Repo) error {
 
 // Publish push the repo up to its registry
 func (n NPM) Publish(repo types.Repo) error {
-	output, err := n.cmd.Run(repo.Path, "npm publish --strict-ssl=false --force --access restricted")
+	output, err := n.cmd.Run(repo.Path, "npm publish --strict-ssl=false")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -74,35 +103,6 @@ func (n NPM) GetLatestSHA(repo types.Repo) (string, error) {
 // GetCurrentSHA get the SHA of the current version of the module
 func (n NPM) GetCurrentSHA(repo types.Repo) (string, error) {
 	return n.cmd.Run(repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
-}
-
-// GetRepo returns a repo object representing the node project at the designated file path
-func (n NPM) GetRepo(path string) (types.Repo, error) {
-	empty := types.Repo{}
-
-	packageJSON := path + "/package.json"
-
-	data, err := n.io.ReadJSON(packageJSON)
-	if err != nil {
-		return empty, err
-	}
-
-	name, ok := data["name"]
-	if !ok {
-		return empty, fmt.Errorf("Failed to read name from package.json: %s", path)
-	}
-
-	nameString, ok := name.(string)
-	if !ok {
-		return empty, fmt.Errorf("Failed to read name from package.json: %v", name)
-	}
-
-	return types.Repo{
-		Name:      nameString,
-		Path:      path,
-		RepoType:  types.Node,
-		DependsOn: []string{},
-	}, nil
 }
 
 // GetDependencyNames returns an array containg the names of all this project's dependencies
@@ -169,5 +169,15 @@ func (n NPM) SetVersion(repo types.Repo, version string) error {
 
 	result["version"] = version
 
-	return n.io.WriteJSON(path, result)
+	err = n.io.WriteJSON(path, result)
+	if err != nil {
+		return err
+	}
+
+	output, err := n.cmd.Run(repo.Path, "npx prettier-package-json --write ./package.json")
+	if err != nil {
+		return fmt.Errorf("Error linting NPM module:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
 }

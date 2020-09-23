@@ -2,6 +2,8 @@ package services
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"ponglehub.co.uk/geppetto/types"
 )
@@ -57,7 +59,7 @@ func (h *Helm) GetRepo(path string) (types.Repo, error) {
 
 // Install install dependencies for a helm repo
 func (h *Helm) Install(repo types.Repo) error {
-	output, err := h.cmd.Run(repo.Path, "helm dep update")
+	output, err := h.cmd.Run(repo.Path, "rm -rf tmpcharts && helm dep update")
 	if err != nil {
 		return fmt.Errorf("Error installing Helm dependencies:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -78,6 +80,32 @@ func (h *Helm) Lint(repo types.Repo) error {
 	}
 
 	return nil
+}
+
+// SetVersion bump the version of the chart in the local registry
+func (h *Helm) SetVersion(repo types.Repo, version string) error {
+	chartYAML := repo.Path + "/Chart.yaml"
+
+	data, err := h.io.ReadYAML(chartYAML)
+	if err != nil {
+		return err
+	}
+
+	current := data["version"].(string)
+
+	if version == "" {
+		components := strings.Split(current, ".")
+		patch, err := strconv.Atoi(components[2])
+		if err != nil {
+			return fmt.Errorf("Failed to convert patch version '%s' in semver: %s", components[2], current)
+		}
+
+		version = fmt.Sprintf("%s.%s.%d", components[0], components[1], patch+1)
+	}
+
+	data["version"] = version
+
+	return h.io.WriteYAML(chartYAML, data)
 }
 
 // Publish publish the chart to a local registry

@@ -1,5 +1,14 @@
 {
+  "name": "@pongle/eslint-config-ponglehub",
+  "description": "",
+  "license": "ISC",
   "author": "",
+  "version": "1.0.5",
+  "main": "lib/index.js",
+  "scripts": {
+    "lint": "echo \"NA\"",
+    "test": "echo \"NA\""
+  },
   "dependencies": {
     "eslint-config-dev": "^2.0.0",
     "eslint-config-standard": "^14.1.1",
@@ -8,16 +17,7 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1"
   },
-  "description": "",
-  "license": "ISC",
-  "main": "lib/index.js",
-  "name": "@pongle/eslint-config-ponglehub",
   "peerDependencies": {
-    "eslint": "\u003e= 7"
-  },
-  "scripts": {
-    "lint": "echo \"NA\"",
-    "test": "echo \"NA\""
-  },
-  "version": "1.0.6"
+    "eslint": ">= 7"
+  }
 }
