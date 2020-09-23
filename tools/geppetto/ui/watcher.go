@@ -14,14 +14,14 @@ type Watcher struct {
 	scanner *scanner.Scanner
 }
 
-func NewWatcher() (*Watcher, error) {
+func NewWatcher(chartRepo string) (*Watcher, error) {
 	devices, err := makeDevices()
 	if err != nil {
 		return nil, err
 	}
 
 	scanner := scanner.New()
-	builder := builder.New()
+	builder := builder.New(chartRepo)
 
 	return &Watcher{
 		builder: builder,

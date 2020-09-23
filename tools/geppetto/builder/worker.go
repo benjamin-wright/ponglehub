@@ -7,16 +7,18 @@ import (
 )
 
 type defaultWorker struct {
-	npm    services.NPM
-	helm   services.Helm
-	golang services.Golang
+	npm       services.NPM
+	helm      services.Helm
+	golang    services.Golang
+	chartRepo string
 }
 
-func newDefaultWorker() *defaultWorker {
+func newDefaultWorker(chartRepo string) *defaultWorker {
 	return &defaultWorker{
-		npm:    services.NewNpmService(),
-		helm:   services.NewHelmService(),
-		golang: services.NewGolangService(),
+		npm:       services.NewNpmService(),
+		helm:      services.NewHelmService(),
+		golang:    services.NewGolangService(),
+		chartRepo: chartRepo,
 	}
 }
 
@@ -53,6 +55,12 @@ func (w *defaultWorker) buildHelm(repo types.Repo, reinstall bool, signals chan<
 
 	signals <- signal{repo: repo.Name, phase: "lint"}
 	if err := w.helm.Lint(repo); err != nil {
+		signals <- signal{repo: repo.Name, err: err}
+		return
+	}
+
+	signals <- signal{repo: repo.Name, phase: "publish"}
+	if err := w.helm.Publish(repo, w.chartRepo); err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}

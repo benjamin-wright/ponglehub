@@ -19,9 +19,9 @@ type Builder struct {
 }
 
 // New create a new builder object
-func New() *Builder {
+func New(chartRepo string) *Builder {
 	return &Builder{
-		worker: newDefaultWorker(),
+		worker: newDefaultWorker(chartRepo),
 	}
 }
 

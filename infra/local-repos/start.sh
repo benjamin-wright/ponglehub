@@ -57,6 +57,7 @@ docker run \
   -d \
   --name $CHART_MUSEUM_NAME \
   --network $NETWORK_NAME \
+  -v $(pwd)/chart-cache:/charts \
   -e STORAGE=local \
   -e STORAGE_LOCAL_ROOTDIR=/charts \
   chartmuseum/chartmuseum:latest

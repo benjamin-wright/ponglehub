@@ -12,8 +12,9 @@ import (
 
 func getConfig(c *cli.Context) types.Config {
 	return types.Config{
-		Debug:  c.Bool("debug"),
-		Target: c.String("target"),
+		Debug:     c.Bool("debug"),
+		Target:    c.String("target"),
+		ChartRepo: c.String("chartrepo"),
 	}
 }
 
@@ -48,6 +49,12 @@ func main() {
 				Usage:   "target directory",
 				EnvVars: []string{"GEPETTO_TARGET"},
 			},
+			&cli.StringFlag{
+				Name:    "chartrepo",
+				Value:   "local",
+				Usage:   "chart museum repo for local charts",
+				EnvVars: []string{"GEPETTO_CHART_REPO"},
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -58,7 +65,7 @@ func main() {
 					cfg := getConfig(c)
 					initLogger(cfg)
 
-					watcher, err := ui.NewWatcher()
+					watcher, err := ui.NewWatcher(cfg.ChartRepo)
 					if err != nil {
 						logrus.Fatalf("Failed to create watcher instance: %+v", err)
 					}
@@ -76,7 +83,7 @@ func main() {
 					cfg := getConfig(c)
 					initLogger(cfg)
 
-					rollback, err := ui.NewRollback()
+					rollback, err := ui.NewRollback(cfg.ChartRepo)
 					if err != nil {
 						logrus.Fatalf("Failed to create rollback instance: %+v", err)
 					}

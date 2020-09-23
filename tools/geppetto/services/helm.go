@@ -79,3 +79,13 @@ func (h *Helm) Lint(repo types.Repo) error {
 
 	return nil
 }
+
+// Publish publish the chart to a local registry
+func (h *Helm) Publish(repo types.Repo, chartRepo string) error {
+	output, err := h.cmd.Run(repo.Path, "helm push . "+chartRepo+" --insecure")
+	if err != nil {
+		return fmt.Errorf("Error publishing helm chart:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
+}

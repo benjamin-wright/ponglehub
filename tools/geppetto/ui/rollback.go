@@ -14,14 +14,14 @@ type Rollback struct {
 	scanner *scanner.Scanner
 }
 
-func NewRollback() (*Rollback, error) {
+func NewRollback(chartRepo string) (*Rollback, error) {
 	devices, err := makeDevices()
 	if err != nil {
 		return nil, err
 	}
 
 	scanner := scanner.New()
-	builder := builder.New()
+	builder := builder.New(chartRepo)
 
 	return &Rollback{
 		builder: builder,
