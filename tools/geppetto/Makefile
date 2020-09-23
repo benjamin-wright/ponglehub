@@ -1,16 +1,10 @@
-.PHONY: test run debug rollback
+.PHONY: test watch rollback
 
 test:
 	go test ./...
 
-run:
-	go run . --target ../.. build
-
 watch:
 	go run . --target ../.. watch
 
-debug:
-	go run . --debug --target ../.. build
-
 rollback:
-	go run . --debug --target ../.. rollback
+	go run . --target ../.. rollback
