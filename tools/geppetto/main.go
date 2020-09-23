@@ -60,7 +60,7 @@ func main() {
 
 					watcher, err := ui.NewWatcher()
 					if err != nil {
-						logrus.Fatalf("Failed to create watcher instance: %+v", watcher)
+						logrus.Fatalf("Failed to create watcher instance: %+v", err)
 					}
 
 					watcher.Start(cfg.Target)
@@ -76,8 +76,13 @@ func main() {
 					cfg := getConfig(c)
 					initLogger(cfg)
 
-					logrus.Warn("Not implemented yet")
+					rollback, err := ui.NewRollback()
+					if err != nil {
+						logrus.Fatalf("Failed to create rollback instance: %+v", err)
+					}
 
+					rollback.Start(cfg.Target)
+					defer rollback.Destroy()
 					return nil
 				},
 			},

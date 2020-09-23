@@ -156,7 +156,7 @@ func (w *Watcher) Start(target string) error {
 				if repo.Phase() == "check" {
 					w.devices.drawText("💡", 60, line+offset, 5, style)
 				} else {
-					w.devices.drawText("🏗️", 60, line+offset, 7, style)
+					w.devices.drawText("🏗", 60, line+offset, 5, style)
 					w.devices.drawText(repo.Phase(), 64, line+offset, 20, style)
 				}
 			} else {

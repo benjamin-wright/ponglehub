@@ -2,9 +2,10 @@ package ui
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/builder"
 	"ponglehub.co.uk/geppetto/scanner"
+	"ponglehub.co.uk/geppetto/services"
+	"ponglehub.co.uk/geppetto/types"
 )
 
 type Rollback struct {
@@ -30,7 +31,7 @@ func NewRollback() (*Rollback, error) {
 }
 
 func (r *Rollback) Destroy() {
-	w.devices.destroy()
+	r.devices.destroy()
 }
 
 func (r *Rollback) Start(target string) error {
@@ -39,75 +40,61 @@ func (r *Rollback) Start(target string) error {
 		return err
 	}
 
+	rollbackEvents := make(chan string, 5)
+	commandEvents := r.devices.listen()
+
+	for index, repo := range repos {
+		npm := services.NewNpmService()
+		go func(repo types.Repo, timeout int) {
+			switch repo.RepoType {
+			case types.Node:
+				npm.SetVersion(repo, "1.0.0")
+				npm.Install(repo)
+			}
+			rollbackEvents <- repo.Name
+		}(repo, index)
+	}
+
+	rolledBack := []string{}
 	for {
 		width, height := r.devices.getSize()
 
 		r.devices.clear()
 		r.devices.drawBorder(width, height)
-		r.devices.drawTitle("GEPPETTO", width, true)
+		r.devices.drawTitle("GEPPETTO", width, len(repos) != len(rolledBack))
 
 		offset := 3
 
-		for line, repo := range state {
+		for line, repo := range repos {
+			hasRolled := false
+			for _, name := range rolledBack {
+				if repo.Name == name {
+					hasRolled = true
+				}
+			}
+
 			style := tcell.StyleDefault
 
-			if line == highlighted {
-				style = style.Background(tcell.ColorDarkGreen)
-				w.devices.highlightLine(offset+line, width, style)
-			}
-
-			if line == selected {
-				style = style.Foreground(tcell.ColorLightSlateGray)
-			}
-
-			w.devices.drawIcon(repo.Repo().RepoType, 2, line+offset, style)
-			w.devices.drawText(repo.Repo().Name, 5, line+offset, 50, style)
-			if repo.Built() {
-				w.devices.drawText("✅", 60, line+offset, 5, style)
-			} else if repo.Skipped() {
-				w.devices.drawText("🔄", 60, line+offset, 5, style)
-			} else if repo.Blocked() {
-				w.devices.drawText("❌", 60, line+offset, 5, style)
-			} else if repo.Errored() != nil {
-				w.devices.drawText("🔥", 60, line+offset, 5, style)
-				if line == selected {
-					errorMsg := repo.Errored().Error()
-					lines := w.devices.getNumLines(errorMsg, width-6)
-
-					logrus.Infof("Message length: %d", lines)
-					logrus.Infof("Screen height: %d", height)
-
-					if lines > spareLines {
-						maxScroll = lines - spareLines
-					} else {
-						maxScroll = 0
-					}
-
-					logrus.Infof("Max Scroll: %d", maxScroll)
-					logrus.Infof("Lines: %d", lines)
-
-					if lines > spareLines {
-						lines = spareLines
-					}
-
-					logrus.Infof("Spare lines: %d", spareLines)
-					logrus.Infof("Lines: %d", lines)
-
-					w.devices.drawMultiline(errorMsg, 3, line+4, width-6, spareLines, scroll, tcell.StyleDefault)
-					offset = offset + 1 + lines
-				}
-			} else if repo.Building() {
-				if repo.Phase() == "check" {
-					w.devices.drawText("💡", 60, line+offset, 5, style)
-				} else {
-					w.devices.drawText("🏗️", 60, line+offset, 7, style)
-					w.devices.drawText(repo.Phase(), 64, line+offset, 20, style)
-				}
+			r.devices.drawIcon(repo.RepoType, 2, line+offset, style)
+			r.devices.drawText(repo.Name, 5, line+offset, 50, style)
+			if hasRolled {
+				r.devices.drawText("✅", 60, line+offset, 5, style)
 			} else {
-				w.devices.drawText("⏳", 60, line+offset, 5, style)
+				r.devices.drawText("🏗", 60, line+offset, 5, style)
 			}
 		}
 
-		w.devices.flush()
+		r.devices.flush()
+
+		select {
+		case repo := <-rollbackEvents:
+			if repo != "" {
+				rolledBack = append(rolledBack, repo)
+			}
+		case cmd := <-commandEvents:
+			if cmd == quitCommand {
+				return nil
+			}
+		}
 	}
 }

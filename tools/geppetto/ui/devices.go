@@ -68,7 +68,7 @@ func (d *devices) drawTitle(content string, width int, building bool) {
 	d.drawText(title, titleStart, 1, len(title), style)
 
 	if building {
-		d.drawText("🏗️", width-4, 1, 10, style)
+		d.drawText("🏗", width-4, 1, 10, style)
 	} else {
 		d.drawText("⏳", width-4, 1, 10, style)
 	}
