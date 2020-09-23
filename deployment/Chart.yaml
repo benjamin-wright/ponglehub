@@ -5,7 +5,10 @@ dependencies:
   name: keycloak
   repository: https://codecentric.github.io/helm-charts
   version: '*'
+- name: common-templates
+  repository: '@local'
+  version: '*'
 description: A Helm chart for Kubernetes
 name: ponglehub
 type: application
-version: 1.0.4
+version: 1.0.11

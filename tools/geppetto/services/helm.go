@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/types"
 )
 
@@ -59,7 +60,7 @@ func (h *Helm) GetRepo(path string) (types.Repo, error) {
 
 // Install install dependencies for a helm repo
 func (h *Helm) Install(repo types.Repo) error {
-	output, err := h.cmd.Run(repo.Path, "rm -rf tmpcharts && helm dep update")
+	output, err := h.cmd.Run(repo.Path, "rm -rf tmpcharts && helm repo update && helm dep update")
 	if err != nil {
 		return fmt.Errorf("Error installing Helm dependencies:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -80,6 +81,62 @@ func (h *Helm) Lint(repo types.Repo) error {
 	}
 
 	return nil
+}
+
+// GetDependencyNames returns an array containg the names of all this project's dependencies
+func (h *Helm) GetDependencyNames(repo types.Repo) ([]string, error) {
+	chartYAML := repo.Path + "/Chart.yaml"
+
+	data, err := h.io.ReadYAML(chartYAML)
+	if err != nil {
+		return nil, err
+	}
+
+	names := []string{}
+
+	if deps, ok := data["dependencies"]; ok {
+		if deps == nil {
+			return []string{}, nil
+		}
+
+		depsList, ok := deps.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("Dependencies found, but format was wrong: %+v", deps)
+		}
+
+		logrus.Infof("Got %d deps", len(depsList))
+
+		for _, dep := range depsList {
+			depMap, ok := dep.(map[interface{}]interface{})
+			if !ok {
+				logrus.Infof("dependency is not a map[string]interface{}: %+v", dep)
+				continue
+			}
+
+			depName, ok := depMap["name"].(string)
+			if !ok {
+				logrus.Infof("dependency name is not a string: %+v", dep)
+				continue
+			}
+
+			repository, ok := depMap["repository"].(string)
+			if !ok {
+				logrus.Infof("dependency repository is not a string: %+v", dep)
+				continue
+			}
+
+			logrus.Infof("Repo %s", repository)
+
+			if repository != "@local" {
+				logrus.Infof("repository for %s is not @local: %s", depName, repository)
+				continue
+			}
+
+			names = append(names, depName)
+		}
+	}
+
+	return names, nil
 }
 
 // SetVersion bump the version of the chart in the local registry

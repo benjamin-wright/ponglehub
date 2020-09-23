@@ -38,6 +38,8 @@ if [ ! -f $PWD/infra/local-repos/ssl/certificate.crt ]; then
     -out /work/certificate.crt \
     -subj "/C=UK/ST=Test/L=Test/O=Test/CN=*.ponglehub.co.uk" \
     -addext "subjectAltName = DNS:*.ponglehub.co.uk"
+
+  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain infra/local-repos/ssl/certificate.crt
 fi
 
 NETWORK_NAME=local-registries

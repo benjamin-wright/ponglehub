@@ -94,7 +94,14 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 		return nil, err
 	}
 
+	logrus.Info("Linking npm repos")
 	err = s.linkNPMRepos(repos)
+	if err != nil {
+		return nil, err
+	}
+
+	logrus.Info("Linking helm repos")
+	err = s.linkHelmRepos(repos)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +142,47 @@ func (s *Scanner) getNPMModuleNames(repos []types.Repo) []string {
 
 	for _, repo := range repos {
 		if repo.RepoType != types.Node {
+			continue
+		}
+
+		names = append(names, repo.Name)
+	}
+
+	return names
+}
+
+func (s *Scanner) linkHelmRepos(repos []types.Repo) error {
+	names := s.getHelmChartNames(repos)
+	for index, repo := range repos {
+		if repo.RepoType != types.Helm {
+			continue
+		}
+
+		deps, err := s.helm.GetDependencyNames(repo)
+		if err != nil {
+			return err
+		}
+
+		logrus.Debugf("Dependencies for %s: %v", repo.Name, deps)
+
+		for _, name := range names {
+			for _, dep := range deps {
+				if name == dep {
+					repos[index].DependsOn = append(repos[index].DependsOn, name)
+					continue
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Scanner) getHelmChartNames(repos []types.Repo) []string {
+	names := []string{}
+
+	for _, repo := range repos {
+		if repo.RepoType != types.Helm {
 			continue
 		}
 

@@ -70,8 +70,12 @@ func main() {
 						logrus.Fatalf("Failed to create watcher instance: %+v", err)
 					}
 
-					watcher.Start(cfg.Target)
+					err = watcher.Start(cfg.Target)
 					defer watcher.Destroy()
+					if err != nil {
+						logrus.Errorf("Watcher exited with unexpected error: %+v", err)
+					}
+
 					return nil
 				},
 			},
