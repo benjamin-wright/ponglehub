@@ -69,3 +69,13 @@ func (g *Golang) Install(repo types.Repo) error {
 
 	return nil
 }
+
+// Test runs unit tests for a golang repo
+func (g *Golang) Test(repo types.Repo) error {
+	output, err := g.cmd.Run(repo.Path, "go test ./...")
+	if err != nil {
+		return fmt.Errorf("Error running unit tests:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
+}

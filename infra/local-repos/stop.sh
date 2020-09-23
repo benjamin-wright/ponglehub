@@ -11,3 +11,4 @@ docker rm $(docker stop proxy) || true
 docker network rm local-registries || true
 
 rm -rf ./infra/local-repos/ssl
+rm -rf ./chart-cache

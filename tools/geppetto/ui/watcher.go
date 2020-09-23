@@ -45,7 +45,7 @@ func (w *Watcher) Start(target string) error {
 	scroll := 0
 	maxScroll := 0
 	selected := -1
-	highlighted := -1
+	highlighted := 0
 
 	watchEvents, errorEvents := w.scanner.WatchDir(repos)
 	commandEvents := w.devices.listen()

@@ -39,6 +39,12 @@ func (w *defaultWorker) buildGolang(repo types.Repo, reinstall bool, signals cha
 		}
 	}
 
+	signals <- signal{repo: repo.Name, phase: "test"}
+	if err := w.golang.Test(repo); err != nil {
+		signals <- signal{repo: repo.Name, err: err}
+		return
+	}
+
 	signals <- signal{repo: repo.Name, finished: true}
 }
 
