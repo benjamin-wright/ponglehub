@@ -2,6 +2,9 @@
 
 set -o errexit
 
+helm repo remove local || true
+
+docker rm $(docker stop helm) || true
 docker rm $(docker stop npm) || true
 docker rm $(docker stop proxy) || true
 

@@ -13,6 +13,10 @@ expect {
 EOD
 }
 
+function helm-login() {
+  helm repo add local https://helm.ponglehub.co.uk --insecure-skip-tls-verify
+}
+
 if [ ! -f $PWD/infra/local-repos/ssl/certificate.crt ]; then
   docker run --rm -v $PWD/infra/local-repos/ssl:/work -it nginx \
     openssl req \
@@ -21,7 +25,7 @@ if [ ! -f $PWD/infra/local-repos/ssl/certificate.crt ]; then
     -newkey rsa:2048 \
     -nodes \
     -keyout /work/caKey.key \
-    -subj "/C=UK/ST=Test/L=Test/O=Test/CN=ponglehub.co.uk"
+    -subj "/C=UK/ST=Test/L=Test/O=Test/CN=*.ponglehub.co.uk"
 
   docker run --rm -v $PWD/infra/local-repos/ssl:/work -it nginx \
     openssl req \
@@ -32,13 +36,14 @@ if [ ! -f $PWD/infra/local-repos/ssl/certificate.crt ]; then
     -newkey rsa:2048 \
     -keyout /work/private.key \
     -out /work/certificate.crt \
-    -subj "/C=UK/ST=Test/L=Test/O=Test/CN=ponglehub.co.uk" \
-    -addext "subjectAltName = DNS:ponglehub.co.uk"
+    -subj "/C=UK/ST=Test/L=Test/O=Test/CN=*.ponglehub.co.uk" \
+    -addext "subjectAltName = DNS:*.ponglehub.co.uk"
 fi
 
 NETWORK_NAME=local-registries
 PROXY_NAME=proxy
 NPM_NAME=npm
+CHART_MUSEUM_NAME=helm
 
 docker network create $NETWORK_NAME
 
@@ -47,6 +52,14 @@ docker run \
   --name $NPM_NAME \
   --network $NETWORK_NAME \
   docker.io/verdaccio/verdaccio
+
+docker run \
+  -d \
+  --name $CHART_MUSEUM_NAME \
+  --network $NETWORK_NAME \
+  -e STORAGE=local \
+  -e STORAGE_LOCAL_ROOTDIR=/charts \
+  chartmuseum/chartmuseum:latest
 
 docker run \
   -d \
@@ -59,6 +72,8 @@ docker run \
   -v $PWD/infra/local-repos/ssl/private.key:/etc/nginx/ssl/private.key \
   docker.io/nginx
 
+echo "waiting for things to start..."
 sleep 5
 
 npm-login
+helm-login

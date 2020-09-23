@@ -13,11 +13,11 @@
   "main": "lib/index.js",
   "name": "@pongle/eslint-config-ponglehub",
   "peerDependencies": {
-    "eslint": ">= 7"
+    "eslint": "\u003e= 7"
   },
   "scripts": {
     "lint": "echo \"NA\"",
     "test": "echo \"NA\""
   },
-  "version": "1.0.0"
+  "version": "1.0.1"
 }
