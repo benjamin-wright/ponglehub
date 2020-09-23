@@ -107,7 +107,7 @@ func (d *devices) drawIcon(t types.RepoType, x int, y int, style tcell.Style) {
 	case types.Golang:
 		icon = '🐹'
 	case types.Helm:
-		icon = '⎈'
+		icon = '⛵'
 	}
 
 	d.screen.SetContent(x, y, icon, nil, style)
