@@ -17,10 +17,10 @@ function helm-login() {
   helm repo add local https://helm.ponglehub.co.uk --insecure-skip-tls-verify
 }
 
-SSL_PATH=$PWD/infra/local-repos/ssl
+SSL_PATH=$PWD/infra/repos/ssl
 CA_NAME=ponglehubCA
 DOMAIN=ponglehub.co.uk
-if [ ! -f $SSL_PATH/certificate.crt ]; then
+if [ ! -f $SSL_PATH/$DOMAIN.crt ]; then
   docker run --rm -v $SSL_PATH:/work -it nginx \
     openssl genrsa -out /work/$CA_NAME.key 2048
 
@@ -63,7 +63,7 @@ EOF
     -CAcreateserial \
     -out /work/$DOMAIN.crt -days 825 -sha256 -extfile /work/$DOMAIN.ext
 
-  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain infra/local-repos/ssl/$CA_NAME.crt
+  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain infra/repos/ssl/$CA_NAME.crt
   npm config set -g cafile $SSL_PATH/$CA_NAME.crt
 fi
 
@@ -95,9 +95,9 @@ docker run \
   --network $NETWORK_NAME \
   -p 80:80 \
   -p 443:443 \
-  -v $PWD/infra/local-repos/default.conf:/etc/nginx/nginx.conf \
-  -v $PWD/infra/local-repos/ssl/ponglehub.co.uk.crt:/etc/nginx/ssl/certificate.crt \
-  -v $PWD/infra/local-repos/ssl/ponglehub.co.uk.key:/etc/nginx/ssl/private.key \
+  -v $PWD/infra/repos/default.conf:/etc/nginx/nginx.conf \
+  -v $PWD/infra/repos/ssl/ponglehub.co.uk.crt:/etc/nginx/ssl/certificate.crt \
+  -v $PWD/infra/repos/ssl/ponglehub.co.uk.key:/etc/nginx/ssl/private.key \
   docker.io/nginx
 
 echo "waiting for things to start..."

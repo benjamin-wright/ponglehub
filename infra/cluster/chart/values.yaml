@@ -2,6 +2,9 @@ secrets:
   admin:
     username: admin
     # password:
+  ssl:
+    # key:
+    # crt:
 
 loki-stack:
   enabled: true
@@ -57,6 +60,7 @@ grafana:
     tls:
     - hosts:
       - grafana.ponglehub.co.uk
+      secretName: ssl-secret
 
 verdaccio:
   enabled: true
@@ -67,6 +71,23 @@ verdaccio:
     tls:
     - hosts:
       - npm.ponglehub.co.uk
+      secretName: ssl-secret
+
+chartmuseum:
+  enabled: true
+  env:
+    open:
+      STORAGE: local
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 8Gi
+  ingress:
+    enabled: true
+    hosts:
+    - name: helm.ponglehub.co.uk
+      tls: true
+      tlsSecret: ssl-secret
 
 linkerd2:
   enabled: true

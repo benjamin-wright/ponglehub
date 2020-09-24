@@ -5,7 +5,7 @@ set -o errexit
 ROOT_DIR=$( cd "$(dirname "`realpath $0`")" ; pwd -P )
 
 function create-network() {
-    if docker network ls | grep $NETWORK_NAME; then
+    if docker network ls | grep $NETWORK_NAME -q; then
         echo "Network already exists, skipping..."
         return
     fi
@@ -70,26 +70,75 @@ EOL
     done
 }
 
-function make-certs() {
-  if [ -d $ROOT_DIR/certs ]; then
+function make-linkerd-certs() {
+  if [ -f $ROOT_DIR/ssl/linkerd.crt ]; then
     echo "Certs already exist, skipping..."
     return
   fi
 
-  mkdir -p $ROOT_DIR/certs
+  mkdir -p $ROOT_DIR/ssl
 
-  step certificate create identity.linkerd.cluster.local $ROOT_DIR/certs/ca.crt $ROOT_DIR/certs/ca.key \
+  step certificate create identity.linkerd.cluster.local $ROOT_DIR/ssl/linkerdCA.crt $ROOT_DIR/ssl/linkerdCA.key \
     --profile root-ca \
     --no-password \
     --insecure
 
-  step certificate create identity.linkerd.cluster.local $ROOT_DIR/certs/issuer.crt $ROOT_DIR/certs/issuer.key \
-    --ca $ROOT_DIR/certs/ca.crt \
-    --ca-key $ROOT_DIR/certs/ca.key \
+  step certificate create identity.linkerd.cluster.local $ROOT_DIR/ssl/linkerd.crt $ROOT_DIR/ssl/linkerd.key \
+    --ca $ROOT_DIR/ssl/linkerdCA.crt \
+    --ca-key $ROOT_DIR/ssl/linkerdCA.key \
     --profile intermediate-ca \
     --not-after 8760h \
     --no-password \
     --insecure
+}
+
+function make-ingress-certs() {
+  local SSL_PATH=$PWD/infra/cluster/ssl
+  local CA_NAME=ponglehubCA
+  local DOMAIN=ponglehub.co.uk
+  if [ ! -f $SSL_PATH/$DOMAIN.crt ]; then
+    docker run --rm -v $SSL_PATH:/work -it nginx \
+      openssl genrsa -out /work/$CA_NAME.key 2048
+
+    docker run --rm -v $SSL_PATH:/work -it nginx \
+      openssl req \
+      -x509 \
+      -new \
+      -nodes \
+      -key /work/$CA_NAME.key \
+      -sha256 \
+      -days 1825 \
+      -out /work/$CA_NAME.crt \
+      -subj "/C=UK/ST=Test/L=Test/O=Test/CN=$DOMAIN"
+
+    docker run --rm -v $SSL_PATH:/work -it nginx \
+      openssl genrsa -out /work/$DOMAIN.key 2048
+
+    docker run --rm -v $SSL_PATH:/work -it nginx \
+      openssl req \
+      -new \
+      -key /work/$DOMAIN.key \
+      -out /work/$DOMAIN.csr \
+      -subj "/C=UK/ST=Test/L=Test/O=Test/CN=$DOMAIN"
+
+    cat > $SSL_PATH/$DOMAIN.ext << EOF
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = *.$DOMAIN
+EOF
+
+    docker run --rm -v $SSL_PATH:/work -it nginx \
+      openssl x509 \
+      -req \
+      -in /work/$DOMAIN.csr \
+      -CA /work/$CA_NAME.crt \
+      -CAkey /work/$CA_NAME.key \
+      -CAcreateserial \
+      -out /work/$DOMAIN.crt -days 825 -sha256 -extfile /work/$DOMAIN.ext
+  fi
 }
 
 function deploy-infra() {
@@ -103,37 +152,12 @@ function deploy-infra() {
     --namespace infra \
     --set-file "grafana.dashboards.default.metrics.json=$ROOT_DIR/dashboards/default.json" \
     --set "secrets.admin.password=password" \
-    --set-file global.identityTrustAnchorsPEM=$ROOT_DIR/certs/ca.crt \
-    --set-file linkerd2.identity.issuer.tls.crtPEM=$ROOT_DIR/certs/issuer.crt \
-    --set-file linkerd2.identity.issuer.tls.keyPEM=$ROOT_DIR/certs/issuer.key \
-    --set linkerd2.identity.issuer.crtExpiry=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ")
-}
-
-function deploy-repos() {
-  echo "Deploying/upgrading just repo infrastructure..."
-  kubectl get ns | grep infra || kubectl create ns infra
-  kubectl annotate namespace infra linkerd.io/inject=enabled --overwrite
-  helm dep update $ROOT_DIR/chart
-  helm upgrade --install infra $ROOT_DIR/chart \
-    --wait \
-    --timeout 10m0s \
-    --namespace infra \
-    --set linkerd2.enabled=false \
-    --set prometheus.enabled=false \
-    --set grafana.enabled=false \
-    --set loki-stack.enabled=false \
-    --set strimzi-kafka-operator.enabled=false
-}
-
-function npm-login() {
-  /usr/bin/expect <<EOD
-spawn npm login --registry "$NPM_REGISTRY" --scope=pongle --strict-ssl false
-expect {
-  "Username:" {send "$NPM_USERNAME\r"; exp_continue}
-  "Password:" {send "$NPM_PASSWORD\r"; exp_continue}
-  "Email: (this IS public)" {send "$NPM_EMAIL\r"; exp_continue}
-}
-EOD
+    --set-file global.identityTrustAnchorsPEM=$ROOT_DIR/ssl/linkerdCA.crt \
+    --set-file linkerd2.identity.issuer.tls.crtPEM=$ROOT_DIR/ssl/linkerd.crt \
+    --set-file linkerd2.identity.issuer.tls.keyPEM=$ROOT_DIR/ssl/linkerd.key \
+    --set linkerd2.identity.issuer.crtExpiry=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ") \
+    --set-file secrets.ssl.key=$ROOT_DIR/ssl/ponglehub.co.uk.key \
+    --set-file secrets.ssl.crt=$ROOT_DIR/ssl/ponglehub.co.uk.crt
 }
 
 function overwrite-traefik-config() {
@@ -173,21 +197,15 @@ spec:
 EOL
 }
 
-mode="$1"
+make-linkerd-certs
+make-ingress-certs
 
 create-network
 start-registry
 start-cluster
-
-if [ "$mode" == "all" ]; then
-  make-certs
-  deploy-infra
-  npm-login
-elif [ "$mode" == "repos" ]; then
-  deploy-repos
-  npm-login
-else
-  echo "mode $mode not recognised"
-fi
+deploy-infra
 
 overwrite-traefik-config
+
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain infra/cluster/ssl/ponglehubCA.crt
+npm config set -g cafile infra/cluster/ssl/ponglehubCA.crt

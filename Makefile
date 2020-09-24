@@ -1,16 +1,14 @@
-.PHONY: init clean deploy quick stop
+.PHONY: cluster repos clean deploy
 
-init:
-	@./infra/cluster-start.sh all
+cluster:
+	@./infra/cluster/start.sh
+
+repos:
+	@./infra/repos/start.sh
 
 clean:
-	@./infra/cluster-stop.sh
-
-quick:
-	@./infra/local-repos/start.sh
-
-stop:
-	@./infra/local-repos/stop.sh
+	@./infra/cluster/stop.sh
+	@./infra/repos/stop.sh
 
 deploy:
 	kubectl get ns | grep ponglehub || kubectl create ns ponglehub

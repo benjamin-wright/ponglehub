@@ -9,14 +9,18 @@ dependencies:
   name: grafana
   repository: https://kubernetes-charts.storage.googleapis.com/
   version: ~5.0.23
-- condition: loki-stack.enabled
-  name: loki-stack
-  repository: https://grafana.github.io/loki/charts
-  version: '*'
 - condition: verdaccio.enabled
   name: verdaccio
   repository: https://charts.verdaccio.org
   version: 0.10.0
+- condition: chartmuseum.enabled
+  name: chartmuseum
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: '*'
+- condition: loki-stack.enabled
+  name: loki-stack
+  repository: https://grafana.github.io/loki/charts
+  version: '*'
 - condition: linkerd2.enabled
   name: linkerd2
   repository: https://helm.linkerd.io/stable
