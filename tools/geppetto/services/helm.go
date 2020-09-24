@@ -167,7 +167,7 @@ func (h *Helm) SetVersion(repo types.Repo, version string) error {
 
 // Publish publish the chart to a local registry
 func (h *Helm) Publish(repo types.Repo, chartRepo string) error {
-	output, err := h.cmd.Run(repo.Path, "helm push . "+chartRepo+" --insecure")
+	output, err := h.cmd.Run(repo.Path, "helm push . "+chartRepo)
 	if err != nil {
 		return fmt.Errorf("Error publishing helm chart:\nError\n%+v\nOutput:\n%s", err, output)
 	}

@@ -57,7 +57,7 @@ func (n NPM) GetRepo(path string) (types.Repo, error) {
 
 // Install run an NPM install
 func (n NPM) Install(repo types.Repo) error {
-	output, err := n.cmd.Run(repo.Path, "npm install --strict-ssl=false")
+	output, err := n.cmd.Run(repo.Path, "npm install")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -87,9 +87,9 @@ func (n NPM) Test(repo types.Repo) error {
 
 // Publish push the repo up to its registry
 func (n NPM) Publish(repo types.Repo) error {
-	output, err := n.cmd.Run(repo.Path, "npm publish --strict-ssl=false")
+	output, err := n.cmd.Run(repo.Path, "echo hi >&2 && npm publish")
 	if err != nil {
-		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
+		return fmt.Errorf("Error publishing NPM module fish:\nError\n%+v\nOutput:\n%s", err, output)
 	}
 
 	return nil
@@ -97,7 +97,7 @@ func (n NPM) Publish(repo types.Repo) error {
 
 // GetLatestSHA get the SHA of the most recently published version of the module
 func (n NPM) GetLatestSHA(repo types.Repo) (string, error) {
-	return n.cmd.Run(repo.Path, "npm view --strict-ssl=false --json | jq '.dist.shasum' -r")
+	return n.cmd.Run(repo.Path, "npm view --json | jq '.dist.shasum' -r")
 }
 
 // GetCurrentSHA get the SHA of the current version of the module
