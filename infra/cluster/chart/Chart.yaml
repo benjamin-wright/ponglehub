@@ -3,8 +3,8 @@ appVersion: 1.16.0
 dependencies:
 - condition: prometheus.enabled
   name: prometheus
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  version: ~11.1.5
+  repository: https://prometheus-community.github.io/helm-charts
+  version: ~11.15.0
 - condition: grafana.enabled
   name: grafana
   repository: https://kubernetes-charts.storage.googleapis.com/

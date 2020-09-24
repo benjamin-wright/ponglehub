@@ -16,6 +16,29 @@ loki-stack:
       - labels:
           level:
 
+prometheus:
+  enabled: true
+  extraScrapeConfigs: |
+    - job_name: 'linkerd'
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: ['linkerd']
+
+      relabel_configs:
+      - source_labels:
+        - __meta_kubernetes_pod_container_name
+        action: keep
+        regex: ^prometheus$
+
+      honor_labels: true
+      metrics_path: '/federate'
+
+      params:
+        'match[]':
+          - '{job="linkerd-proxy"}'
+          - '{job="linkerd-controller"}'
+
 grafana:
   enabled: true
   admin:
@@ -25,7 +48,7 @@ grafana:
       apiVersion: 1
       datasources:
       - id: prometheus
-        name: Prometheus
+        name: prometheus
         type: prometheus
         url: http://infra-prometheus-server
         access: proxy
@@ -52,9 +75,9 @@ grafana:
     annotations:
       kubernetes.io/ingress.class: traefik
       ingress.kubernetes.io/ssl-redirect: "true"
-      ingress.kubernetes.io/auth-type: forward
-      ingress.kubernetes.io/auth-url: https://auth.ponglehub.co.uk/auth
-      ingress.kubernetes.io/auth-response-headers: X-Forwarded-User
+      # ingress.kubernetes.io/auth-type: forward
+      # ingress.kubernetes.io/auth-url: https://auth.ponglehub.co.uk/auth
+      # ingress.kubernetes.io/auth-response-headers: X-Forwarded-User
     hosts:
     - grafana.ponglehub.co.uk
     tls:
@@ -95,6 +118,7 @@ linkerd2:
     enabled: false
   ingress:
     hostname: linkerd.ponglehub.co.uk
+  enforcedHostRegexp: ^linkerd\.ponglehub\.co\.uk$
 
 strimzi-kafka-operator:
   enabled: true
