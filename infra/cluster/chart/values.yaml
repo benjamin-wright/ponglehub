@@ -173,6 +173,7 @@ chartmuseum:
   env:
     open:
       STORAGE: local
+      DISABLE_API: false
   persistence:
     enabled: true
     accessMode: ReadWriteOnce

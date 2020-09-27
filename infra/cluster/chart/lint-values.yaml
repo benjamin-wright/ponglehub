@@ -2,6 +2,9 @@ secrets:
   admin:
     username: username
     password: password
+  ssl:
+    key: key
+    crt: crt
 
 global:
   identityTrustAnchorsPEM: ca-cert-file

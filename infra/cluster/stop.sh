@@ -5,6 +5,8 @@ set -o errexit
 ROOT_DIR=$( cd "$(dirname "`realpath $0`")" ; pwd -P )
 
 if k3d cluster list | grep $CLUSTER_NAME -q; then
+    helm repo remove local || true
+
     sudo security remove-trusted-cert -d infra/cluster/ssl/ponglehubCA.crt || true
     npm config delete -g cafile
 
