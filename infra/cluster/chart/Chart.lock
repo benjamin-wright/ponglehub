@@ -15,10 +15,10 @@ dependencies:
   repository: https://grafana.github.io/loki/charts
   version: '*'
 - name: linkerd2
-  repository: https://helm.linkerd.io/stable
-  version: 2.8.1
+  repository: https://helm.linkerd.io/edge
+  version: '*'
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
   version: '*'
-digest: sha256:2abd61b4d695d57f07bb9fad52bdad1bd1e07843fc0f14ba4bef78b71d448aef
-generated: "2020-09-24T21:45:45.341629+01:00"
+digest: sha256:7a16a892c76608c5138a0a6245cf01e3917a26dc4dc3b4dd4ac1c2a694c97d8a
+generated: "2020-09-25T20:44:33.248905+01:00"

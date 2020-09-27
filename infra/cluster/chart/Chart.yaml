@@ -23,8 +23,8 @@ dependencies:
   version: '*'
 - condition: linkerd2.enabled
   name: linkerd2
-  repository: https://helm.linkerd.io/stable
-  version: 2.8.1
+  repository: https://helm.linkerd.io/edge
+  version: '*'
 - condition: strimzi-kafka-operator.enabled
   name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/

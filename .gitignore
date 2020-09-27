@@ -7,4 +7,8 @@
 infra/k3s/*
 *.log
 
+ssl/
+k3s/
+dashboards/
+
 node_modules

@@ -138,10 +138,42 @@ EOF
       -CAkey /work/$CA_NAME.key \
       -CAcreateserial \
       -out /work/$DOMAIN.crt -days 825 -sha256 -extfile /work/$DOMAIN.ext
+
+    sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $SSL_PATH/$CA_NAME.crt
+    npm config set -g cafile $SSL_PATH/$CA_NAME.crt
   fi
 }
 
+function load-dashboard() {
+  local dashboard=$1
+
+  if [ -f $ROOT_DIR/dashboards/$dashboard ]; then
+    return
+  fi
+    
+  curl -L https://raw.githubusercontent.com/linkerd/linkerd2/main/grafana/dashboards/$dashboard > $ROOT_DIR/dashboards/$dashboard
+}
+
+function load-from-url() {
+  local name=$1
+  local url=$2
+  
+  if [ -f $ROOT_DIR/dashboards/$name ]; then
+    return
+  fi
+
+  curl -L $url > $ROOT_DIR/dashboards/$name
+}
+
 function deploy-infra() {
+  echo "downloading dashboards"
+  mkdir -p $ROOT_DIR/dashboards
+  load-dashboard top-line.json
+  load-dashboard namespace.json
+  load-dashboard pod.json
+  load-dashboard health.json
+  load-from-url kubernetes.json https://grafana.com/api/dashboards/8588/revisions/1/download
+
   echo "Deploying/upgrading standard infrastructure..."
   kubectl get ns | grep infra || kubectl create ns infra
   kubectl annotate namespace infra linkerd.io/inject=enabled --overwrite
@@ -150,7 +182,11 @@ function deploy-infra() {
     --wait \
     --timeout 10m0s \
     --namespace infra \
-    --set-file "grafana.dashboards.default.metrics.json=$ROOT_DIR/dashboards/default.json" \
+    --set-file "grafana.dashboards.default.top-line.json=$ROOT_DIR/dashboards/top-line.json" \
+    --set-file "grafana.dashboards.default.namespace.json=$ROOT_DIR/dashboards/namespace.json" \
+    --set-file "grafana.dashboards.default.pod.json=$ROOT_DIR/dashboards/pod.json" \
+    --set-file "grafana.dashboards.default.health.json=$ROOT_DIR/dashboards/health.json" \
+    --set-file "grafana.dashboards.default.kubernetes.json=$ROOT_DIR/dashboards/kubernetes.json" \
     --set "secrets.admin.password=password" \
     --set-file global.identityTrustAnchorsPEM=$ROOT_DIR/ssl/linkerdCA.crt \
     --set-file linkerd2.identity.issuer.tls.crtPEM=$ROOT_DIR/ssl/linkerd.crt \
@@ -206,6 +242,3 @@ start-cluster
 deploy-infra
 
 overwrite-traefik-config
-
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain infra/cluster/ssl/ponglehubCA.crt
-npm config set -g cafile infra/cluster/ssl/ponglehubCA.crt

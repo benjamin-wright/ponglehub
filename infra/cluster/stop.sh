@@ -13,4 +13,5 @@ if k3d cluster list | grep $CLUSTER_NAME -q; then
     docker network rm $NETWORK_NAME
     rm -rf $ROOT_DIR/k3s
     rm -rf $ROOT_DIR/ssl
+    rm -rf $ROOT_DIR/dashboards
 fi
