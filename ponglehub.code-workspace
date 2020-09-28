@@ -1,14 +1,27 @@
 {
 	"folders": [
 		{
-			"path": ".",
-			"name": "ponglehub"
+			"name": "ponglehub",
+			"path": "."
 		},
 		{
-			"path": "tools/geppetto",
-			"name": "geppetto"
+			"name": "infra-cluster",
+			"path": "infra/cluster"
 		},
 		{
+			"name": "infra-repos",
+			"path": "infra/repos"
+		},
+		{
+			"name": "geppetto",
+			"path": "tools/geppetto"
+		},
+		{
+			"name": "deployment",
+			"path": "deployment"
+		},
+		{
+			"name": "keycloak-init",
 			"path": "services/golang/keycloak-init"
 		}
 	],

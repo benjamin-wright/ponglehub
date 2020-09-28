@@ -9,3 +9,6 @@ keycloak:
       value: "admin"
     - name: KEYCLOAK_PASSWORD
       value: "admin"
+jobs:
+- name: keycloak-init
+  image: keycloak-init

@@ -79,3 +79,13 @@ func (g *Golang) Test(repo types.Repo) error {
 
 	return nil
 }
+
+// Build builds the binary for a golang repo
+func (g *Golang) Build(repo types.Repo) error {
+	output, err := g.cmd.Run(repo.Path, "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/"+repo.Name)
+	if err != nil {
+		return fmt.Errorf("Error building :\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
+}

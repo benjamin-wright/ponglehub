@@ -8,3 +8,6 @@ watch:
 
 rollback:
 	go run . --target ../.. rollback
+
+install:
+	go build -o ../../bin/geppetto

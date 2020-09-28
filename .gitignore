@@ -13,3 +13,5 @@ dashboards/
 
 node_modules
 build
+tilt_modules
+bin
