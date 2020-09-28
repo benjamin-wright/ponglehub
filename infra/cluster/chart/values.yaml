@@ -185,13 +185,10 @@ chartmuseum:
       tls: true
       tlsSecret: ssl-secret
 
-linkerd2:
+linkerd:
   enabled: true
-  grafana:
-    enabled: false
   ingress:
     hostname: linkerd.ponglehub.co.uk
-  enforcedHostRegexp: ^linkerd\.ponglehub\.co\.uk$
 
 strimzi-kafka-operator:
   enabled: true

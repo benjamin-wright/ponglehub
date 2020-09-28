@@ -14,11 +14,8 @@ dependencies:
 - name: loki-stack
   repository: https://grafana.github.io/loki/charts
   version: '*'
-- name: linkerd2
-  repository: https://helm.linkerd.io/edge
-  version: '*'
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
   version: '*'
-digest: sha256:7a16a892c76608c5138a0a6245cf01e3917a26dc4dc3b4dd4ac1c2a694c97d8a
-generated: "2020-09-25T20:44:33.248905+01:00"
+digest: sha256:4282652716ff5624d9ecc683012a1c4b6c920583a4d9ef12258f21e56740ada6
+generated: "2020-09-28T08:24:13.548924+01:00"

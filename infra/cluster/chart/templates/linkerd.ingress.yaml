@@ -1,4 +1,4 @@
-{{- if .Values.linkerd2.enabled -}}
+{{- if .Values.linkerd.enabled -}}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -19,7 +19,7 @@ metadata:
     ingress.kubernetes.io/custom-request-headers: l5d-dst-override:linkerd-web.linkerd.svc.cluster.local:8084
 spec:
   rules:
-    - host: {{ .Values.linkerd2.ingress.hostname }}
+    - host: {{ .Values.linkerd.ingress.hostname }}
       http:
         paths:
           - backend:
@@ -27,6 +27,6 @@ spec:
               servicePort: 8084
   tls:
   - hosts:
-    - {{ .Values.linkerd2.ingress.hostname }}
+    - {{ .Values.linkerd.ingress.hostname }}
     secretName: ssl-secret
 {{- end -}}

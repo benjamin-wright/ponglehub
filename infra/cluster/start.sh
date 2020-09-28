@@ -150,14 +150,14 @@ function load-dashboard() {
   if [ -f $ROOT_DIR/dashboards/$dashboard ]; then
     return
   fi
-    
+
   curl -L https://raw.githubusercontent.com/linkerd/linkerd2/main/grafana/dashboards/$dashboard > $ROOT_DIR/dashboards/$dashboard
 }
 
 function load-from-url() {
   local name=$1
   local url=$2
-  
+
   if [ -f $ROOT_DIR/dashboards/$name ]; then
     return
   fi
@@ -174,6 +174,18 @@ function deploy-infra() {
   load-dashboard health.json
   load-from-url kubernetes.json https://grafana.com/api/dashboards/8588/revisions/1/download
 
+  echo "installing linkerd..."
+  helm upgrade -i linkerd linkerd2 \
+    --wait \
+    --repo https://helm.linkerd.io/edge \
+    --set grafana.enabled=false \
+    --set ingress.hostname=linkerd.ponglehub.co.uk \
+    --set enforcedHostRegexp="^linkerd\\.ponglehub\\.co\\.uk\$" \
+    --set identity.issuer.crtExpiry=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ") \
+    --set-file global.identityTrustAnchorsPEM=$ROOT_DIR/ssl/linkerdCA.crt \
+    --set-file identity.issuer.tls.crtPEM=$ROOT_DIR/ssl/linkerd.crt \
+    --set-file identity.issuer.tls.keyPEM=$ROOT_DIR/ssl/linkerd.key \
+
   echo "Deploying/upgrading standard infrastructure..."
   kubectl get ns | grep infra || kubectl create ns infra
   kubectl annotate namespace infra linkerd.io/inject=enabled --overwrite
@@ -188,10 +200,6 @@ function deploy-infra() {
     --set-file "grafana.dashboards.default.health.json=$ROOT_DIR/dashboards/health.json" \
     --set-file "grafana.dashboards.default.kubernetes.json=$ROOT_DIR/dashboards/kubernetes.json" \
     --set "secrets.admin.password=password" \
-    --set-file global.identityTrustAnchorsPEM=$ROOT_DIR/ssl/linkerdCA.crt \
-    --set-file linkerd2.identity.issuer.tls.crtPEM=$ROOT_DIR/ssl/linkerd.crt \
-    --set-file linkerd2.identity.issuer.tls.keyPEM=$ROOT_DIR/ssl/linkerd.key \
-    --set linkerd2.identity.issuer.crtExpiry=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ") \
     --set-file secrets.ssl.key=$ROOT_DIR/ssl/ponglehub.co.uk.key \
     --set-file secrets.ssl.crt=$ROOT_DIR/ssl/ponglehub.co.uk.crt
 }
