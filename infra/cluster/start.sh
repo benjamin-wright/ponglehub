@@ -163,6 +163,8 @@ function load-from-url() {
   fi
 
   curl -L $url > $ROOT_DIR/dashboards/$name
+
+  sed -i '' 's/${DS_PROMETHEUS}/prometheus/g' $ROOT_DIR/dashboards/$name
 }
 
 function deploy-infra() {
@@ -173,6 +175,7 @@ function deploy-infra() {
   load-dashboard pod.json
   load-dashboard health.json
   load-from-url kubernetes.json https://grafana.com/api/dashboards/8588/revisions/1/download
+  load-from-url kubernetes-cluster.json https://grafana.com/api/dashboards/11802/revisions/4/download
 
   echo "installing linkerd..."
   helm upgrade -i linkerd linkerd2 \
@@ -199,6 +202,7 @@ function deploy-infra() {
     --set-file "grafana.dashboards.default.pod.json=$ROOT_DIR/dashboards/pod.json" \
     --set-file "grafana.dashboards.default.health.json=$ROOT_DIR/dashboards/health.json" \
     --set-file "grafana.dashboards.default.kubernetes.json=$ROOT_DIR/dashboards/kubernetes.json" \
+    --set-file "grafana.dashboards.default.kubernetes-cluster.json=$ROOT_DIR/dashboards/kubernetes-cluster.json" \
     --set "secrets.admin.password=password" \
     --set-file secrets.ssl.key=$ROOT_DIR/ssl/ponglehub.co.uk.key \
     --set-file secrets.ssl.crt=$ROOT_DIR/ssl/ponglehub.co.uk.crt

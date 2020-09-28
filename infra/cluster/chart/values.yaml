@@ -115,6 +115,8 @@ grafana:
   enabled: true
   admin:
     existingSecret: grafana-creds
+  plugins:
+  - btplc-status-dot-panel
   datasources:
     datasources.yaml:
       apiVersion: 1

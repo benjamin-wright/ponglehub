@@ -4,6 +4,6 @@ dependencies:
   version: '*'
 - name: common-templates
   repository: https://helm.ponglehub.co.uk
-  version: 1.0.7
-digest: sha256:395975e9047033470b80b1a908187ab02acc6b6d6ad83bc0ade1485ce02b93d2
-generated: "2020-09-27T22:06:54.906065+01:00"
+  version: 1.0.8
+digest: sha256:5a65b5532d3e20c32ef15ad05e2ae5647bc0ba345c96dcbe07311c371d6339f2
+generated: "2020-09-28T13:23:05.353287+01:00"
