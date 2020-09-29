@@ -9,9 +9,6 @@ spec:
   backoffLimit: {{ .backoffLimit | default 3 }}
   completions: {{ .completions | default 1 }}
   parallelism: {{ .parallelism | default 1 }}
-  selector:
-    matchLabels:
-      app: {{ required "must enter a name property!" .name }}
   template:
     metadata:
       labels:

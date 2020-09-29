@@ -13,3 +13,5 @@ export NPM_REGISTRY=https://npm.ponglehub.co.uk
 export NPM_USERNAME=admin
 export NPM_PASSWORD=
 export NPM_EMAIL=admin@ponglehub.co.uk
+
+export PATH=$PATH:$(pwd)/bin

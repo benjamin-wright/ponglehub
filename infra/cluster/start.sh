@@ -54,6 +54,7 @@ EOL
     local nodes=$(kubectl get nodes -o go-template --template='{{range .items}}{{printf "%s\n" .metadata.name}}{{end}}')
     for node in $nodes; do
         kubectl annotate node "${node}" tilt.dev/registry=localhost:${REGISTRY_PORT};
+        kubectl annotate node "${node}" tilt.dev/registry-from-cluster=${REGISTRY_NAME}:${REGISTRY_PORT}
         docker exec "$node" sysctl fs.inotify.max_user_watches=524288
         docker exec "$node" sysctl fs.inotify.max_user_instances=512
     done

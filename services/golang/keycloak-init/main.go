@@ -10,4 +10,5 @@ func main() {
 	}
 
 	cfg.print()
+	logrus.Info("Finished")
 }
