@@ -1,10 +1,15 @@
 .PHONY: cluster repos clean deploy
 
+geppetto:
+	cd tools/geppetto && make install
+
 cluster:
 	@./infra/cluster/start.sh
+	geppetto watch
 
 repos:
 	@./infra/repos/start.sh
+	geppetto watch
 
 clean:
 	@./infra/cluster/stop.sh

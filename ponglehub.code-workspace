@@ -21,7 +21,15 @@
 			"path": "deployment"
 		},
 		{
-			"name": "keycloak-init",
+			"name": "lib: common-templates",
+			"path": "libraries/helm/common-templates"
+		},
+		{
+			"name": "srv: wait-for-service",
+			"path": "services/golang/wait-for-service"
+		},
+		{
+			"name": "srv: keycloak-init",
 			"path": "services/golang/keycloak-init"
 		}
 	],

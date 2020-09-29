@@ -12,3 +12,18 @@ keycloak:
 jobs:
 - name: keycloak-init
   image: keycloak-init
+  env:
+  - name: KEYCLOAK_INIT_URL
+    value: http://ponglehub-keycloak-http/auth/
+  - name: KEYCLOAK_INIT_REALM
+    value: ponglehub
+  initContainers:
+  - name: wait
+    image: wait-for-service
+    env:
+    - name: WAIT_FOR_URL
+      value: http://ponglehub-keycloak-http/auth/
+    - name: WAIT_FOR_INTERVAL
+      value: "10"
+    - name: WAIT_FOR_TIMEOUT
+      value: "300"

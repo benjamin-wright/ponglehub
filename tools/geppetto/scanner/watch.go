@@ -34,6 +34,11 @@ func (s *Scanner) watchGo(repo types.Repo, triggers chan<- types.RepoUpdate, err
 	defer watcher.Close()
 
 	err := filepath.Walk(repo.Path, func(path string, fi os.FileInfo, err error) error {
+		if fi.Name() == "build" {
+			logrus.Infof("Skipping %s", fi.Name())
+			return filepath.SkipDir
+		}
+
 		if fi.Mode().IsDir() {
 			logrus.Infof("Monitoring %s", fi.Name())
 			return watcher.Add(path)

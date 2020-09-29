@@ -5,8 +5,10 @@ import "github.com/sirupsen/logrus"
 func main() {
 	logrus.Info("Starting...")
 
-	cfg := config{
-		host: "ponglehub.co.uk",
+	cfg, err := newConfig()
+
+	if err != nil {
+		logrus.Fatalf("Failed to load config: %+v", err)
 	}
 
 	cfg.print()
