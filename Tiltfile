@@ -25,8 +25,16 @@ def microservice(name):
 microservice('wait-for-service')
 microservice('keycloak-init')
 
+def envvar(name):
+  return str(local("echo $%s" % name)).rstrip('\n')
+
 k8s_yaml(helm(
   'deployment',
   name='ponglehub',
-  namespace='ponglehub'
+  namespace='ponglehub',
+  set=[
+    'global.keycloakUser='+envvar('KEYCLOAK_USER'),
+    'global.keycloakPassword='+envvar('KEYCLOAK_PASSWORD'),
+    'keycloak.postgresql.postgresqlPassword='+envvar('KEYCLOAK_DB_PASSWORD')
+  ]
 ))

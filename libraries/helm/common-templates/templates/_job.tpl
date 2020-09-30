@@ -1,25 +1,26 @@
 {{- define "ponglehub.job" -}}
-{{ $job := . }}
+{{ $job := first . }}
+{{ $top := (index . 1) }}
 apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    app: {{ required "must enter a name property!" .name }}
-  name: {{ required "must enter a name property!" .name }}
+    app: {{ required "must enter a name property!" $job.name }}
+  name: {{ required "must enter a name property!" $job.name }}
 spec:
-  backoffLimit: {{ .backoffLimit | default 0 }}
-  completions: {{ .completions | default 1 }}
-  parallelism: {{ .parallelism | default 1 }}
+  backoffLimit: {{ $job.backoffLimit | default 0 }}
+  completions: {{ $job.completions | default 1 }}
+  parallelism: {{ $job.parallelism | default 1 }}
   template:
     metadata:
       labels:
-        app: {{ required "must enter a name property!" .name }}
+        app: {{ required "must enter a name property!" $job.name }}
       annotations:
         linkerd.io/inject: disabled
     spec:
-      {{- if .initContainers }}
+      {{- if $job.initContainers }}
       initContainers:
-      {{- range .initContainers }}
+      {{- range $job.initContainers }}
       - name: {{ .name }}
         image: {{ required "must enter an image property!" .image}}
         imagePullPolicy: {{ .pullPolicy | default "Always" }}
@@ -43,16 +44,16 @@ spec:
       {{- end }}
       {{- end}}
       containers:
-      - name: {{ .name | default "job" }}
-        image: {{ required "must enter an image property!" .image}}
-        imagePullPolicy: {{ .pullPolicy | default "Always" }}
-        {{- if .env }}
+      - name: {{ $job.name | default "job" }}
+        image: {{ required "must enter an image property!" $job.image}}
+        imagePullPolicy: {{ $job.pullPolicy | default "Always" }}
+        {{- if $job.env }}
         env:
-          {{- toYaml .env | nindent 10 }}
+          {{- tpl $job.env $top | nindent 10 }}
         {{- end }}
         resources:
-        {{- if .resources }}
-          {{- toYaml .resources | nindent 10 }}
+        {{- if $job.resources }}
+          {{- toYaml $job.resources | nindent 10 }}
         {{- else }}
           requests:
             memory: 32Mi

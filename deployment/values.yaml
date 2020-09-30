@@ -1,3 +1,7 @@
+global:
+  keycloakUser: admin
+  keycloakPassword: admin
+
 keycloak:
   enabled: true
   extraEnv: |
@@ -6,21 +10,22 @@ keycloak:
     - name: KEYCLOAK_LOGLEVEL
       value: "DEBUG"
     - name: KEYCLOAK_USER
-      value: "admin"
+      value: {{ .Values.global.keycloakUser }}
     - name: KEYCLOAK_PASSWORD
-      value: "admin"
-jobs:
-- name: keycloak-init
+      value: {{ .Values.global.keycloakPassword }}
+
+keycloakInit:
+  name: keycloak-init
   image: keycloak-init
-  env:
-  - name: KEYCLOAK_INIT_URL
-    value: http://ponglehub-keycloak-http
-  - name: KEYCLOAK_INIT_REALM
-    value: ponglehub
-  - name: KEYCLOAK_INIT_USER
-    value: admin
-  - name: KEYCLOAK_INIT_PASSWORD
-    value: admin
+  env: |
+    - name: KEYCLOAK_INIT_URL
+      value: http://ponglehub-keycloak-http
+    - name: KEYCLOAK_INIT_REALM
+      value: ponglehub
+    - name: KEYCLOAK_INIT_USER
+      value: {{ .Values.global.keycloakUser }}
+    - name: KEYCLOAK_INIT_PASSWORD
+      value: {{ .Values.global.keycloakPassword }}
   initContainers:
   - name: wait
     image: wait-for-service
