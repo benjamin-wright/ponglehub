@@ -21,9 +21,18 @@ func main() {
 		logrus.Fatalf("Failed to create api instance: %+v", err)
 	}
 
-	err = keycloak.RemoveRealm(cfg.realm)
+	exists, err := keycloak.HasRealm(cfg.realm)
 	if err != nil {
-		logrus.Fatalf("Failed to remove realm: %+v", err)
+		logrus.Fatalf("Failed checking for realm: %+v", err)
+	}
+
+	if exists {
+		err = keycloak.RemoveRealm(cfg.realm)
+		if err != nil {
+			logrus.Fatalf("Failed to remove realm: %+v", err)
+		}
+	} else {
+		logrus.Infof("%s realm not currently installed", cfg.realm)
 	}
 
 	err = keycloak.AddRealm(cfg.realm)

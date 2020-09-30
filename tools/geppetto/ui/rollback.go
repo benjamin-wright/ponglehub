@@ -94,6 +94,10 @@ func (r *Rollback) Start(target string) error {
 		case repo := <-rollbackEvents:
 			if repo != "" {
 				rolledBack = append(rolledBack, repo)
+
+				if len(repos) == len(rolledBack) {
+					return nil
+				}
 			}
 		case cmd := <-commandEvents:
 			if cmd == quitCommand {

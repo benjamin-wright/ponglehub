@@ -51,6 +51,10 @@ func TestLoadConfig(t *testing.T) {
 		})
 	}
 
+	expect := func(url string, interval int, timeout int) config {
+		return config{url: url, interval: interval, timeout: timeout}
+	}
+
 	for _, test := range []struct {
 		name     string
 		url      string
@@ -58,10 +62,10 @@ func TestLoadConfig(t *testing.T) {
 		timeout  string
 		expected config
 	}{
-		{name: "defaults", url: "my-url", expected: config{url: "my-url", interval: 2, timeout: 60}},
-		{name: "set timeout", url: "my-url", timeout: "15", expected: config{url: "my-url", interval: 2, timeout: 15}},
-		{name: "set interval", url: "my-url", interval: "10", expected: config{url: "my-url", interval: 10, timeout: 60}},
-		{name: "set both", url: "my-url", interval: "12", timeout: "36", expected: config{url: "my-url", interval: 12, timeout: 36}},
+		{name: "defaults", url: "my-url", expected: expect("my-url", 2, 60)},
+		{name: "set timeout", url: "my-url", timeout: "15", expected: expect("my-url", 2, 15)},
+		{name: "set interval", url: "my-url", interval: "10", expected: expect("my-url", 10, 60)},
+		{name: "set both", url: "my-url", interval: "12", timeout: "36", expected: expect("my-url", 12, 36)},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			env(test.url, test.interval, test.timeout)

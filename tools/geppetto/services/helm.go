@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	"ponglehub.co.uk/geppetto/types"
 )
 
@@ -137,6 +138,36 @@ func (h *Helm) GetDependencyNames(repo types.Repo) ([]string, error) {
 	}
 
 	return names, nil
+}
+
+// GetCurrentVersion gets the local version of the chart
+func (h *Helm) GetCurrentVersion(repo types.Repo) (string, error) {
+	chartYAML := repo.Path + "/Chart.yaml"
+
+	data, err := h.io.ReadYAML(chartYAML)
+	if err != nil {
+		return "", err
+	}
+
+	current := data["version"].(string)
+
+	return current, nil
+}
+
+// GetLatestVersion gets the most up-to-date version of the published chart
+func (h *Helm) GetLatestVersion(repo types.Repo, chartRepo string) (string, error) {
+	output, err := h.cmd.Run(repo.Path, fmt.Sprintf("helm show chart %s/%s", chartRepo, repo.Name))
+	if err != nil {
+		return "", fmt.Errorf("Error fetching latest version of helm chart:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	var result map[string]interface{}
+	err = yaml.Unmarshal([]byte(output), &result)
+	if err != nil {
+		return "", err
+	}
+
+	return result["version"].(string), nil
 }
 
 // SetVersion bump the version of the chart in the local registry

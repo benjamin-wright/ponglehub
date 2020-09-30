@@ -69,17 +69,51 @@ func New(authURL string, username string, password string) (*KeycloakAPI, error)
 	}, nil
 }
 
-func (k *KeycloakAPI) post(path string, body []byte, response interface{}) error {
+func (k *KeycloakAPI) get(path string, response interface{}) (int, error) {
+	url := fmt.Sprintf("%s/auth/admin/realms%s", k.url, path)
+	logrus.Debugf("Submitting get request to '%s'", url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+k.accessToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	resBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return resp.StatusCode, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return resp.StatusCode, fmt.Errorf("[%d] %s", resp.StatusCode, string(resBody))
+	}
+
+	if response != nil {
+		err = json.Unmarshal(resBody, &response)
+		if err != nil {
+			return resp.StatusCode, err
+		}
+	}
+
+	return resp.StatusCode, nil
+}
+
+func (k *KeycloakAPI) post(path string, body []byte, response interface{}) (int, error) {
 	url := fmt.Sprintf("%s/auth/admin/realms%s", k.url, path)
 	logrus.Debugf("Submitting post request to '%s'", url)
 
-	req, err := http.NewRequest(
-		"POST",
-		fmt.Sprintf("%s/auth/admin/realms%s", k.url, path),
-		bytes.NewBuffer(body),
-	)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -88,40 +122,36 @@ func (k *KeycloakAPI) post(path string, body []byte, response interface{}) error
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	resBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return resp.StatusCode, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("[%d] %s", resp.StatusCode, string(resBody))
+		return resp.StatusCode, fmt.Errorf("[%d] %s", resp.StatusCode, string(resBody))
 	}
 
 	if response != nil {
 		err = json.Unmarshal(resBody, &response)
 		if err != nil {
-			return err
+			return resp.StatusCode, err
 		}
 	}
 
-	return nil
+	return resp.StatusCode, nil
 }
 
-func (k *KeycloakAPI) delete(path string, response interface{}) error {
+func (k *KeycloakAPI) delete(path string, response interface{}) (int, error) {
 	url := fmt.Sprintf("%s/auth/admin/realms%s", k.url, path)
 	logrus.Debugf("Submitting delete request to '%s'", url)
 
-	req, err := http.NewRequest(
-		"DELETE",
-		url,
-		nil,
-	)
+	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -130,25 +160,25 @@ func (k *KeycloakAPI) delete(path string, response interface{}) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	resBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return resp.StatusCode, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("[%d] %s", resp.StatusCode, string(resBody))
+		return resp.StatusCode, fmt.Errorf("[%d] %s", resp.StatusCode, string(resBody))
 	}
 
 	if response != nil {
 		err = json.Unmarshal(resBody, &response)
 		if err != nil {
-			return err
+			return resp.StatusCode, err
 		}
 	}
 
-	return nil
+	return resp.StatusCode, nil
 }
