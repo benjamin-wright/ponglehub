@@ -14,9 +14,13 @@ jobs:
   image: keycloak-init
   env:
   - name: KEYCLOAK_INIT_URL
-    value: http://ponglehub-keycloak-http/auth/
+    value: http://ponglehub-keycloak-http
   - name: KEYCLOAK_INIT_REALM
     value: ponglehub
+  - name: KEYCLOAK_INIT_USER
+    value: admin
+  - name: KEYCLOAK_INIT_PASSWORD
+    value: admin
   initContainers:
   - name: wait
     image: wait-for-service
