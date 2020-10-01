@@ -2,7 +2,6 @@
 
 ## Todo:
 
-- get tpl working for init containers
 - bail out of realm setup if everything looks good
 
 ## Dependencies:

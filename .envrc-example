@@ -8,6 +8,9 @@ export KEYCLOAK_USER=admin
 export KEYCLOAK_PASSWORD=
 export KEYCLOAK_EMAIL=admin@ponglehub.co.uk
 export KEYCLOAK_EMAIL_PASSWORD=
+export KEYCLOAK_SMTP_SERVER=
+export KEYCLOAK_SMTP_PORT=
+export KEYCLOAK_SMTP_FROM=
 
 export NPM_REGISTRY=https://npm.ponglehub.co.uk
 export NPM_USERNAME=admin

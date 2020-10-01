@@ -102,6 +102,8 @@ func (k *KeycloakAPI) get(path string, response interface{}) (int, error) {
 		if err != nil {
 			return resp.StatusCode, err
 		}
+	} else {
+		logrus.Infof("Get body: %s", string(resBody))
 	}
 
 	return resp.StatusCode, nil

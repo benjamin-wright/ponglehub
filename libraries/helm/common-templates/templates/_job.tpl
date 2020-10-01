@@ -20,13 +20,13 @@ spec:
     spec:
       {{- if $job.initContainers }}
       initContainers:
-      {{- range $job.initContainers }}
-      - name: {{ .name }}
-        image: {{ required "must enter an image property!" .image}}
-        imagePullPolicy: {{ .pullPolicy | default "Always" }}
-        {{- if .env }}
+      {{- range $key, $container := $job.initContainers }}
+      - name: {{ $container.name }}
+        image: {{ required "must enter an image property!" $container.image}}
+        imagePullPolicy: {{ $container.pullPolicy | default "Always" }}
+        {{- if $container.env }}
         env:
-          {{- toYaml .env | nindent 10 }}
+          {{- tpl $container.env $top | nindent 10 }}
         {{- end }}
         resources:
         {{- if $job.resources }}

@@ -1,6 +1,6 @@
 global:
-  keycloakUser: admin
-  keycloakPassword: admin
+  # keycloakUser:
+  # keycloakPassword:
 
 keycloak:
   enabled: true
@@ -29,10 +29,10 @@ keycloakInit:
   initContainers:
   - name: wait
     image: wait-for-service
-    env:
-    - name: WAIT_FOR_URL
-      value: http://ponglehub-keycloak-http/auth/
-    - name: WAIT_FOR_INTERVAL
-      value: "10"
-    - name: WAIT_FOR_TIMEOUT
-      value: "300"
+    env: |
+      - name: WAIT_FOR_URL
+        value: http://ponglehub-keycloak-http/auth/
+      - name: WAIT_FOR_INTERVAL
+        value: "10"
+      - name: WAIT_FOR_TIMEOUT
+        value: "300"
