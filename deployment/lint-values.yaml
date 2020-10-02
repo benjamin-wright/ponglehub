@@ -1,3 +1,10 @@
 global:
-  keycloakUser: user
-  keycloakPassword: pwd
+  keycloak:
+    user: user
+    password: pwd
+  smtp:
+    email: someaddress
+    password: pwd
+    host: host
+    port: port
+    from: sender

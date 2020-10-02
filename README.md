@@ -2,6 +2,10 @@
 
 ## Todo:
 
+- update keycloak-init config load from environment to use tags on the field names in the config struct
+- factor out config load from environment into a separate golang library
+- update geppetto to find golang dependencies
+- update geppetto to close on Ctrl+C (sigint?)
 - bail out of realm setup if everything looks good
 
 ## Dependencies:

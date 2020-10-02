@@ -33,8 +33,13 @@ k8s_yaml(helm(
   name='ponglehub',
   namespace='ponglehub',
   set=[
-    'global.keycloakUser='+envvar('KEYCLOAK_USER'),
-    'global.keycloakPassword='+envvar('KEYCLOAK_PASSWORD'),
+    'global.keycloak.user='+envvar('KEYCLOAK_USER'),
+    'global.keycloak.password='+envvar('KEYCLOAK_PASSWORD'),
+    'global.smtp.email='+envvar('KEYCLOAK_EMAIL'),
+    'global.smtp.password='+envvar('KEYCLOAK_EMAIL_PASSWORD'),
+    'global.smtp.host='+envvar('KEYCLOAK_SMTP_SERVER'),
+    'global.smtp.port='+envvar('KEYCLOAK_SMTP_PORT'),
+    'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM'),
     'keycloak.postgresql.postgresqlPassword='+envvar('KEYCLOAK_DB_PASSWORD')
   ]
 ))

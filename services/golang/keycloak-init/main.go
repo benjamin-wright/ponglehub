@@ -16,25 +16,25 @@ func main() {
 
 	cfg.print()
 
-	keycloak, err := api.New(cfg.url, cfg.username, cfg.password)
+	keycloak, err := api.New(cfg.URL, cfg.Username, cfg.Password)
 	if err != nil {
 		logrus.Fatalf("Failed to create api instance: %+v", err)
 	}
 
 	realm := api.Realm{
-		Name:    cfg.realm,
-		Display: cfg.realm,
+		Name:    cfg.Realm,
+		Display: cfg.Realm,
 		SMTPServer: &api.SMTPServer{
-			User:               "admin@ponglehub.co.uk",
-			Password:           "******",
-			ReplyToDisplayName: "Ponglehub",
+			User:               cfg.SMTPEmail,
+			Password:           cfg.SMTPPassword,
+			ReplyToDisplayName: cfg.SMTPFrom,
 			StartTLS:           false,
 			Auth:               true,
-			Port:               465,
-			Host:               "mail.gandi.net",
-			ReplyTo:            "admin@ponglehub.co.uk",
-			From:               "admin@ponglehub.co.uk",
-			FromDisplayName:    "Ponglehub",
+			Port:               cfg.SMTPPort,
+			Host:               cfg.SMTPHost,
+			ReplyTo:            cfg.SMTPEmail,
+			From:               cfg.SMTPEmail,
+			FromDisplayName:    cfg.SMTPFrom,
 			SSL:                true,
 		},
 	}
@@ -50,7 +50,7 @@ func main() {
 			logrus.Fatalf("Failed to remove realm: %+v", err)
 		}
 	} else {
-		logrus.Infof("%s realm not currently installed", cfg.realm)
+		logrus.Infof("%s realm not currently installed", cfg.Realm)
 	}
 
 	err = keycloak.AddRealm(realm)
