@@ -106,11 +106,17 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 		return nil, err
 	}
 
+	logrus.Info("Linking golang repos")
+	err = s.linkGolangRepos(repos)
+	if err != nil {
+		return nil, err
+	}
+
 	return repos, nil
 }
 
 func (s *Scanner) linkNPMRepos(repos []types.Repo) error {
-	names := s.getNPMModuleNames(repos)
+	names := s.getModuleNames(repos, types.Node)
 	for index, repo := range repos {
 		if repo.RepoType != types.Node {
 			continue
@@ -137,22 +143,8 @@ func (s *Scanner) linkNPMRepos(repos []types.Repo) error {
 	return nil
 }
 
-func (s *Scanner) getNPMModuleNames(repos []types.Repo) []string {
-	names := []string{}
-
-	for _, repo := range repos {
-		if repo.RepoType != types.Node {
-			continue
-		}
-
-		names = append(names, repo.Name)
-	}
-
-	return names
-}
-
 func (s *Scanner) linkHelmRepos(repos []types.Repo) error {
-	names := s.getHelmChartNames(repos)
+	names := s.getModuleNames(repos, types.Helm)
 	for index, repo := range repos {
 		if repo.RepoType != types.Helm {
 			continue
@@ -178,11 +170,38 @@ func (s *Scanner) linkHelmRepos(repos []types.Repo) error {
 	return nil
 }
 
-func (s *Scanner) getHelmChartNames(repos []types.Repo) []string {
+func (s *Scanner) linkGolangRepos(repos []types.Repo) error {
+	names := s.getModuleNames(repos, types.Golang)
+	for index, repo := range repos {
+		if repo.RepoType != types.Golang {
+			continue
+		}
+
+		deps, err := s.golang.GetDependencyNames(repo)
+		if err != nil {
+			return err
+		}
+
+		logrus.Debugf("Dependencies for %s: %v", repo.Name, deps)
+
+		for _, name := range names {
+			for _, dep := range deps {
+				if name == dep {
+					repos[index].DependsOn = append(repos[index].DependsOn, name)
+					continue
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Scanner) getModuleNames(repos []types.Repo, repoType types.RepoType) []string {
 	names := []string{}
 
 	for _, repo := range repos {
-		if repo.RepoType != types.Helm {
+		if repo.RepoType != repoType {
 			continue
 		}
 

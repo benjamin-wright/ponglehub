@@ -51,6 +51,17 @@ func (g Golang) GetRepo(path string) (types.Repo, error) {
 	}, nil
 }
 
+// GetDependencyNames returns an array containg the names of all this project's dependencies
+func (g *Golang) GetDependencyNames(repo types.Repo) ([]string, error) {
+	moduleFile := repo.Path + "/go.mod"
+	data, err := g.io.ReadModfile(moduleFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return data["dependencies"].([]string), nil
+}
+
 // Tidy tidies up module dependencies for a golang repo
 func (g *Golang) Tidy(repo types.Repo) error {
 	output, err := g.cmd.Run(repo.Path, "go mod tidy")

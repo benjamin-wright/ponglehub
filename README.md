@@ -2,8 +2,6 @@
 
 ## Todo:
 
-- geppetto: update to find golang dependencies
-- geppetto: update to close on Ctrl+C (sigint?)
 - keycloak-init: log password-redacted representation of realms on post
 - keycloak-init: bail out of realm setup if everything looks good
 - all: Add README.md to everything

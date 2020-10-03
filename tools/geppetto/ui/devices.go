@@ -185,6 +185,8 @@ func (d *devices) listen() <-chan command {
 			case *tcell.EventKey:
 				switch e.Key() {
 				case tcell.KeyESC:
+					fallthrough
+				case tcell.KeyCtrlC:
 					commands <- quitCommand
 				case tcell.KeyUp:
 					commands <- upCommand

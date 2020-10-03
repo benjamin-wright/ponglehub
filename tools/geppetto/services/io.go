@@ -80,8 +80,14 @@ func (io *IO) ReadModfile(path string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	deps := []string{}
+	for _, replace := range fileData.Replace {
+		deps = append(deps, replace.Old.Path)
+	}
+
 	data := map[string]interface{}{
-		"name": fileData.Module.Mod.Path,
+		"name":         fileData.Module.Mod.Path,
+		"dependencies": deps,
 	}
 
 	return data, nil
