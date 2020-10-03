@@ -1,9 +1,9 @@
 dependencies:
 - name: keycloak
   repository: https://codecentric.github.io/helm-charts
-  version: '*'
+  version: 9.3.0
 - name: common-templates
   repository: https://helm.ponglehub.co.uk
-  version: 1.0.1
-digest: sha256:db06606e5bf79d14986b0efa10c4bbcfa8d93abdf3ba322f3e466c7c86f28522
-generated: "2020-10-03T18:16:02.947354+01:00"
+  version: 1.0.74
+digest: sha256:a6989ec189b9d77adb7af8446a8c1a9103cdfa26e3c3b2e2cfe33700a5d7a319
+generated: "2020-10-03T22:26:54.645844+01:00"

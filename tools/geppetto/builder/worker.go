@@ -129,16 +129,30 @@ func (w *defaultWorker) buildNPM(repo types.Repo, reinstall bool, signals chan<-
 		return
 	}
 
-	signals <- signal{repo: repo.Name, phase: "bump"}
-	if err := w.npm.SetVersion(repo, ""); err != nil {
+	buildable, err := w.npm.IsBuildable(repo)
+	if err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
-	signals <- signal{repo: repo.Name, phase: "publish"}
-	if err := w.npm.Publish(repo); err != nil {
-		signals <- signal{repo: repo.Name, err: err}
-		return
+	if buildable {
+		signals <- signal{repo: repo.Name, phase: "build"}
+		if err := w.npm.Build(repo); err != nil {
+			signals <- signal{repo: repo.Name, err: err}
+			return
+		}
+	} else {
+		signals <- signal{repo: repo.Name, phase: "bump"}
+		if err := w.npm.SetVersion(repo, ""); err != nil {
+			signals <- signal{repo: repo.Name, err: err}
+			return
+		}
+
+		signals <- signal{repo: repo.Name, phase: "publish"}
+		if err := w.npm.Publish(repo); err != nil {
+			signals <- signal{repo: repo.Name, err: err}
+			return
+		}
 	}
 
 	signals <- signal{repo: repo.Name, finished: true}

@@ -1,0 +1,5 @@
+{{ $top := . }}
+{{- range $key, $job := .Values.jobs }}
+---
+{{ include "ponglehub.job" (list $job $top) }}
+{{- end }}

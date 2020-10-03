@@ -16,14 +16,22 @@ def microservice(name):
   docker_build(
     name,
     'services/golang/%s/build/ponglehub.co.uk' % name,
-    dockerfile='services/golang/Dockerfile',
+    dockerfile='services/dockerfiles/golang.Dockerfile',
     build_args={
       'EXE_NAME': name
     }
   )
 
+def vue(name):
+  docker_build(
+    name,
+    'services/node/%s/dist' % name,
+    dockerfile='services/dockerfiles/static.Dockerfile'
+  )
+
 microservice('wait-for-service')
 microservice('keycloak-init')
+vue('landing-page')
 
 def envvar(name):
   return str(local("echo $%s" % name)).rstrip('\n')

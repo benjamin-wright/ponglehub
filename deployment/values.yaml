@@ -21,8 +21,8 @@ keycloak:
     - name: KEYCLOAK_PASSWORD
       value: {{ .Values.global.keycloak.password }}
 
-keycloakInit:
-  name: keycloak-init
+jobs:
+- name: keycloak-init
   image: keycloak-init
   env: |
     - name: KEYCLOAK_INIT_URL
@@ -53,3 +53,8 @@ keycloakInit:
         value: "10"
       - name: WAIT_FOR_TIMEOUT
         value: "300"
+
+static:
+- name: landing-page
+  image: landing-page
+  host: games.ponglehub.co.uk

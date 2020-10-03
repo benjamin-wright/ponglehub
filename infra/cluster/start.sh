@@ -247,6 +247,8 @@ EOL
 }
 
 function npm-login() {
+  cp ~/.npmrc ~/.npmrc.bak
+
   /usr/bin/expect <<EOD
 spawn npm login --registry "$NPM_REGISTRY" --scope=pongle
 expect {
@@ -255,6 +257,8 @@ expect {
   "Email: (this IS public)" {send "$NPM_EMAIL\r"; exp_continue}
 }
 EOD
+
+  npm config set registry $NPM_REGISTRY
 }
 
 function helm-login() {

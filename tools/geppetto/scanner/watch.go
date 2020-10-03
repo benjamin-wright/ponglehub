@@ -129,6 +129,11 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.RepoUpdate, er
 			return filepath.SkipDir
 		}
 
+		if fi.Name() == "dist" {
+			logrus.Infof("Skipping %s", fi.Name())
+			return filepath.SkipDir
+		}
+
 		if fi.Mode().IsDir() {
 			logrus.Infof("Monitoring %s", fi.Name())
 			return watcher.Add(path)

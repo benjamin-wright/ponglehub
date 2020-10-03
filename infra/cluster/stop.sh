@@ -10,6 +10,8 @@ if k3d cluster list | grep $CLUSTER_NAME -q; then
     sudo security remove-trusted-cert -d infra/cluster/ssl/ponglehubCA.crt || true
     npm config delete -g cafile
 
+    mv ~/.npmrc.bak ~/.npmrc
+
     k3d cluster delete $CLUSTER_NAME
     docker rm $(docker stop $REGISTRY_NAME)
     docker network rm $NETWORK_NAME

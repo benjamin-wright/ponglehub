@@ -5,11 +5,9 @@ geppetto:
 
 cluster:
 	@./infra/cluster/start.sh
-	geppetto watch
 
 repos:
 	@./infra/repos/start.sh
-	geppetto watch
 
 clean:
 	@./infra/cluster/stop.sh

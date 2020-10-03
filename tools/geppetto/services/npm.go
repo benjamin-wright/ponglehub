@@ -85,6 +85,16 @@ func (n NPM) Test(repo types.Repo) error {
 	return nil
 }
 
+// Build run the NPM build script
+func (n NPM) Build(repo types.Repo) error {
+	output, err := n.cmd.Run(repo.Path, "npm run build --silent")
+	if err != nil {
+		return fmt.Errorf("Error building NPM module:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
+}
+
 // Publish push the repo up to its registry
 func (n NPM) Publish(repo types.Repo) error {
 	output, err := n.cmd.Run(repo.Path, "echo hi >&2 && npm publish")
@@ -103,6 +113,34 @@ func (n NPM) GetLatestSHA(repo types.Repo) (string, error) {
 // GetCurrentSHA get the SHA of the current version of the module
 func (n NPM) GetCurrentSHA(repo types.Repo) (string, error) {
 	return n.cmd.Run(repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
+}
+
+// IsBuildable returns true if the module is a buildable thing, i.e. not a library
+func (n NPM) IsBuildable(repo types.Repo) (bool, error) {
+	packageJSON := repo.Path + "/package.json"
+
+	data, err := n.io.ReadJSON(packageJSON)
+	if err != nil {
+		return false, err
+	}
+
+	scriptsField, ok := data["scripts"]
+	if !ok {
+		return false, errors.New("Scripts property missing")
+	}
+
+	scripts, ok := scriptsField.(map[string]interface{})
+	if !ok {
+		return false, errors.New("scripts field format not recognised")
+	}
+
+	for key := range scripts {
+		if key == "build" {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // GetDependencyNames returns an array containg the names of all this project's dependencies

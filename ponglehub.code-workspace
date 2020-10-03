@@ -29,12 +29,20 @@
 			"path": "libraries/golang/envreader"
 		},
 		{
+			"name": "srv: dockerfiles",
+			"path": "services/dockerfiles"
+		},
+		{
 			"name": "srv: wait-for-service",
 			"path": "services/golang/wait-for-service"
 		},
 		{
 			"name": "srv: keycloak-init",
 			"path": "services/golang/keycloak-init"
+		},
+		{
+			"name": "srv: landing-page",
+			"path": "services/node/landing-page"
 		}
 	],
 	"settings": {}
