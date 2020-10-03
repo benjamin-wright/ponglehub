@@ -9,9 +9,16 @@ import (
 
 // Realm a data representation of a Keycloak realm
 type Realm struct {
-	Name       string      `json:"realm"`
-	Display    string      `json:"displayName"`
-	SMTPServer *SMTPServer `json:"smtpServer"`
+	Name                  string      `json:"realm"`
+	Display               string      `json:"displayName"`
+	SMTPServer            *SMTPServer `json:"smtpServer"`
+	Enabled               bool        `json:"enabled"`
+	SSLRequired           string      `json:"sslRequired"`
+	RegistrationAllowed   bool        `json:"registrationAllowed"`
+	RememberMe            bool        `json:"rememberMe"`
+	VerifyEmail           bool        `json:"verifyEmail"`
+	LoginWithEmailAllowed bool        `json:"loginWithEmailAllowed"`
+	ResetPasswordAllowed  bool        `json:"resetPasswordAllowed"`
 }
 
 // SMTPServer the settings for SMTP in a realm
@@ -29,11 +36,22 @@ type SMTPServer struct {
 	SSL                bool   `json:"ssl"`
 }
 
-// HasRealm check if the realm exists already
-func (k *KeycloakAPI) HasRealm(realm Realm) (bool, error) {
-	logrus.Debugf("Checking for realm %s", realm.Name)
+func (r *Realm) String() string {
+	return fmt.Sprintf(
+		"{name: %s, display: %s, smptUser: %s, smptHost: %s, smtpPort: %d}",
+		r.Name,
+		r.Display,
+		r.SMTPServer.User,
+		r.SMTPServer.Host,
+		r.SMTPServer.Port,
+	)
+}
 
-	code, err := k.get("/"+realm.Name, nil)
+// HasRealm checks if the realm exists already
+func (k *KeycloakAPI) HasRealm(realm string) (bool, error) {
+	logrus.Debugf("Checking for realm %s", realm)
+
+	code, err := k.get("/"+realm, nil)
 	if code == 0 {
 		return false, fmt.Errorf("Failed to check for realm: %+v", err)
 	}
@@ -43,7 +61,7 @@ func (k *KeycloakAPI) HasRealm(realm Realm) (bool, error) {
 
 // AddRealm add the realm to the auth server
 func (k *KeycloakAPI) AddRealm(realm Realm) error {
-	logrus.Debugf("Adding realm %s", realm.Name)
+	logrus.Debugf("Adding realm %s", realm.String())
 	requestBody, err := json.Marshal(realm)
 	if err != nil {
 		return err
@@ -54,18 +72,18 @@ func (k *KeycloakAPI) AddRealm(realm Realm) error {
 		return fmt.Errorf("Failed to create realm: %+v", err)
 	}
 
-	logrus.Infof("Added realm %s", realm.Name)
+	logrus.Infof("Added realm %s", realm.String())
 	return nil
 }
 
 // RemoveRealm delete the realm from the auth server
-func (k *KeycloakAPI) RemoveRealm(realm Realm) error {
-	logrus.Debugf("Removing realm %s", realm.Name)
-	_, err := k.delete("/"+realm.Name, nil)
+func (k *KeycloakAPI) RemoveRealm(realm string) error {
+	logrus.Debugf("Removing realm %s", realm)
+	_, err := k.delete("/"+realm, nil)
 	if err != nil {
 		return fmt.Errorf("Failed to delete realm: %+v", err)
 	}
 
-	logrus.Infof("Removed realm %s", realm.Name)
+	logrus.Infof("Removed realm %s", realm)
 	return nil
 }

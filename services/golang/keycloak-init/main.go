@@ -14,7 +14,7 @@ func main() {
 		logrus.Fatalf("Failed to load config: %+v", err)
 	}
 
-	cfg.print()
+	logrus.Infof("Config: %s", cfg.String())
 
 	keycloak, err := api.New(cfg.URL, cfg.Username, cfg.Password)
 	if err != nil {
@@ -37,15 +37,22 @@ func main() {
 			FromDisplayName:    cfg.SMTPFrom,
 			SSL:                true,
 		},
+		Enabled:               true,
+		SSLRequired:           "all",
+		RegistrationAllowed:   true,
+		RememberMe:            true,
+		VerifyEmail:           true,
+		LoginWithEmailAllowed: true,
+		ResetPasswordAllowed:  true,
 	}
 
-	exists, err := keycloak.HasRealm(realm)
+	exists, err := keycloak.HasRealm(cfg.Realm)
 	if err != nil {
 		logrus.Fatalf("Failed checking for realm: %+v", err)
 	}
 
 	if exists {
-		err = keycloak.RemoveRealm(realm)
+		err = keycloak.RemoveRealm(cfg.Realm)
 		if err != nil {
 			logrus.Fatalf("Failed to remove realm: %+v", err)
 		}

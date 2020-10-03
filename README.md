@@ -2,7 +2,6 @@
 
 ## Todo:
 
-- keycloak-init: log password-redacted representation of realms on post
 - keycloak-init: bail out of realm setup if everything looks good
 - all: Add README.md to everything
 

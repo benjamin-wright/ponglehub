@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/envreader"
 )
 
@@ -30,6 +29,15 @@ func newConfig() (*config, error) {
 	return cfg, nil
 }
 
-func (c *config) print() {
-	logrus.Infof("Config:\n - url: %s\n - realm: %s\n - username: %s\n - password: %t", c.URL, c.Realm, c.Username, c.Password != "")
+func (c *config) String() string {
+	return fmt.Sprintf(
+		"{url: %s, realm: %s, username: %s, email: %s, host: %s, port: %d, from: %s}",
+		c.URL,
+		c.Realm,
+		c.Username,
+		c.SMTPEmail,
+		c.SMTPHost,
+		c.SMTPPort,
+		c.SMTPFrom,
+	)
 }
