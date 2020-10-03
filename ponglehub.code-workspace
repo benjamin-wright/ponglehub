@@ -25,6 +25,10 @@
 			"path": "libraries/helm/common-templates"
 		},
 		{
+			"name": "lib: environment reader",
+			"path": "libraries/golang/envreader"
+		},
+		{
 			"name": "srv: wait-for-service",
 			"path": "services/golang/wait-for-service"
 		},

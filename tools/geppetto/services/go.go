@@ -8,6 +8,7 @@ import (
 
 type goIo interface {
 	ReadModfile(path string) (map[string]interface{}, error)
+	FileExists(path string) bool
 }
 
 // Golang collects methods related to golang repos
@@ -78,6 +79,11 @@ func (g *Golang) Test(repo types.Repo) error {
 	}
 
 	return nil
+}
+
+// Buildable returns true if the go repo is an application, or false if it is a library
+func (g *Golang) Buildable(repo types.Repo) bool {
+	return g.io.FileExists(repo.Path + "/main.go")
 }
 
 // Build builds the binary for a golang repo
