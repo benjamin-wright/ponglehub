@@ -19,7 +19,7 @@ spec:
         image: {{ required "must enter an image property!"  .image }}
         imagePullPolicy: {{ .pullPolicy | default "Always" }}
         ports:
-        - containerPort: {{ .port | default 8080 }}
+        - containerPort: {{ .port | default 80 }}
           name: http
           protocol: TCP
         resources:
@@ -73,5 +73,4 @@ spec:
   tls:
   - hosts:
     - {{ .host }}
-    secretName: ssl-secret
 {{- end -}}

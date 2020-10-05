@@ -1,6 +1,8 @@
 allow_k8s_contexts(['k3d-pongle'])
 default_registry('localhost:5000')
 
+load('ext://restart_process', 'docker_build_with_restart')
+
 def namespace(name):
   return blob("""apiVersion: v1
 kind: Namespace
@@ -26,7 +28,10 @@ def vue(name):
   docker_build(
     name,
     'services/node/%s/dist' % name,
-    dockerfile='services/dockerfiles/static.Dockerfile'
+    dockerfile='services/dockerfiles/static.Dockerfile',
+    live_update=[
+      sync('services/node/%s/dist' % name, '/usr/share/nginx/html')
+    ],
   )
 
 microservice('wait-for-service')
@@ -47,7 +52,6 @@ k8s_yaml(helm(
     'global.smtp.password='+envvar('KEYCLOAK_EMAIL_PASSWORD'),
     'global.smtp.host='+envvar('KEYCLOAK_SMTP_SERVER'),
     'global.smtp.port='+envvar('KEYCLOAK_SMTP_PORT'),
-    'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM'),
-    'keycloak.postgresql.postgresqlPassword='+envvar('KEYCLOAK_DB_PASSWORD')
+    'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM')
   ]
 ))

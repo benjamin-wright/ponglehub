@@ -2,6 +2,7 @@
 
 ## Todo:
 
+- don't check before building npm apps
 - keycloak-init: bail out of realm setup if everything looks good
 - all: Add README.md to everything
 
