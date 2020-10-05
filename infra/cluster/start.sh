@@ -28,6 +28,7 @@ function start-registry() {
 function start-cluster() {
     if k3d cluster list | grep -q pongle; then
         echo "Cluster already exists, skipping..."
+        kubectl config set-context k3d-pongle
         return
     fi
 

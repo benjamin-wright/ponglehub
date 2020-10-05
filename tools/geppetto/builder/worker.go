@@ -91,13 +91,19 @@ func (w *defaultWorker) buildHelm(repo types.Repo, reinstall bool, signals chan<
 func (w *defaultWorker) buildNPM(repo types.Repo, reinstall bool, signals chan<- signal) {
 	logrus.Debugf("Building NPM repo: %s", repo.Name)
 
+	buildable, err := w.npm.IsBuildable(repo)
+	if err != nil {
+		signals <- signal{repo: repo.Name, err: err}
+		return
+	}
+
 	if reinstall {
 		signals <- signal{repo: repo.Name, phase: "install"}
 		if err := w.npm.Install(repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
-	} else {
+	} else if !buildable {
 		signals <- signal{repo: repo.Name, phase: "check"}
 		currentSHA, err := w.npm.GetCurrentSHA(repo)
 		if err != nil {
@@ -125,12 +131,6 @@ func (w *defaultWorker) buildNPM(repo types.Repo, reinstall bool, signals chan<-
 
 	signals <- signal{repo: repo.Name, phase: "test"}
 	if err := w.npm.Test(repo); err != nil {
-		signals <- signal{repo: repo.Name, err: err}
-		return
-	}
-
-	buildable, err := w.npm.IsBuildable(repo)
-	if err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}

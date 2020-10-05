@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+	"errors"
 	"os/exec"
 	"strings"
 
@@ -15,15 +17,38 @@ type commander interface {
 type Commander struct{}
 
 // Run execute the command in the given directory and return the combined console output
-func (c *Commander) Run(workDir string, command string) (string, error) {
+func (c *Commander) Run(ctx context.Context, workDir string, command string) (string, error) {
 	cmd := exec.Command("/bin/bash", "-c", command)
 	cmd.Dir = workDir
 
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return strings.TrimSpace(string(out)), err
+	type result struct {
+		value string
+		err   error
 	}
 
-	logrus.Debugf("Command `%s` output:\n%s", command, string(out))
-	return strings.TrimSpace(string(out)), nil
+	resultChan := make(chan result)
+
+	go func(results chan<- result) {
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			results <- result{
+				value: strings.TrimSpace(string(out)),
+				err:   err,
+			}
+		}
+
+		logrus.Debugf("Command `%s` output:\n%s", command, string(out))
+		results <- result{
+			value: strings.TrimSpace(string(out)),
+			err:   err,
+		}
+	}(resultChan)
+
+	select {
+	case r := <-resultChan:
+		return r.value, r.err
+	case <-ctx.Done():
+		cmd.Process.Kill()
+		return "", errors.New("command cancelled")
+	}
 }
