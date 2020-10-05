@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"context"
+
 	"github.com/gdamore/tcell/v2"
 	"ponglehub.co.uk/geppetto/builder"
 	"ponglehub.co.uk/geppetto/scanner"
@@ -40,6 +42,9 @@ func (r *Rollback) Start(target string) error {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	rollbackEvents := make(chan string, 5)
 	commandEvents := r.devices.listen()
 
@@ -49,11 +54,11 @@ func (r *Rollback) Start(target string) error {
 		go func(repo types.Repo, timeout int) {
 			switch repo.RepoType {
 			case types.Node:
-				npm.SetVersion(repo, "1.0.0")
-				npm.Install(repo)
+				npm.SetVersion(ctx, repo, "1.0.0")
+				npm.Install(ctx, repo)
 			case types.Helm:
 				helm.SetVersion(repo, "1.0.0")
-				helm.Install(repo)
+				helm.Install(ctx, repo)
 			}
 			rollbackEvents <- repo.Name
 		}(repo, index)

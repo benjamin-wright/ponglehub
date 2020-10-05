@@ -10,12 +10,12 @@ dependencies:
   version: 0.10.0
 - name: chartmuseum
   repository: https://kubernetes-charts.storage.googleapis.com/
-  version: 2.13.3
+  version: 2.14.0
 - name: loki-stack
   repository: https://grafana.github.io/loki/charts
   version: '*'
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
   version: '*'
-digest: sha256:4282652716ff5624d9ecc683012a1c4b6c920583a4d9ef12258f21e56740ada6
-generated: "2020-09-28T08:24:13.548924+01:00"
+digest: sha256:b7a78279a28c1af58c7e331324fca7699957814d4b57afd9a804319bc8a5a131
+generated: "2020-10-05T21:19:14.793787+01:00"

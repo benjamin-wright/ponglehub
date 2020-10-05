@@ -102,7 +102,7 @@ docker run \
   -v $PWD/infra/repos/default.conf:/etc/nginx/nginx.conf \
   -v $PWD/infra/repos/ssl/ponglehub.co.uk.crt:/etc/nginx/ssl/certificate.crt \
   -v $PWD/infra/repos/ssl/ponglehub.co.uk.key:/etc/nginx/ssl/private.key \
-  docker.io/nginx
+  docker.io/nginx:alpine
 
 echo "waiting for things to start..."
 sleep 5

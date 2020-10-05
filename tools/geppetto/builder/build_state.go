@@ -32,14 +32,13 @@ func (s *buildState) find(repo string) *types.RepoState {
 func (s *buildState) invalidate(repo string, reinstall bool) {
 	logrus.Debugf("Invalidating %s", repo)
 	r := s.find(repo)
-	if !r.Building() {
-		if reinstall {
-			r.Reinstall()
-		} else {
-			r.Invalidate()
-		}
-	} else {
-		logrus.Warnf("Already building %s", r.Repo().Name)
+
+	if reinstall {
+		r.Cancel()
+		r.Reinstall()
+	} else if !r.Repo().Application {
+		r.Cancel()
+		r.Invalidate()
 	}
 }
 

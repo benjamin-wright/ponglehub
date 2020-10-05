@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -8,9 +9,9 @@ import (
 )
 
 type worker interface {
-	buildNPM(repo types.Repo, reinstall bool, signals chan<- signal)
-	buildHelm(repo types.Repo, reinstall bool, signals chan<- signal)
-	buildGolang(repo types.Repo, reinstall bool, signals chan<- signal)
+	buildNPM(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal)
+	buildHelm(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal)
+	buildGolang(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal)
 }
 
 // Builder builds your application
@@ -40,15 +41,16 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-c
 
 				if ok {
 					logrus.Infof("Repo building: %s", repo.Name)
-					reinstall := state.find(repo.Name).Start()
+					buildContext, cancelFunc := context.WithCancel(context.Background())
+					reinstall := state.find(repo.Name).Start(buildContext, cancelFunc)
 
 					switch repo.RepoType {
 					case types.Node:
-						go b.worker.buildNPM(repo, reinstall, signals)
+						go b.worker.buildNPM(buildContext, repo, reinstall, signals)
 					case types.Helm:
-						go b.worker.buildHelm(repo, reinstall, signals)
+						go b.worker.buildHelm(buildContext, repo, reinstall, signals)
 					case types.Golang:
-						go b.worker.buildGolang(repo, reinstall, signals)
+						go b.worker.buildGolang(buildContext, repo, reinstall, signals)
 					default:
 						state.find(repo.Name).Error(fmt.Errorf("Unknown repo type: %s", repo.RepoType))
 					}

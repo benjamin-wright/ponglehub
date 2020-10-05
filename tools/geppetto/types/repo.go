@@ -22,4 +22,6 @@ type Repo struct {
 	RepoType RepoType
 	// The paths of other repos one which this one depends
 	DependsOn []string
+	// Can be built
+	Application bool
 }

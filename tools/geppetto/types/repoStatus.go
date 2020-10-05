@@ -1,5 +1,7 @@
 package types
 
+import "context"
+
 type state string
 
 const (
@@ -14,10 +16,12 @@ const (
 
 // RepoState the build state of a repo
 type RepoState struct {
-	repo  Repo
-	state state
-	err   error
-	phase string
+	repo    Repo
+	state   state
+	err     error
+	phase   string
+	context context.Context
+	cancel  context.CancelFunc
 }
 
 // NewRepoState create a new blank repo state
@@ -43,6 +47,18 @@ func (r *RepoState) Pending() bool {
 // Building returns true if the repo is building
 func (r *RepoState) Building() bool {
 	return r.state == building
+}
+
+// Context return the current build context, or nil if there isn't one
+func (r *RepoState) Context() context.Context {
+	return r.context
+}
+
+// Cancel call the cancel function
+func (r *RepoState) Cancel() {
+	if r.cancel != nil {
+		r.cancel()
+	}
 }
 
 // Phase returns the build phase
@@ -113,9 +129,11 @@ func (r *RepoState) Reinstall() {
 }
 
 // Start set the state to building and return true if a reinstall is needed
-func (r *RepoState) Start() bool {
+func (r *RepoState) Start(ctx context.Context, cancel context.CancelFunc) bool {
 	shouldReinstall := r.state == reinstall
 	r.state = building
+	r.context = ctx
+	r.cancel = cancel
 
 	return shouldReinstall
 }
@@ -133,15 +151,21 @@ func (r *RepoState) Block() {
 // Complete set the state to built
 func (r *RepoState) Complete() {
 	r.state = built
+	r.context = nil
+	r.cancel = nil
 }
 
 // Skip set the state to skipped
 func (r *RepoState) Skip() {
 	r.state = skipped
+	r.context = nil
+	r.cancel = nil
 }
 
 // Error set the state to errored
 func (r *RepoState) Error(err error) {
 	r.state = errored
 	r.err = err
+	r.context = nil
+	r.cancel = nil
 }

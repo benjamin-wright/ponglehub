@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -60,8 +61,8 @@ func (h *Helm) GetRepo(path string) (types.Repo, error) {
 }
 
 // Install install dependencies for a helm repo
-func (h *Helm) Install(repo types.Repo) error {
-	output, err := h.cmd.Run(repo.Path, "rm -rf tmpcharts && helm repo update && helm dep update")
+func (h *Helm) Install(ctx context.Context, repo types.Repo) error {
+	output, err := h.cmd.Run(ctx, repo.Path, "rm -rf tmpcharts && helm repo update && helm dep update")
 	if err != nil {
 		return fmt.Errorf("Error installing Helm dependencies:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -70,13 +71,13 @@ func (h *Helm) Install(repo types.Repo) error {
 }
 
 // Lint run lint on a helm repo
-func (h *Helm) Lint(repo types.Repo) error {
+func (h *Helm) Lint(ctx context.Context, repo types.Repo) error {
 	cmd := "helm lint --values values.yaml"
 	if h.io.FileExists(repo.Path + "/lint-values.yaml") {
 		cmd = cmd + " --values lint-values.yaml"
 	}
 
-	output, err := h.cmd.Run(repo.Path, cmd)
+	output, err := h.cmd.Run(ctx, repo.Path, cmd)
 	if err != nil {
 		return fmt.Errorf("Error running lint on helm chart:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -155,8 +156,8 @@ func (h *Helm) GetCurrentVersion(repo types.Repo) (string, error) {
 }
 
 // GetLatestVersion gets the most up-to-date version of the published chart
-func (h *Helm) GetLatestVersion(repo types.Repo, chartRepo string) (string, error) {
-	output, err := h.cmd.Run(repo.Path, fmt.Sprintf("helm show chart %s/%s", chartRepo, repo.Name))
+func (h *Helm) GetLatestVersion(ctx context.Context, repo types.Repo, chartRepo string) (string, error) {
+	output, err := h.cmd.Run(ctx, repo.Path, fmt.Sprintf("helm show chart %s/%s", chartRepo, repo.Name))
 	if err != nil {
 		return "", fmt.Errorf("Error fetching latest version of helm chart:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -197,8 +198,8 @@ func (h *Helm) SetVersion(repo types.Repo, version string) error {
 }
 
 // Publish publish the chart to a local registry
-func (h *Helm) Publish(repo types.Repo, chartRepo string) error {
-	output, err := h.cmd.Run(repo.Path, "helm push . "+chartRepo)
+func (h *Helm) Publish(ctx context.Context, repo types.Repo, chartRepo string) error {
+	output, err := h.cmd.Run(ctx, repo.Path, "helm push . "+chartRepo)
 	if err != nil {
 		return fmt.Errorf("Error publishing helm chart:\nError\n%+v\nOutput:\n%s", err, output)
 	}

@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"context"
+
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/services"
 	"ponglehub.co.uk/geppetto/types"
@@ -22,32 +24,32 @@ func newDefaultWorker(chartRepo string) *defaultWorker {
 	}
 }
 
-func (w *defaultWorker) buildGolang(repo types.Repo, reinstall bool, signals chan<- signal) {
+func (w *defaultWorker) buildGolang(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal) {
 	logrus.Debugf("Building Golang repo: %s", repo.Name)
 
 	if reinstall {
 		signals <- signal{repo: repo.Name, phase: "tidy"}
-		if err := w.golang.Tidy(repo); err != nil {
+		if err := w.golang.Tidy(ctx, repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
 
 		signals <- signal{repo: repo.Name, phase: "install"}
-		if err := w.golang.Install(repo); err != nil {
+		if err := w.golang.Install(ctx, repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
 	}
 
 	signals <- signal{repo: repo.Name, phase: "test"}
-	if err := w.golang.Test(repo); err != nil {
+	if err := w.golang.Test(ctx, repo); err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
 	if w.golang.Buildable(repo) {
 		signals <- signal{repo: repo.Name, phase: "build"}
-		if err := w.golang.Build(repo); err != nil {
+		if err := w.golang.Build(ctx, repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
@@ -56,19 +58,19 @@ func (w *defaultWorker) buildGolang(repo types.Repo, reinstall bool, signals cha
 	signals <- signal{repo: repo.Name, finished: true}
 }
 
-func (w *defaultWorker) buildHelm(repo types.Repo, reinstall bool, signals chan<- signal) {
+func (w *defaultWorker) buildHelm(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal) {
 	logrus.Debugf("Building Helm repo: %s", repo.Name)
 
 	if reinstall {
 		signals <- signal{repo: repo.Name, phase: "install"}
-		if err := w.helm.Install(repo); err != nil {
+		if err := w.helm.Install(ctx, repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
 	}
 
 	signals <- signal{repo: repo.Name, phase: "lint"}
-	if err := w.helm.Lint(repo); err != nil {
+	if err := w.helm.Lint(ctx, repo); err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
@@ -80,7 +82,7 @@ func (w *defaultWorker) buildHelm(repo types.Repo, reinstall bool, signals chan<
 	}
 
 	signals <- signal{repo: repo.Name, phase: "publish"}
-	if err := w.helm.Publish(repo, w.chartRepo); err != nil {
+	if err := w.helm.Publish(ctx, repo, w.chartRepo); err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
@@ -88,30 +90,24 @@ func (w *defaultWorker) buildHelm(repo types.Repo, reinstall bool, signals chan<
 	signals <- signal{repo: repo.Name, finished: true}
 }
 
-func (w *defaultWorker) buildNPM(repo types.Repo, reinstall bool, signals chan<- signal) {
+func (w *defaultWorker) buildNPM(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal) {
 	logrus.Debugf("Building NPM repo: %s", repo.Name)
-
-	buildable, err := w.npm.IsBuildable(repo)
-	if err != nil {
-		signals <- signal{repo: repo.Name, err: err}
-		return
-	}
 
 	if reinstall {
 		signals <- signal{repo: repo.Name, phase: "install"}
-		if err := w.npm.Install(repo); err != nil {
+		if err := w.npm.Install(ctx, repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
-	} else if !buildable {
+	} else if !repo.Application {
 		signals <- signal{repo: repo.Name, phase: "check"}
-		currentSHA, err := w.npm.GetCurrentSHA(repo)
+		currentSHA, err := w.npm.GetCurrentSHA(ctx, repo)
 		if err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
 
-		latestSHA, err := w.npm.GetLatestSHA(repo)
+		latestSHA, err := w.npm.GetLatestSHA(ctx, repo)
 		if err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
@@ -124,32 +120,32 @@ func (w *defaultWorker) buildNPM(repo types.Repo, reinstall bool, signals chan<-
 	}
 
 	signals <- signal{repo: repo.Name, phase: "lint"}
-	if err := w.npm.Lint(repo); err != nil {
+	if err := w.npm.Lint(ctx, repo); err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
 	signals <- signal{repo: repo.Name, phase: "test"}
-	if err := w.npm.Test(repo); err != nil {
+	if err := w.npm.Test(ctx, repo); err != nil {
 		signals <- signal{repo: repo.Name, err: err}
 		return
 	}
 
-	if buildable {
+	if repo.Application {
 		signals <- signal{repo: repo.Name, phase: "build"}
-		if err := w.npm.Build(repo); err != nil {
+		if err := w.npm.Build(ctx, repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
 	} else {
 		signals <- signal{repo: repo.Name, phase: "bump"}
-		if err := w.npm.SetVersion(repo, ""); err != nil {
+		if err := w.npm.SetVersion(ctx, repo, ""); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}
 
 		signals <- signal{repo: repo.Name, phase: "publish"}
-		if err := w.npm.Publish(repo); err != nil {
+		if err := w.npm.Publish(ctx, repo); err != nil {
 			signals <- signal{repo: repo.Name, err: err}
 			return
 		}

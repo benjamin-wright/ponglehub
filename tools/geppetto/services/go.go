@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 
 	"ponglehub.co.uk/geppetto/types"
@@ -63,8 +64,8 @@ func (g *Golang) GetDependencyNames(repo types.Repo) ([]string, error) {
 }
 
 // Tidy tidies up module dependencies for a golang repo
-func (g *Golang) Tidy(repo types.Repo) error {
-	output, err := g.cmd.Run(repo.Path, "go mod tidy")
+func (g *Golang) Tidy(ctx context.Context, repo types.Repo) error {
+	output, err := g.cmd.Run(ctx, repo.Path, "go mod tidy")
 	if err != nil {
 		return fmt.Errorf("Error tidying go mod:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -73,8 +74,8 @@ func (g *Golang) Tidy(repo types.Repo) error {
 }
 
 // Install caches module dependencies for a golang repo
-func (g *Golang) Install(repo types.Repo) error {
-	output, err := g.cmd.Run(repo.Path, "go mod download")
+func (g *Golang) Install(ctx context.Context, repo types.Repo) error {
+	output, err := g.cmd.Run(ctx, repo.Path, "go mod download")
 	if err != nil {
 		return fmt.Errorf("Error downloading go mod dependencies:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -83,8 +84,8 @@ func (g *Golang) Install(repo types.Repo) error {
 }
 
 // Test runs unit tests for a golang repo
-func (g *Golang) Test(repo types.Repo) error {
-	output, err := g.cmd.Run(repo.Path, "go test ./...")
+func (g *Golang) Test(ctx context.Context, repo types.Repo) error {
+	output, err := g.cmd.Run(ctx, repo.Path, "go test ./...")
 	if err != nil {
 		return fmt.Errorf("Error running unit tests:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -98,8 +99,8 @@ func (g *Golang) Buildable(repo types.Repo) bool {
 }
 
 // Build builds the binary for a golang repo
-func (g *Golang) Build(repo types.Repo) error {
-	output, err := g.cmd.Run(repo.Path, "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/"+repo.Name)
+func (g *Golang) Build(ctx context.Context, repo types.Repo) error {
+	output, err := g.cmd.Run(ctx, repo.Path, "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/"+repo.Name)
 	if err != nil {
 		return fmt.Errorf("Error building :\nError\n%+v\nOutput:\n%s", err, output)
 	}
