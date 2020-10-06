@@ -116,7 +116,7 @@ func (n NPM) Build(ctx context.Context, repo types.Repo) error {
 
 // Publish push the repo up to its registry
 func (n NPM) Publish(ctx context.Context, repo types.Repo) error {
-	output, err := n.cmd.Run(ctx, repo.Path, "echo hi >&2 && npm publish")
+	output, err := n.cmd.Run(ctx, repo.Path, "npm publish")
 	if err != nil {
 		return fmt.Errorf("Error publishing NPM module fish:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -132,6 +132,16 @@ func (n NPM) GetLatestSHA(ctx context.Context, repo types.Repo) (string, error) 
 // GetCurrentSHA get the SHA of the current version of the module
 func (n NPM) GetCurrentSHA(ctx context.Context, repo types.Repo) (string, error) {
 	return n.cmd.Run(ctx, repo.Path, "npm publish --dry-run --json | jq '.shasum' -r")
+}
+
+// CleanTempFiles remove any package-lock.json temp files that are hanging around
+func (n NPM) CleanTempFiles(ctx context.Context, repo types.Repo) error {
+	output, err := n.cmd.Run(ctx, repo.Path, "rm -rf ./package-lock.json.*")
+	if err != nil {
+		return fmt.Errorf("Error publishing NPM module fish:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
 }
 
 // GetDependencyNames returns an array containg the names of all this project's dependencies

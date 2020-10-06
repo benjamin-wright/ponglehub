@@ -74,11 +74,16 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-c
 
 			select {
 			case update := <-updates:
-				state.invalidate(update.Name, update.Install)
+				state.invalidate(update.Name, update.Path, update.Install)
 			case signal := <-signals:
 				if signal.err != nil {
 					logrus.Errorf("Failed to build %s: %+v", signal.repo, signal.err)
 					state.find(signal.repo).Error(signal.err)
+					continue
+				}
+
+				if signal.cancelled {
+					logrus.Infof("Ignoring signal for cancelled build of repo: '%s'", signal.repo)
 					continue
 				}
 
@@ -101,7 +106,7 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-c
 					for _, dep := range r.Repo().DependsOn {
 						if dep == repo.Repo().Name {
 							logrus.Debugf("Invalidating %s with dependency %s", r.Repo().Name, dep)
-							state.invalidate(r.Repo().Name, true)
+							state.invalidate(r.Repo().Name, "", true)
 						}
 					}
 				}

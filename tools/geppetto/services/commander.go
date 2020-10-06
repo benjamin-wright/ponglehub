@@ -57,6 +57,6 @@ func (c *Commander) Run(ctx context.Context, workDir string, command string) (st
 		if cmd.Process != nil {
 			cmd.Process.Kill()
 		}
-		return "", errors.New("command cancelled")
+		return "", context.Canceled
 	}
 }

@@ -6,6 +6,7 @@
 .envrc
 infra/k3s/*
 *.log
+package-lock.json.*
 
 ssl/
 k3s/

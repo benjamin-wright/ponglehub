@@ -10,6 +10,7 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
+// WatchDir watches for file changes in the supplied repos
 func (s *Scanner) WatchDir(repos []types.Repo) (<-chan types.RepoUpdate, <-chan error) {
 	triggers := make(chan types.RepoUpdate)
 	errors := make(chan error)
@@ -61,6 +62,7 @@ func (s *Scanner) watchGo(repo types.Repo, triggers chan<- types.RepoUpdate, err
 
 			triggers <- types.RepoUpdate{
 				Name:    repo.Name,
+				Path:    filepath.Base(event.Name),
 				Install: filepath.Base(event.Name) == "go.mod",
 			}
 
@@ -106,6 +108,7 @@ func (s *Scanner) watchHelm(repo types.Repo, triggers chan<- types.RepoUpdate, e
 
 			triggers <- types.RepoUpdate{
 				Name:    repo.Name,
+				Path:    filepath.Base(event.Name),
 				Install: filepath.Base(event.Name) == "Chart.yaml",
 			}
 
@@ -150,12 +153,13 @@ func (s *Scanner) watchNpm(repo types.Repo, triggers chan<- types.RepoUpdate, er
 		select {
 		// watch for events
 		case event := <-watcher.Events:
-			if filepath.Base(event.Name) == "package-lock.json" {
+			if strings.Contains(filepath.Base(event.Name), "package-lock.json") {
 				continue
 			}
 
 			triggers <- types.RepoUpdate{
 				Name:    repo.Name,
+				Path:    filepath.Base(event.Name),
 				Install: filepath.Base(event.Name) == "package.json",
 			}
 

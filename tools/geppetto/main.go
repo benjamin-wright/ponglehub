@@ -24,7 +24,7 @@ func initLogger(cfg types.Config) {
 		logrus.Debug("Debug logging enabled")
 	} else {
 		logrus.SetLevel(logrus.DebugLevel)
-		f, err := os.OpenFile("gepetto.log", os.O_WRONLY|os.O_CREATE, 0755)
+		f, err := os.Create("gepetto.log")
 		if err != nil {
 			logrus.Fatalf("Failed to redirect logs to file: %+v", err)
 		}
