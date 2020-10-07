@@ -15,7 +15,6 @@ metadata:
   name: web-ingress
   namespace: linkerd
   annotations:
-    kubernetes.io/ingress.class: 'traefik'
     ingress.kubernetes.io/custom-request-headers: l5d-dst-override:linkerd-web.linkerd.svc.cluster.local:8084
 spec:
   rules:

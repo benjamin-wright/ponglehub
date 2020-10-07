@@ -15,4 +15,5 @@ spec:
   tls:
   - hosts:
     - auth.ponglehub.co.uk
+    secretName: ssl-secret
 

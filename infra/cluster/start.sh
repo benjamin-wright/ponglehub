@@ -46,9 +46,9 @@ EOL
 
     k3d cluster create $CLUSTER_NAME \
         --volume $ROOT_DIR/k3s/registries.yaml:/etc/rancher/k3s/registries.yaml:cached \
-        --volume $ROOT_DIR/k3s/traefik.yaml:/var/lib/rancher/k3s/server/manifests/traefik.yaml:cached \
         --agents $WORKER_NODES \
         --network "$NETWORK_NAME" \
+        --k3s-server-arg "--no-deploy=traefik" \
         -p 80:80@loadbalancer \
         -p 443:443@loadbalancer
 
@@ -191,6 +191,11 @@ function deploy-infra() {
     --set-file identity.issuer.tls.crtPEM=$ROOT_DIR/ssl/linkerd.crt \
     --set-file identity.issuer.tls.keyPEM=$ROOT_DIR/ssl/linkerd.key \
 
+  echo "installing nginx"
+  kubectl get ns | grep nginx-ingress || kubectl create ns nginx-ingress
+  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+  helm upgrade -i nginx ingress-nginx/ingress-nginx -n nginx-ingress
+
   echo "Deploying/upgrading standard infrastructure..."
   kubectl get ns | grep infra || kubectl create ns infra
   kubectl annotate namespace infra linkerd.io/inject=enabled --overwrite
@@ -208,43 +213,6 @@ function deploy-infra() {
     --set "secrets.admin.password=password" \
     --set-file secrets.ssl.key=$ROOT_DIR/ssl/ponglehub.co.uk.key \
     --set-file secrets.ssl.crt=$ROOT_DIR/ssl/ponglehub.co.uk.crt
-}
-
-function overwrite-traefik-config() {
-    cat >$ROOT_DIR/k3s/traefik.yaml <<EOL
-apiVersion: helm.cattle.io/v1
-kind: HelmChart
-metadata:
-  name: traefik
-  namespace: kube-system
-spec:
-  chart: https://%{KUBERNETES_API}%/static/charts/traefik-1.81.0.tgz
-  valuesContent: |-
-    rbac:
-      enabled: true
-    ssl:
-      enabled: true
-    dashboard:
-      enabled: true
-      domain: traefik.ponglehub.co.uk
-      ingress:
-        tls:
-        - hosts:
-          - traefik.ponglehub.co.uk
-    metrics:
-      prometheus:
-        enabled: true
-    kubernetes:
-      ingressEndpoint:
-        useDefaultPublishedService: true
-    image: "rancher/library-traefik"
-    tolerations:
-      - key: "CriticalAddonsOnly"
-        operator: "Exists"
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-        effect: "NoSchedule"
-EOL
 }
 
 function npm-login() {
@@ -273,8 +241,6 @@ create-network
 start-registry
 start-cluster
 deploy-infra
-
-overwrite-traefik-config
 
 echo "waiting for things to start..."
 sleep 5

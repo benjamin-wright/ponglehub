@@ -147,11 +147,7 @@ grafana:
   ingress:
     enabled: true
     annotations:
-      kubernetes.io/ingress.class: traefik
       ingress.kubernetes.io/ssl-redirect: "true"
-      # ingress.kubernetes.io/auth-type: forward
-      # ingress.kubernetes.io/auth-url: https://auth.ponglehub.co.uk/auth
-      # ingress.kubernetes.io/auth-response-headers: X-Forwarded-User
     hosts:
     - grafana.ponglehub.co.uk
     tls:

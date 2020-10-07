@@ -8,3 +8,6 @@ global:
     host: host
     port: port
     from: sender
+  ssl:
+    key: encodedvalue
+    crt: encodedvalue

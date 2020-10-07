@@ -51,15 +51,13 @@ spec:
     app: {{ .name }}
   type: ClusterIP
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "true"
-    ingress.kubernetes.io/auth-type: forward
-    ingress.kubernetes.io/auth-url: http://ponglehub-keycloak-http
-    ingress.kubernetes.io/auth-response-headers: X-Forwarded-User
-    kubernetes.io/ingress.class: traefik
+    nginx.ingress.kubernetes.io/auth-url: "http://ponglehub-keycloak-http.ponglehub.svc.cluster.local/auth/realms/ponglehub/tokens/login"
+    nginx.ingress.kubernetes.io/auth-signin: "http://ponglehub-keycloak-http.ponglehub.svc.cluster.local/auth/realms/ponglehub/tokens/access/codes"
   labels:
     app: {{ .name }}
   name: {{ .name }}
@@ -76,4 +74,5 @@ spec:
   tls:
   - hosts:
     - {{ .host }}
+    secretName: ssl-secret
 {{- end -}}

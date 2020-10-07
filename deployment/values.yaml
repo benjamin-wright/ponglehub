@@ -8,6 +8,9 @@ global:
     # host:
     # port:
     # from:
+  ssl:
+    # key:
+    # crt:
 
 keycloak:
   enabled: true

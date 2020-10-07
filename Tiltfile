@@ -40,6 +40,9 @@ vue('landing-page')
 
 def envvar(name):
   return str(local("echo $%s" % name)).rstrip('\n')
+  
+def file(name):
+  return str(local("cat %s | base64" % name)).rstrip('\n')
 
 k8s_yaml(helm(
   'deployment',
@@ -52,6 +55,8 @@ k8s_yaml(helm(
     'global.smtp.password='+envvar('KEYCLOAK_EMAIL_PASSWORD'),
     'global.smtp.host='+envvar('KEYCLOAK_SMTP_SERVER'),
     'global.smtp.port='+envvar('KEYCLOAK_SMTP_PORT'),
-    'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM')
+    'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM'),
+    'global.ssl.key='+file('infra/cluster/ssl/ponglehub.co.uk.key'),
+    'global.ssl.crt='+file('infra/cluster/ssl/ponglehub.co.uk.crt'),
   ]
 ))
