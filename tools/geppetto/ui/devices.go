@@ -108,6 +108,8 @@ func (d *devices) drawIcon(t types.RepoType, x int, y int, style tcell.Style) {
 		icon = '🐹'
 	case types.Helm:
 		icon = '⛵'
+	case types.Rust:
+		icon = '🦀'
 	}
 
 	d.screen.SetContent(x, y, icon, nil, style)

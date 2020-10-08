@@ -15,6 +15,7 @@ type Scanner struct {
 	npm    services.NPM
 	helm   services.Helm
 	golang services.Golang
+	rust   services.Rust
 }
 
 // New creates a new scanner instance
@@ -24,6 +25,7 @@ func New() *Scanner {
 		npm:    services.NewNpmService(),
 		helm:   services.NewHelmService(),
 		golang: services.NewGolangService(),
+		rust:   services.NewRustService(),
 	}
 }
 
@@ -77,6 +79,18 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 		if s.io.FileExists(path + "/go.mod") {
 			logrus.Infof("GOLANG: %s", path)
 			repo, err := s.golang.GetRepo(path)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("repo: %+v", repo)
+
+			repos = append(repos, repo)
+			return filepath.SkipDir
+		}
+
+		if s.io.FileExists(path + "/Cargo.toml") {
+			logrus.Infof("RUST: %s", path)
+			repo, err := s.rust.GetRepo(path)
 			if err != nil {
 				return err
 			}

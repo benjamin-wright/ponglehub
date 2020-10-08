@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/BurntSushi/toml"
 	"golang.org/x/mod/modfile"
 	"gopkg.in/yaml.v2"
 )
@@ -91,6 +92,25 @@ func (io *IO) ReadModfile(path string) (map[string]interface{}, error) {
 	}
 
 	return data, nil
+}
+
+type PackageInfo struct {
+	Name    string   `toml:"name"`
+	Version string   `toml:"version"`
+	Authors []string `toml:"authors"`
+	Edition string   `toml:"edition"`
+}
+
+type CargoFile struct {
+	PackageInfo PackageInfo `toml:"package"`
+}
+
+// ReadCargoFile reads data from a rust Cargo.toml file
+func (io *IO) ReadCargoFile(path string) (CargoFile, error) {
+	data := CargoFile{}
+	_, err := toml.DecodeFile(path, &data)
+
+	return data, err
 }
 
 // WriteJSON writes arbitrary data to a json file

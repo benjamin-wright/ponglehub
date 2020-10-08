@@ -3,6 +3,7 @@ module ponglehub.co.uk/geppetto
 go 1.14
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gdamore/tcell/v2 v2.0.0-dev
 	github.com/sirupsen/logrus v1.6.0

@@ -33,6 +33,10 @@
 			"path": "services/dockerfiles"
 		},
 		{
+			"name": "srv: auth-server",
+			"path": "services/rust/auth-server"
+		},
+		{
 			"name": "srv: wait-for-service",
 			"path": "services/golang/wait-for-service"
 		},

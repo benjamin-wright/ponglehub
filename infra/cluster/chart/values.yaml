@@ -6,6 +6,11 @@ secrets:
     # key:
     # crt:
 
+kong:
+  enabled: true
+  ingressController:
+    installCRDs: false
+
 loki-stack:
   enabled: true
   promtail:
@@ -159,6 +164,8 @@ verdaccio:
   enabled: true
   ingress:
     enabled: true
+    annotations:
+      kubernetes.io/ingress.class: kong
     hosts:
     - npm.ponglehub.co.uk
     tls:

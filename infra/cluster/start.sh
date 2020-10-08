@@ -191,11 +191,6 @@ function deploy-infra() {
     --set-file identity.issuer.tls.crtPEM=$ROOT_DIR/ssl/linkerd.crt \
     --set-file identity.issuer.tls.keyPEM=$ROOT_DIR/ssl/linkerd.key \
 
-  echo "installing nginx"
-  kubectl get ns | grep nginx-ingress || kubectl create ns nginx-ingress
-  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
-  helm upgrade -i nginx ingress-nginx/ingress-nginx -n nginx-ingress
-
   echo "wait for webhook to come up..."
   sleep 5
 

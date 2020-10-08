@@ -1,4 +1,7 @@
 dependencies:
+- name: kong
+  repository: https://charts.konghq.com
+  version: '*'
 - name: prometheus
   repository: https://prometheus-community.github.io/helm-charts
   version: ~11.15.0
@@ -17,5 +20,5 @@ dependencies:
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
   version: '*'
-digest: sha256:b7a78279a28c1af58c7e331324fca7699957814d4b57afd9a804319bc8a5a131
-generated: "2020-10-07T21:04:37.536514+01:00"
+digest: sha256:ac8babd6cc6164eb651282729ea02bc1ae4a6d6f85a453241dbe67408694ce2c
+generated: "2020-10-08T13:44:08.984621+01:00"

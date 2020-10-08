@@ -12,6 +12,8 @@ const (
 	Golang RepoType = "Golang"
 	// Helm repo is a helm chart
 	Helm RepoType = "Helm"
+	// Rust repo is a rust module / application
+	Rust RepoType = "Rust"
 )
 
 // Repo represents a code repo
@@ -43,6 +45,8 @@ func (r Repo) BuildTargets() []string {
 			"Chart.yaml",
 			"Chart.lock",
 		}
+	case Rust:
+		return []string{}
 	default:
 		logrus.Fatalf("Cannot get build targets for type: %s", r.RepoType)
 		return []string{}
