@@ -196,6 +196,9 @@ function deploy-infra() {
   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
   helm upgrade -i nginx ingress-nginx/ingress-nginx -n nginx-ingress
 
+  echo "wait for webhook to come up..."
+  sleep 5
+
   echo "Deploying/upgrading standard infrastructure..."
   kubectl get ns | grep infra || kubectl create ns infra
   kubectl annotate namespace infra linkerd.io/inject=enabled --overwrite

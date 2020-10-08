@@ -11,3 +11,7 @@ global:
   ssl:
     key: encodedvalue
     crt: encodedvalue
+
+oauthProxy:
+  clientSecret: some-secret
+  cookieSecret: asingrucdnjcfeht

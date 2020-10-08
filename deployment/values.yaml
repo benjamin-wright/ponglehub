@@ -24,6 +24,12 @@ keycloak:
     - name: KEYCLOAK_PASSWORD
       value: {{ .Values.global.keycloak.password }}
 
+oauthProxy:
+  realm: ponglehub
+  clientId: kubernetes
+  # clientSecret:
+  # cookieSecret:
+
 jobs:
 - name: keycloak-init
   image: keycloak-init

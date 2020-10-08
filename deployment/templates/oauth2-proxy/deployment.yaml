@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: oauth2-proxy
+  name: oauth2-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        k8s-app: oauth2-proxy
+    spec:
+      containers:
+      - args:
+        - --provider=keycloak
+        - --email-domain=*
+        - --upstream=file:///dev/null
+        - --http-address=0.0.0.0:4180
+        - --login-url=https://auth.ponglehub.co.uk/auth/realms/{{ $.Values.oauthProxy.realm }}/protocol/openid-connect/auth
+        - --redeem-url=http://ponglehub-keycloak-http.ponglehub.svc.cluster.local/auth/realms/{{ $.Values.oauthProxy.realm }}/protocol/openid-connect/token
+        - --validate-url=http://ponglehub-keycloak-http.ponglehub.svc.cluster.local/auth/realms/{{ $.Values.oauthProxy.realm }}/protocol/openid-connect/userinfo
+        env:
+        - name: OAUTH2_PROXY_CLIENT_ID
+          value: {{ .Values.oauthProxy.clientId }}
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          value: {{ .Values.oauthProxy.clientSecret }}
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          value: {{ .Values.oauthProxy.cookieSecret | b64enc }}
+        image: quay.io/oauth2-proxy/oauth2-proxy:latest
+        imagePullPolicy: Always
+        name: oauth2-proxy
+        ports:
+        - containerPort: 4180
+          protocol: TCP

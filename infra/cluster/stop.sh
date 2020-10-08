@@ -8,9 +8,9 @@ if k3d cluster list | grep $CLUSTER_NAME -q; then
     helm repo remove local || true
 
     sudo security remove-trusted-cert -d infra/cluster/ssl/ponglehubCA.crt || true
-    # npm config delete -g cafile
+    npm config delete -g cafile
 
-    # mv ~/.npmrc.bak ~/.npmrc || true
+    mv ~/.npmrc.bak ~/.npmrc || true
 
     k3d cluster delete $CLUSTER_NAME
     docker rm $(docker stop $REGISTRY_NAME)
