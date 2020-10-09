@@ -3,15 +3,18 @@
 geppetto:
 	cd tools/geppetto && make install
 
-cluster:
+cluster: rustcc
 	@./infra/cluster/start.sh
 
-repos:
+repos: rustcc
 	@./infra/repos/start.sh
 
 clean:
 	@./infra/cluster/stop.sh
 	@./infra/repos/stop.sh
+
+rustcc:
+	docker build -t rustcc tools/rust-cross-compiler
 
 deploy:
 	kubectl get ns | grep ponglehub || kubectl create ns ponglehub

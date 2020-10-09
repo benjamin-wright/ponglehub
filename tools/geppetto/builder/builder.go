@@ -12,6 +12,7 @@ type worker interface {
 	buildNPM(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal)
 	buildHelm(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal)
 	buildGolang(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal)
+	buildRust(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal)
 }
 
 // Builder builds your application
@@ -51,6 +52,8 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate) <-c
 						go b.worker.buildHelm(buildContext, repo, reinstall, signals)
 					case types.Golang:
 						go b.worker.buildGolang(buildContext, repo, reinstall, signals)
+					case types.Rust:
+						go b.worker.buildRust(buildContext, repo, reinstall, signals)
 					default:
 						state.find(repo.Name).Error(fmt.Errorf("Unknown repo type: %s", repo.RepoType))
 					}

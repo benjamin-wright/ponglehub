@@ -13,7 +13,7 @@
 			"path": "infra/repos"
 		},
 		{
-			"name": "geppetto",
+			"name": "tools: geppetto",
 			"path": "tools/geppetto"
 		},
 		{
