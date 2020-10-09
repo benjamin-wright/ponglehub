@@ -2,7 +2,9 @@
 
 ## Todo:
 
-- don't check before building npm apps
+- geppetto: add rust build image as config
+- geppetto: copy rust build output to dist folder
+- deployment: generic scratch image and convert rust and go to use that instead
 - keycloak-init: bail out of realm setup if everything looks good
 - all: Add README.md to everything
 
