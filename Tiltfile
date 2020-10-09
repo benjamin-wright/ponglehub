@@ -24,6 +24,16 @@ def microservice(name):
     }
   )
 
+def rust(name):
+  docker_build(
+    name,
+    'services/rust/%s/target/release' % name,
+    dockerfile='services/dockerfiles/rust.Dockerfile',
+    build_args={
+      'EXE_NAME': name
+    }
+  )
+
 def vue(name):
   docker_build(
     name,
@@ -34,9 +44,10 @@ def vue(name):
     ],
   )
 
-microservice('wait-for-service')
-microservice('keycloak-init')
+# microservice('wait-for-service')
+# microservice('keycloak-init')
 vue('landing-page')
+rust('auth-server')
 
 def envvar(name):
   return str(local("echo $%s" % name)).rstrip('\n')
@@ -58,7 +69,5 @@ k8s_yaml(helm(
     'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM'),
     'global.ssl.key='+file('infra/cluster/ssl/ponglehub.co.uk.key'),
     'global.ssl.crt='+file('infra/cluster/ssl/ponglehub.co.uk.crt'),
-    'oauthProxy.clientSecret=1790d1f2-18f7-4fbb-bed2-de1287924e72',
-    'oauthProxy.cookieSecret=some-other-secret'
   ]
 ))

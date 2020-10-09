@@ -114,6 +114,12 @@ func (w *defaultWorker) buildRust(ctx context.Context, repo types.Repo, reinstal
 		return
 	}
 
+	signals <- signal{repo: repo.Name, phase: "build"}
+	if err := w.rust.Build(ctx, repo); err != nil {
+		signals <- makeErrorSignal(ctx, repo.Name, err)
+		return
+	}
+
 	signals <- signal{repo: repo.Name, finished: true}
 }
 

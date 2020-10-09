@@ -1,0 +1,5 @@
+{{ $top := . }}
+{{- range $key, $server := .Values.servers }}
+---
+{{ include "ponglehub.server" (list $server $top) }}
+{{- end }}

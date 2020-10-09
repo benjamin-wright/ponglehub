@@ -56,8 +56,6 @@ kind: Ingress
 metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.ponglehub.svc.cluster.local:4180/oauth2/auth"
-    nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
   labels:
     app: {{ .name }}
   name: {{ .name }}
@@ -71,24 +69,6 @@ spec:
           servicePort: 80
         path: /
         pathType: ImplementationSpecific
-  tls:
-  - hosts:
-    - {{ .host }}
-    secretName: ssl-secret
----
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: {{ .name }}-oauth
-spec:
-  rules:
-  - host: {{ .host }}
-    http:
-      paths:
-      - backend:
-          serviceName: oauth2-proxy
-          servicePort: 4180
-        path: /oauth2
   tls:
   - hosts:
     - {{ .host }}

@@ -1,5 +1,5 @@
 global:
-  keycloak:
+  auth:
     # user:
     # password:
   smtp:
@@ -12,56 +12,11 @@ global:
     # key:
     # crt:
 
-keycloak:
-  enabled: true
-  extraEnv: |
-    - name: PROXY_ADDRESS_FORWARDING
-      value: "true"
-    - name: KEYCLOAK_LOGLEVEL
-      value: "DEBUG"
-    - name: KEYCLOAK_USER
-      value: {{ .Values.global.keycloak.user }}
-    - name: KEYCLOAK_PASSWORD
-      value: {{ .Values.global.keycloak.password }}
+jobs: []
 
-oauthProxy:
-  realm: ponglehub
-  clientId: kubernetes
-  # clientSecret:
-  # cookieSecret:
-
-jobs:
-- name: keycloak-init
-  image: keycloak-init
-  env: |
-    - name: KEYCLOAK_INIT_URL
-      value: http://ponglehub-keycloak-http
-    - name: KEYCLOAK_INIT_REALM
-      value: ponglehub
-    - name: KEYCLOAK_INIT_USER
-      value: {{ .Values.global.keycloak.user }}
-    - name: KEYCLOAK_INIT_PASSWORD
-      value: {{ .Values.global.keycloak.password }}
-    - name: KEYCLOAK_SMTP_EMAIL
-      value: {{ .Values.global.smtp.email }}
-    - name: KEYCLOAK_SMTP_PASSWORD
-      value: {{ .Values.global.smtp.password }}
-    - name: KEYCLOAK_SMTP_HOST
-      value: {{ .Values.global.smtp.host }}
-    - name: KEYCLOAK_SMTP_PORT
-      value: {{ .Values.global.smtp.port | quote }}
-    - name: KEYCLOAK_SMTP_FROM
-      value: {{ .Values.global.smtp.from }}
-  initContainers:
-  - name: wait
-    image: wait-for-service
-    env: |
-      - name: WAIT_FOR_URL
-        value: http://ponglehub-keycloak-http/auth/
-      - name: WAIT_FOR_INTERVAL
-        value: "10"
-      - name: WAIT_FOR_TIMEOUT
-        value: "300"
+servers:
+- name: auth-server
+  image: auth-server
 
 static:
 - name: landing-page
