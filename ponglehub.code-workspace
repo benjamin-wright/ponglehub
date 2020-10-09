@@ -17,6 +17,10 @@
 			"path": "tools/geppetto"
 		},
 		{
+			"name": "tools: rustcc",
+			"path": "tools/rust-cross-compiler"
+		},
+		{
 			"name": "deployment",
 			"path": "deployment"
 		},
