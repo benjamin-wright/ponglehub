@@ -46,7 +46,7 @@ func (r Rust) GetRepo(path string) (types.Repo, error) {
 
 // Install get cargo deps
 func (r Rust) Install(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/src:cached rustcc cargo update")
+	output, err := r.cmd.Run(ctx, repo.Path, "cargo update")
 	if err != nil {
 		return fmt.Errorf("Error getting cargo deps:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -56,7 +56,7 @@ func (r Rust) Install(ctx context.Context, repo types.Repo) error {
 
 // Check run rust compile checks tests
 func (r Rust) Check(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/src:cached rustcc cargo check")
+	output, err := r.cmd.Run(ctx, repo.Path, "cargo check")
 	if err != nil {
 		return fmt.Errorf("Error checking package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -66,7 +66,7 @@ func (r Rust) Check(ctx context.Context, repo types.Repo) error {
 
 // Test run rust unit tests
 func (r Rust) Test(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/src:cached rustcc cargo test")
+	output, err := r.cmd.Run(ctx, repo.Path, "cargo test")
 	if err != nil {
 		return fmt.Errorf("Error testing package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
