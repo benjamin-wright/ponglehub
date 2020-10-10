@@ -2,8 +2,8 @@ FROM alpine
 
 ARG EXE_NAME
 
-COPY ${EXE_NAME} /usr/bin/rust_binary
+COPY ${EXE_NAME} /rust_binary
 
-RUN ls -lah /usr/bin
+RUN ls -lah /
 
-ENTRYPOINT [ "/usr/bin/rust_binary" ]
+ENTRYPOINT [ "/rust_binary" ]
