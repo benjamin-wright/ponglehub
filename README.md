@@ -2,7 +2,6 @@
 
 ## Todo:
 
-- geppetto: add rust build image as config
 - geppetto: copy rust build output to dist folder
 - deployment: generic scratch image and convert rust and go to use that instead
 - keycloak-init: bail out of realm setup if everything looks good
@@ -14,6 +13,9 @@
 - brew install k3d
 - brew install step
 - setup your .envrc (copy .envrc-example and fill in the blanks)
+- rust (nightly)
+  - `brew tap SergioBenitez/osxct && brew install FiloSottile/musl-cross/musl-cross` for cross-compiling on OSX
+  - `rustup target add x86_64-unknown-linux-musl --toolchain=nightly` to add musl compile target
 
 ## To get up and running:
 

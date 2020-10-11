@@ -25,7 +25,11 @@ dependencies:
   name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
   version: '*'
+- condition: cockroachdb.enabled
+  name: cockroachdb
+  repository: https://charts.cockroachdb.com/
+  version: '*'
 description: A Helm chart for Kubernetes
 name: ponglehub-infra
 type: application
-version: 1.0.37
+version: 1.0.7

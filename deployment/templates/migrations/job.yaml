@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: migrations
+  name: migrations
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: migrations
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/migrations/base-config.configmap.yaml") . | sha256sum }}
+        linkerd.io/inject: disabled
+    spec:
+      initContainers:
+      - name: setup
+        image: {{ required "must enter a base migration image property!" .Values.migrations.base.image }}
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: config
+          mountPath: /config.yaml
+          subPath: config.yaml
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      containers:
+      {{- range .Values.migrations.sets }}
+      - name: {{ .database }}-migration
+        image: {{ .image }}
+        imagePullPolicy: Always
+        args:
+        - migrate
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        volumeMounts:
+        - name: {{ .database }}-migration
+          mountPath: /flyway/conf/flyway.conf
+          subPath: flyway.conf
+      {{- end }}
+      restartPolicy: Never
+      volumes:
+      - name: config
+        configMap:
+          name: base-migration-config
+      {{- range .Values.migrations.sets }}
+      - name: {{ .database }}-migration
+        configMap:
+          name: {{ .database }}-migration
+      {{- end }}

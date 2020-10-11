@@ -190,3 +190,15 @@ linkerd:
 
 strimzi-kafka-operator:
   enabled: true
+
+cockroachdb:
+  enabled: true
+  statefulset:
+    annotations:
+      linkerd.io/inject: disabled
+  storage:
+    persistentVolume:
+      size: 3Gi
+  init:
+    annotations:
+      linkerd.io/inject: disabled

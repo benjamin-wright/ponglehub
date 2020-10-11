@@ -17,5 +17,8 @@ dependencies:
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
   version: '*'
-digest: sha256:b7a78279a28c1af58c7e331324fca7699957814d4b57afd9a804319bc8a5a131
-generated: "2020-10-09T21:49:55.323568+01:00"
+- name: cockroachdb
+  repository: https://charts.cockroachdb.com/
+  version: '*'
+digest: sha256:69cfa152188276392cc1d605c4ad52593630a669684fd174b1420e3a85d154bc
+generated: "2020-10-11T12:30:27.220521+01:00"

@@ -1,0 +1,11 @@
+{{- range .Values.migrations.sets }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .database }}-migration
+data:
+  flyway.conf: |
+    flyway.url=jdbc:postgresql://{{ .hostname }}:{{ .port }}/{{ .database }}
+    flyway.user={{ .username }}
+{{- end }}

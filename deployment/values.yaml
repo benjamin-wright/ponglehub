@@ -12,11 +12,35 @@ global:
     # key:
     # crt:
 
+migrations:
+  base:
+    image: db-init
+    config:
+      hostname: infra-cockroachdb-public.infra.svc.cluster.local
+      port: 26257
+      data:
+      - database: auth
+        user: authserver
+  sets:
+  - username: authserver
+    hostname: infra-cockroachdb-public.infra.svc.cluster.local
+    port: 26257
+    database: auth
+    image: auth-migrations
+
 jobs: []
 
 servers:
 - name: auth-server
   image: auth-server
+  host: auth.ponglehub.co.uk
+  # annotations:
+  #  linkerd.io/inject: disabled
+  env: |
+    - name: ROCKET_PORT
+      value: "80"
+    - name: ROCKET_ADDRESS
+      value: "0.0.0.0"
 
 static:
 - name: landing-page

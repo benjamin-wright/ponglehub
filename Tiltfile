@@ -27,11 +27,18 @@ def microservice(name):
 def rust(name):
   docker_build(
     name,
-    'services/rust/%s/target/release' % name,
+    'services/rust/%s/build' % name,
     dockerfile='services/dockerfiles/rust.Dockerfile',
     build_args={
       'EXE_NAME': name
     }
+  )
+
+def migration(name):
+  docker_build(
+    '%s-migrations' % name,
+    'migrations/%s' % name,
+    dockerfile='migrations/flyway.Dockerfile'
   )
 
 def vue(name):
@@ -46,8 +53,10 @@ def vue(name):
 
 # microservice('wait-for-service')
 # microservice('keycloak-init')
-vue('landing-page')
+migration('auth')
+rust('db-init')
 rust('auth-server')
+vue('landing-page')
 
 def envvar(name):
   return str(local("echo $%s" % name)).rstrip('\n')

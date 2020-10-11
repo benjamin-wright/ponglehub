@@ -94,20 +94,6 @@ func (w *defaultWorker) buildHelm(ctx context.Context, repo types.Repo, reinstal
 func (w *defaultWorker) buildRust(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal) {
 	logrus.Debugf("Building RUST repo: %s", repo.Name)
 
-	if reinstall {
-		signals <- signal{repo: repo.Name, phase: "install"}
-		if err := w.rust.Install(ctx, repo); err != nil {
-			signals <- makeErrorSignal(ctx, repo.Name, err)
-			return
-		}
-	}
-
-	signals <- signal{repo: repo.Name, phase: "lint"}
-	if err := w.rust.Check(ctx, repo); err != nil {
-		signals <- makeErrorSignal(ctx, repo.Name, err)
-		return
-	}
-
 	signals <- signal{repo: repo.Name, phase: "test"}
 	if err := w.rust.Test(ctx, repo); err != nil {
 		signals <- makeErrorSignal(ctx, repo.Name, err)

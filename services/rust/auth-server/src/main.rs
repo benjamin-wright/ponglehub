@@ -2,6 +2,8 @@
 
 #[macro_use] extern crate rocket;
 
+// use persistence::{Client, migrations};
+
 #[get("/")]
 fn index() -> &'static str {
     "Hello, world!"

@@ -16,8 +16,12 @@ spec:
     metadata:
       labels:
         app: {{ required "must enter a name property!" $server.name }}
+      {{- if $server.annotations }}
       annotations:
-        linkerd.io/inject: disabled
+      {{- range $key, $value := $server.annotations }}
+        {{ $key }}: {{ $value }}
+      {{- end }}
+      {{- end }}
     spec:
       {{- if $server.initContainers }}
       initContainers:
@@ -83,7 +87,7 @@ spec:
   - name: http
     port: 80
     protocol: TCP
-    targetPort: http
+    targetPort: {{ $server.port | default 80 }}
   selector:
     app: {{ $server.name }}
   type: ClusterIP

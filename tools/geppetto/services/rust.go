@@ -44,26 +44,6 @@ func (r Rust) GetRepo(path string) (types.Repo, error) {
 	}, nil
 }
 
-// Install get cargo deps
-func (r Rust) Install(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "cargo update")
-	if err != nil {
-		return fmt.Errorf("Error getting cargo deps:\nError\n%+v\nOutput:\n%s", err, output)
-	}
-
-	return nil
-}
-
-// Check run rust compile checks tests
-func (r Rust) Check(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "cargo check")
-	if err != nil {
-		return fmt.Errorf("Error checking package:\nError\n%+v\nOutput:\n%s", err, output)
-	}
-
-	return nil
-}
-
 // Test run rust unit tests
 func (r Rust) Test(ctx context.Context, repo types.Repo) error {
 	output, err := r.cmd.Run(ctx, repo.Path, "cargo test")
@@ -76,7 +56,12 @@ func (r Rust) Test(ctx context.Context, repo types.Repo) error {
 
 // Build compile the rust binary
 func (r Rust) Build(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/src:cached rustcc cargo build --release --target x86_64-unknown-linux-musl")
+	output, err := r.cmd.Run(ctx, repo.Path, "TARGET_CC=x86_64-linux-musl-gcc RUSTFLAGS=\"-C linker=x86_64-linux-musl-gcc\" cargo build --release --target=x86_64-unknown-linux-musl")
+	if err != nil {
+		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	output, err = r.cmd.Run(ctx, repo.Path, "mkdir -p build && cp target/x86_64-unknown-linux-musl/release/"+repo.Name+" build/")
 	if err != nil {
 		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
 	}

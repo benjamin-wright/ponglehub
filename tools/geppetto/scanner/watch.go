@@ -42,6 +42,11 @@ func (s *Scanner) watchRust(repo types.Repo, triggers chan<- types.RepoUpdate, e
 			return filepath.SkipDir
 		}
 
+		if fi.Name() == "build" {
+			logrus.Infof("Skipping %s", fi.Name())
+			return filepath.SkipDir
+		}
+
 		if fi.Mode().IsDir() {
 			logrus.Infof("Monitoring %s", fi.Name())
 			return watcher.Add(path)
