@@ -17,7 +17,7 @@ fn migrate(config_path: &'static str) -> Result<(), Box<dyn std::error::Error>> 
     let conf = read_config(config_path)?;
     println!("Conf: {:?}", conf);
 
-    let mut admin_client = connect_to_db(conf.hostname.as_str(), conf.port)?;
+    let mut admin_client = connect_to_db(conf.host.as_str(), conf.port)?;
 
     for data in conf.data {
         create_user(&mut admin_client, data.user.as_str())?;
@@ -30,7 +30,7 @@ fn migrate(config_path: &'static str) -> Result<(), Box<dyn std::error::Error>> 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct FileData {
-    hostname: String,
+    host: String,
     port: u16,
     data: Vec<DBData>
 }
@@ -48,8 +48,8 @@ fn read_config(path: &'static str) -> Result<FileData, Box<dyn std::error::Error
     Ok(data)
 }
 
-fn connect_to_db(hostname: &str, port: u16) -> Result<Client, Error> {
-    let path = format!("postgresql://root@{}:{}", hostname, port);
+fn connect_to_db(host: &str, port: u16) -> Result<Client, Error> {
+    let path = format!("postgresql://root@{}:{}", host, port);
     return Client::connect(path.as_ref(), NoTls);
 }
 

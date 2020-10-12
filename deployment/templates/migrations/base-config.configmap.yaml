@@ -1,7 +1,15 @@
+{{ $db := .Values.migrations.db }}
+{{ $sets := .Values.migrations.sets }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: base-migration-config
 data:
   config.yaml: |
-    {{- toYaml .Values.migrations.base.config | nindent 4 }}
+    host: {{ $db.host }}
+    port: {{ $db.port }}
+    data:
+    {{- range $sets }}
+    - user: {{ .user }}
+      database: {{ .database }}
+    {{- end }}

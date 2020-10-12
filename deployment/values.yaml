@@ -13,18 +13,12 @@ global:
     # crt:
 
 migrations:
-  base:
-    image: db-init
-    config:
-      hostname: infra-cockroachdb-public.infra.svc.cluster.local
-      port: 26257
-      data:
-      - database: auth
-        user: authserver
-  sets:
-  - username: authserver
-    hostname: infra-cockroachdb-public.infra.svc.cluster.local
+  baseImage: db-init
+  db:
+    host: infra-cockroachdb-public.infra.svc.cluster.local
     port: 26257
+  sets:
+  - user: authserver
     database: auth
     image: auth-migrations
 

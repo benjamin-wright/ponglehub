@@ -1,3 +1,4 @@
+{{- $db := .Values.migrations.db -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -16,7 +17,7 @@ spec:
     spec:
       initContainers:
       - name: setup
-        image: {{ required "must enter a base migration image property!" .Values.migrations.base.image }}
+        image: {{ required "must enter a base migration image property!" .Values.migrations.baseImage }}
         imagePullPolicy: Always
         volumeMounts:
         - name: config
