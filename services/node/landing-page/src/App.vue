@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome Ponglehub Gamos!"/>
+    <HelloWorld msg="Welcome to Ponglehub Games!"/>
   </div>
 </template>
 

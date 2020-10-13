@@ -1,21 +1,62 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use] extern crate rocket;
+#[macro_use] extern crate rocket_contrib;
 
-use persistence::{Client};
+use rocket::{ Request, Data, data, Outcome, Outcome::* };
+use rocket::http::{ Status, ContentType };
+use rocket::data::FromDataSimple;
+use rocket_contrib::databases::postgres;
+use rocket_contrib::json::Json;
+use serde::{Serialize, Deserialize};
 
-#[get("/")]
-fn index() -> String {
-    let mut client = Client::new(
-        "authserver",
-        "auth",
-        "infra-cockroachdb-public.infra.svc.cluster.local",
-        26257).unwrap();
-
-    let tables = client.get_tables().unwrap();
-    format!("Tables: {:?}", tables)
+#[derive(Serialize, Deserialize)]
+struct User {
+    id: String,
+    name: String,
+    email: String
 }
 
+#[get("/users")]
+fn get_users(client: AuthDB) -> Json<Vec<User>> {
+    let user_rows = client.0.query("SELECT * FROM users", &[]).unwrap();
+
+    let mut usernames: Vec<User> = vec!();
+    for row in user_rows.iter() {
+        usernames.push(User{
+            id: row.get("id"),
+            name: row.get("name"),
+            email: row.get("email")
+        });
+    }
+
+    Json(usernames)
+}
+
+#[derive(Serialize)]
+struct PostResponse {
+    status: String
+}
+
+#[derive(Deserialize)]
+struct PostData {
+    name: String,
+    email: String
+}
+
+#[post("/users", format = "json", data = "<data>")]
+fn post_users(_client: AuthDB, data: Json<PostData>) -> Json<PostResponse> {
+    Json(PostResponse{
+        status: String::from("Alright then")
+    })
+}
+
+#[database("auth")]
+struct AuthDB (postgres::Connection);
+
 fn main() {
-    rocket::ignite().mount("/", routes![index]).launch();
+    rocket::ignite()
+        .attach(AuthDB::fairing())
+        .mount("/", routes![get_users, post_users])
+        .launch();
 }

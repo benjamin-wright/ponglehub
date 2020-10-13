@@ -35,6 +35,8 @@ servers:
       value: "80"
     - name: ROCKET_ADDRESS
       value: "0.0.0.0"
+    - name: ROCKET_DATABASES
+      value: '{auth={url="postgresql://authserver@infra-cockroachdb-public.infra.svc.cluster.local:26257/auth"}}'
 
 static:
 - name: landing-page
