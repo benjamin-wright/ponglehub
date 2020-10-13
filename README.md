@@ -25,8 +25,20 @@ If `Geppetto` falls over for any reason, run `geppetto watch` in the root dir to
 
 > NB: for a quick cluster-free setup, run `make repos` to just spin up the local repos in docker!
 
+To build and deploy the application images, run `tilt up` in the root dir, then press the `space` bar to open the web UI.
+
 ## Clean up
 
 `make clean` will tear down the cluster, or your local repos if you went with that option
 
 `geppetto rollback` will roll all the auto-bumped version numbers back to `1.0.0`
+
+## Architecture
+
+### Application
+
+![](docs/pongle-architecture.png)
+
+### Auth flow
+
+![](docs/pongle-auth.png)

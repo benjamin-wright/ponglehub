@@ -8,8 +8,6 @@ mod tests {
     }
 }
 
-pub mod migrations;
-
 pub struct Client {
     client: PGClient
 }
@@ -28,9 +26,9 @@ impl Client {
     pub fn get_tables(&mut self) -> Result<Vec<String>, Error> {
         let rows = self.client.query("SHOW TABLES", &[])?;
 
-        let result: Vec<String> = vec!();
+        let mut result: Vec<String> = vec!();
         for row in rows {
-            println!("Row: {:?}", row);
+            result.push(row.get("table_name"));
         }
 
         return Ok(result);

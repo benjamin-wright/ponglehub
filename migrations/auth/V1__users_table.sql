@@ -1,29 +1,17 @@
-drop table if exists users;
-drop table if exists used_access_tokens;
-drop table if exists user_refresh_tokens;
+BEGIN;
 
-create table users (
-    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name varchar(100) not null,
-    email varchar(100) not null,
-    password varchar(100) not null,
-    verified boolean not null,
+SAVEPOINT migration_1_restart;
+
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    verified BOOLEAN NOT NULL
 );
 
-create table used_access_tokens (
-    id uuid not null PRIMARY KEY,
-    user_id uuid not null,
-    CONSTRAINT fk_user
-        FOREIGN KEY(user_id)
-            REFERENCES users(id)
-            ON DELETE CASCADE
-);
+RELEASE SAVEPOINT migration_1_restart;
 
-create table used_refresh_tokens (
-    id uuid not null PRIMARY KEY,
-    user_id uuid not null,
-    CONSTRAINT fk_user
-        FOREIGN KEY(user_id)
-            REFERENCES users(id)
-            ON DELETE CASCADE
-);
+COMMIT;

@@ -2,11 +2,18 @@
 
 #[macro_use] extern crate rocket;
 
-// use persistence::{Client, migrations};
+use persistence::{Client};
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+fn index() -> String {
+    let mut client = Client::new(
+        "authserver",
+        "auth",
+        "infra-cockroachdb-public.infra.svc.cluster.local",
+        26257).unwrap();
+
+    let tables = client.get_tables().unwrap();
+    format!("Tables: {:?}", tables)
 }
 
 fn main() {
