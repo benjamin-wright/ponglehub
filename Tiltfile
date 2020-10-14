@@ -56,6 +56,8 @@ def vue(name):
 migration('auth')
 rust('db-init')
 rust('auth-server')
+rust('auth-controller')
+rust('gatekeeper')
 vue('landing-page')
 
 def envvar(name):

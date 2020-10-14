@@ -31,7 +31,10 @@ spec:
         imagePullPolicy: {{ $container.pullPolicy | default "Always" }}
         {{- if $container.env }}
         env:
-          {{- tpl $container.env $top | nindent 10 }}
+        {{- range $name, $value := $container.env }}
+        - name: {{ $name }}
+          value: {{ tpl $value $top | quote }}
+        {{- end }}
         {{- end }}
         resources:
         {{- if $server.resources }}
@@ -54,7 +57,10 @@ spec:
         imagePullPolicy: {{ $server.pullPolicy | default "Always" }}
         {{- if $server.env }}
         env:
-          {{- tpl $server.env $top | nindent 10 }}
+        {{- range $key, $value := $server.env }}
+        - name: {{ $key }}
+          value: {{ tpl $value $top | quote }}
+        {{- end }}
         {{- end }}
         resources:
         {{- if $server.resources }}

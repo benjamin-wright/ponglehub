@@ -3,9 +3,6 @@
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate rocket_contrib;
 
-use rocket::{ Request, Data, data, Outcome, Outcome::* };
-use rocket::http::{ Status, ContentType };
-use rocket::data::FromDataSimple;
 use rocket_contrib::databases::postgres;
 use rocket_contrib::json::Json;
 use serde::{Serialize, Deserialize};

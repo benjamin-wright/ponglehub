@@ -27,16 +27,18 @@ jobs: []
 servers:
 - name: auth-server
   image: auth-server
+  env:
+    ROCKET_PORT: "80"
+    ROCKET_ADDRESS: "0.0.0.0"
+    ROCKET_DATABASES: '{auth={url="postgresql://authserver@infra-cockroachdb-public.infra.svc.cluster.local:26257/auth"}}'
+- name: gatekeeper
+  image: gatekeeper
   host: auth.ponglehub.co.uk
-  # annotations:
-  #  linkerd.io/inject: disabled
-  env: |
-    - name: ROCKET_PORT
-      value: "80"
-    - name: ROCKET_ADDRESS
-      value: "0.0.0.0"
-    - name: ROCKET_DATABASES
-      value: '{auth={url="postgresql://authserver@infra-cockroachdb-public.infra.svc.cluster.local:26257/auth"}}'
+  env:
+    ROCKET_PORT: "80"
+    ROCKET_ADDRESS: "0.0.0.0"
+- name: auth-controller
+  image: auth-controller
 
 static:
 - name: landing-page

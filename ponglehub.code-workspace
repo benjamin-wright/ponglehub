@@ -41,8 +41,16 @@
 			"path": "services/rust/db-init"
 		},
 		{
+			"name": "srv: auth-controller",
+			"path": "services/rust/auth-controller"
+		},
+		{
 			"name": "srv: auth-server",
 			"path": "services/rust/auth-server"
+		},
+		{
+			"name": "srv: gatekeeper",
+			"path": "services/rust/gatekeeper"
 		},
 		{
 			"name": "srv: wait-for-service",
