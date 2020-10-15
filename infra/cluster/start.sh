@@ -179,6 +179,8 @@ function deploy-infra() {
   load-from-url kubernetes.json https://grafana.com/api/dashboards/8588/revisions/1/download
   load-from-url kubernetes-cluster.json https://grafana.com/api/dashboards/11802/revisions/4/download
 
+  kubectl config set-context k3d-pongle
+
   echo "installing linkerd..."
   helm upgrade -i linkerd linkerd2 \
     --wait \

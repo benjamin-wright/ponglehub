@@ -1,0 +1,28 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clients.auth.ponglehub.co.uk
+spec:
+  group: auth.ponglehub.co.uk
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              name:
+                type: string
+              callbackUrl:
+                type: string
+  scope: Namespaced
+  names:
+    plural: clients
+    singular: client
+    kind: Client
+    shortNames:
+    - cli

@@ -16,6 +16,7 @@
 - rust (nightly)
   - `brew tap SergioBenitez/osxct && brew install FiloSottile/musl-cross/musl-cross` for cross-compiling on OSX
   - `rustup target add x86_64-unknown-linux-musl --toolchain=nightly` to add musl compile target
+- on OSX: add `export OPENSSL_INCLUDE_DIR=$(brew --prefix openssl)/include` and `export OPENSSL_LIB_DIR=$(brew --prefix openssl)/lib` to your environment
 
 ## To get up and running:
 

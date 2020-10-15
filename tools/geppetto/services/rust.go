@@ -46,7 +46,7 @@ func (r Rust) GetRepo(path string) (types.Repo, error) {
 
 // Test run rust unit tests
 func (r Rust) Test(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "cargo test")
+	output, err := r.cmd.Run(ctx, repo.Path, "cargo test --release")
 	if err != nil {
 		return fmt.Errorf("Error testing package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
