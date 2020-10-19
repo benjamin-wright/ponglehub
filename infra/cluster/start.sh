@@ -28,7 +28,7 @@ function start-registry() {
 function start-cluster() {
     if k3d cluster list | grep -q pongle; then
         echo "Cluster already exists, skipping..."
-        kubectl config set-context k3d-pongle
+        kubectl config use-context k3d-pongle
         return
     fi
 
@@ -169,17 +169,8 @@ function load-from-url() {
   sed -i '' 's/${DS_PROMETHEUS}/prometheus/g' $ROOT_DIR/dashboards/$name
 }
 
-function deploy-infra() {
-  echo "downloading dashboards"
-  mkdir -p $ROOT_DIR/dashboards
-  load-dashboard top-line.json
-  load-dashboard namespace.json
-  load-dashboard pod.json
-  load-dashboard health.json
-  load-from-url kubernetes.json https://grafana.com/api/dashboards/8588/revisions/1/download
-  load-from-url kubernetes-cluster.json https://grafana.com/api/dashboards/11802/revisions/4/download
-
-  kubectl config set-context k3d-pongle
+function deploy-linkerd() {
+  kubectl config use-context k3d-pongle
 
   echo "installing linkerd..."
   helm upgrade -i linkerd linkerd2 \
@@ -191,10 +182,23 @@ function deploy-infra() {
     --set identity.issuer.crtExpiry=$(date -v+8760H +"%Y-%m-%dT%H:%M:%SZ") \
     --set-file global.identityTrustAnchorsPEM=$ROOT_DIR/ssl/linkerdCA.crt \
     --set-file identity.issuer.tls.crtPEM=$ROOT_DIR/ssl/linkerd.crt \
-    --set-file identity.issuer.tls.keyPEM=$ROOT_DIR/ssl/linkerd.key \
+    --set-file identity.issuer.tls.keyPEM=$ROOT_DIR/ssl/linkerd.key
 
-  echo "wait for webhook to come up..."
-  sleep 5
+    echo "wait for webhook to come up..."
+    sleep 5
+  }
+
+function deploy-infra() {
+  echo "downloading dashboards"
+  mkdir -p $ROOT_DIR/dashboards
+  load-dashboard top-line.json
+  load-dashboard namespace.json
+  load-dashboard pod.json
+  load-dashboard health.json
+  load-from-url kubernetes.json https://grafana.com/api/dashboards/8588/revisions/1/download
+  load-from-url kubernetes-cluster.json https://grafana.com/api/dashboards/11802/revisions/4/download
+
+  kubectl config use-context k3d-pongle
 
   echo "Deploying/upgrading standard infrastructure..."
   kubectl get ns | grep infra || kubectl create ns infra
@@ -277,6 +281,7 @@ make-ingress-certs
 create-network
 start-registry
 start-cluster
+deploy-linkerd
 deploy-infra
 
 overwrite-traefik-config

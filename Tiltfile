@@ -78,7 +78,7 @@ k8s_yaml(helm(
     'global.smtp.host='+envvar('KEYCLOAK_SMTP_SERVER'),
     'global.smtp.port='+envvar('KEYCLOAK_SMTP_PORT'),
     'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM'),
-    'global.ssl.key='+file('infra/cluster/ssl/ponglehub.co.uk.key'),
-    'global.ssl.crt='+file('infra/cluster/ssl/ponglehub.co.uk.crt'),
+    'global.ssl.key='+file('infra/terraform/infra/.scratch/ingress.key'),
+    'global.ssl.crt='+file('infra/terraform/infra/.scratch/ingress.crt'),
   ]
 ))

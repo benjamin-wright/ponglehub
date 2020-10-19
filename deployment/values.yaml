@@ -15,7 +15,7 @@ global:
 migrations:
   baseImage: db-init
   db:
-    host: infra-cockroachdb-public.infra.svc.cluster.local
+    host: cockroach-cockroachdb-public.infra.svc.cluster.local
     port: 26257
   sets:
   - user: authserver
@@ -30,7 +30,7 @@ servers:
   env:
     ROCKET_PORT: "80"
     ROCKET_ADDRESS: "0.0.0.0"
-    ROCKET_DATABASES: '{auth={url="postgresql://authserver@infra-cockroachdb-public.infra.svc.cluster.local:26257/auth"}}'
+    ROCKET_DATABASES: '{auth={url="postgresql://authserver@cockroach-cockroachdb-public.infra.svc.cluster.local:26257/auth"}}'
 - name: gatekeeper
   image: gatekeeper
   host: auth.ponglehub.co.uk

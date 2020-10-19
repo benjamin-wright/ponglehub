@@ -1,0 +1,14 @@
+env:
+  open:
+    STORAGE: local
+    DISABLE_API: false
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 8Gi
+ingress:
+  enabled: true
+  hosts:
+  - name: helm.ponglehub.co.uk
+    tls: true
+    tlsSecret: tls-secret
