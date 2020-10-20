@@ -4,14 +4,24 @@ extern crate kube;
 #[macro_use] extern crate serde;
 extern crate serde_json;
 
+use tokio::prelude::*;
 use kube::{ api::Api, Client as KubeClient, CustomResource, api::PostParams };
 
 #[tokio::main]
 async fn main() -> Result<(), kube::Error> {
     println!("Starting...");
 
+    println!("Getting client...");
     let client = ClientApi::new().await?;
-    client.post(String::from("this"), String::from("thing")).await?;
+
+    println!("Posting things...");
+    let result = client.post(String::from("this"), String::from("thing")).await;
+
+    println!("Match for results...");
+    match result {
+        Err(e) => println!("Error: {:?}", e),
+        Ok(_) => println!("It worked!")
+    };
 
     Ok(())
 }

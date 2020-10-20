@@ -46,7 +46,7 @@ func (r Rust) GetRepo(path string) (types.Repo, error) {
 
 // Test run rust unit tests
 func (r Rust) Test(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "cargo test --release")
+	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/app:cached -v cargo-git:/root/.cargo/git -v cargo-registry:/root/.cargo/registry rust-builder cargo test --release")
 	if err != nil {
 		return fmt.Errorf("Error testing package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -56,12 +56,12 @@ func (r Rust) Test(ctx context.Context, repo types.Repo) error {
 
 // Build compile the rust binary
 func (r Rust) Build(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "TARGET_CC=x86_64-linux-musl-gcc RUSTFLAGS=\"-C linker=x86_64-linux-musl-gcc\" cargo build --release --target=x86_64-unknown-linux-musl")
+	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/app:cached -v cargo-git:/root/.cargo/git -v cargo-registry:/root/.cargo/registry rust-builder cargo build --release")
 	if err != nil {
 		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
 
-	output, err = r.cmd.Run(ctx, repo.Path, "mkdir -p build && cp target/x86_64-unknown-linux-musl/release/"+repo.Name+" build/")
+	output, err = r.cmd.Run(ctx, repo.Path, "mkdir -p build && cp target/release/"+repo.Name+" build/")
 	if err != nil {
 		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
 	}

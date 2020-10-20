@@ -1,6 +1,6 @@
 .PHONY: cluster repos clean deploy
 
-start: tf-cluster tf-infra trust
+start: rust-builder geppetto tf-cluster tf-infra trust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
 
@@ -18,6 +18,9 @@ tf-infra-rm:
 
 tf-infra-clean:
 	cd infra/terraform/infra && rm -f terraform.tfstate && rm -f terraform.tfstate.backup
+
+rust-builder:
+	docker build -t rust-builder ./tools/rust-builder
 
 trust:
 	sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $(shell pwd)/infra/terraform/infra/.scratch/ingress-ca.crt
