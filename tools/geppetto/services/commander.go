@@ -24,6 +24,7 @@ func (c *Commander) Run(ctx context.Context, workDir string, command string) (st
 	default:
 	}
 
+	logrus.Debugf("Command running: `%s`", command)
 	cmd := exec.Command("/bin/bash", "-c", command)
 	cmd.Dir = workDir
 

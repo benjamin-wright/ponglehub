@@ -14,3 +14,14 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 tokio = { version = "0.2.22", features = ["macros", "tcp", "dns", "io-util"] }
+
+[profile.release]
+opt-level = 1
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = false
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+rpath = false

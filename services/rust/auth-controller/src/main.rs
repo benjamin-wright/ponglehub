@@ -9,10 +9,16 @@ use kube::{ api::Api, Client as KubeClient, CustomResource, api::PostParams };
 
 #[tokio::main]
 async fn main() -> Result<(), kube::Error> {
-    println!("Starting...");
+    println!("Spinning ups...");
 
-    println!("Getting client...");
-    let client = ClientApi::new().await?;
+    println!("Getting clients...");
+    let client = match ClientApi::new().await {
+        Err(e) => {
+            println!("Failed to get client: {:?}", e);
+            return Err(e);
+        }
+        Ok(client) => client
+    };
 
     println!("Posting things...");
     let result = client.post(String::from("this"), String::from("thing")).await;

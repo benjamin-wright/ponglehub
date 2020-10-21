@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"ponglehub.co.uk/geppetto/types"
 )
@@ -46,7 +47,21 @@ func (r Rust) GetRepo(path string) (types.Repo, error) {
 
 // Test run rust unit tests
 func (r Rust) Test(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/app:cached -v cargo-git:/root/.cargo/git -v cargo-registry:/root/.cargo/registry rust-builder cargo test --release")
+	if err := r.waitForImage(ctx, repo); err != nil {
+		return err
+	}
+
+	output, err := r.cmd.Run(
+		ctx,
+		repo.Path,
+		fmt.Sprintf(
+			"docker run --rm --name %s-builder -v $(pwd):/home/rust/app:cached -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry rust-builder cargo test --release",
+			repo.Name,
+			repo.Name,
+			repo.Name,
+		),
+	)
+
 	if err != nil {
 		return fmt.Errorf("Error testing package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
@@ -54,9 +69,39 @@ func (r Rust) Test(ctx context.Context, repo types.Repo) error {
 	return nil
 }
 
+func (r Rust) waitForImage(ctx context.Context, repo types.Repo) error {
+	for {
+		_, err := r.cmd.Run(
+			ctx,
+			repo.Path,
+			fmt.Sprintf("docker ps | grep %s-builder", repo.Name),
+		)
+
+		if err != nil {
+			return nil
+		}
+
+		time.Sleep(time.Millisecond * 200)
+	}
+}
+
 // Build compile the rust binary
 func (r Rust) Build(ctx context.Context, repo types.Repo) error {
-	output, err := r.cmd.Run(ctx, repo.Path, "docker run --rm -v $(pwd):/home/rust/app:cached -v cargo-git:/root/.cargo/git -v cargo-registry:/root/.cargo/registry rust-builder cargo build --release")
+	if err := r.waitForImage(ctx, repo); err != nil {
+		return err
+	}
+
+	output, err := r.cmd.Run(
+		ctx,
+		repo.Path,
+		fmt.Sprintf(
+			"docker run --rm --name %s-builder -v $(pwd):/home/rust/app:cached -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry rust-builder cargo build --release",
+			repo.Name,
+			repo.Name,
+			repo.Name,
+		),
+	)
+
 	if err != nil {
 		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
