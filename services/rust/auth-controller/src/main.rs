@@ -5,14 +5,16 @@ extern crate kube;
 extern crate serde_json;
 
 use tokio::prelude::*;
-use kube::{ api::Api, Client as KubeClient, CustomResource, api::PostParams };
+use kube::{ api::Api, Client as KubeClient, Config, CustomResource, api::PostParams };
 
 #[tokio::main]
 async fn main() -> Result<(), kube::Error> {
-    println!("Spinning ups...");
+    println!("Spinning up...");
 
-    println!("Getting clients...");
-    let client = match ClientApi::new().await {
+    println!("Getting client...");
+    let clientFuture = ClientApi::new();
+    println!("Resolving future...");
+    let client = match clientFuture.await {
         Err(e) => {
             println!("Failed to get client: {:?}", e);
             return Err(e);
@@ -20,7 +22,7 @@ async fn main() -> Result<(), kube::Error> {
         Ok(client) => client
     };
 
-    println!("Posting things...");
+    println!("Posting thing...");
     let result = client.post(String::from("this"), String::from("thing")).await;
 
     println!("Match for results...");
@@ -38,9 +40,16 @@ struct ClientApi {
 
 impl ClientApi {
     async fn new() -> Result<ClientApi, kube::Error> {
-        let client = KubeClient::try_default().await?;
+        println!("Getting kube config...");
+        let config = Config::from_cluster_env()?;
+
+        println!("Getting client...");
+        let client = KubeClient::new(config);
+
+        println!("Getting namespaced API thing...");
         let api: Api<Client> = Api::namespaced(client, "ponglehub");
 
+        println!("Returning API object...");
         Ok(ClientApi{
             api: api
         })

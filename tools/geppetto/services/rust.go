@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"ponglehub.co.uk/geppetto/types"
 )
@@ -45,19 +44,50 @@ func (r Rust) GetRepo(path string) (types.Repo, error) {
 	}, nil
 }
 
+func (r Rust) isRunning(ctx context.Context, repo types.Repo) bool {
+	_, err := r.cmd.Run(
+		ctx,
+		repo.Path,
+		fmt.Sprintf("docker ps | grep %s-builder", repo.Name),
+	)
+
+	return err == nil
+}
+
+func (r Rust) startBuilder(ctx context.Context, repo types.Repo) error {
+	output, err := r.cmd.Run(
+		ctx,
+		repo.Path,
+		fmt.Sprintf(
+			"docker run --rm -d --name %s-builder -v $(pwd):/home/rust/app:delegated -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry -v %s-cargo-target:/home/rust/app/target rust-builder tail -f /dev/null",
+			repo.Name,
+			repo.Name,
+			repo.Name,
+			repo.Name,
+		),
+	)
+
+	if err != nil {
+		return fmt.Errorf("Error starting builder:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
+}
+
 // Test run rust unit tests
 func (r Rust) Test(ctx context.Context, repo types.Repo) error {
-	if err := r.waitForImage(ctx, repo); err != nil {
-		return err
+	if !r.isRunning(ctx, repo) {
+		err := r.startBuilder(ctx, repo)
+		if err != nil {
+			return err
+		}
 	}
 
 	output, err := r.cmd.Run(
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker run --rm --name %s-builder -v $(pwd):/home/rust/app:cached -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry rust-builder cargo test --release",
-			repo.Name,
-			repo.Name,
+			"docker exec %s-builder cargo test --release",
 			repo.Name,
 		),
 	)
@@ -69,44 +99,26 @@ func (r Rust) Test(ctx context.Context, repo types.Repo) error {
 	return nil
 }
 
-func (r Rust) waitForImage(ctx context.Context, repo types.Repo) error {
-	for {
-		_, err := r.cmd.Run(
-			ctx,
-			repo.Path,
-			fmt.Sprintf("docker ps | grep %s-builder", repo.Name),
-		)
-
-		if err != nil {
-			return nil
-		}
-
-		time.Sleep(time.Millisecond * 200)
-	}
-}
-
 // Build compile the rust binary
 func (r Rust) Build(ctx context.Context, repo types.Repo) error {
-	if err := r.waitForImage(ctx, repo); err != nil {
-		return err
+	if !r.isRunning(ctx, repo) {
+		err := r.startBuilder(ctx, repo)
+		if err != nil {
+			return err
+		}
 	}
 
 	output, err := r.cmd.Run(
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker run --rm --name %s-builder -v $(pwd):/home/rust/app:cached -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry rust-builder cargo build --release",
+			"docker exec %s-builder /bin/sh -c \"cargo build --release && mkdir -p build && cp target/release/%s build/%s\"",
 			repo.Name,
 			repo.Name,
 			repo.Name,
 		),
 	)
 
-	if err != nil {
-		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
-	}
-
-	output, err = r.cmd.Run(ctx, repo.Path, "mkdir -p build && cp target/release/"+repo.Name+" build/")
 	if err != nil {
 		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
