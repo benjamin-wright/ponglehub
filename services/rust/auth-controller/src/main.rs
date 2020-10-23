@@ -41,7 +41,16 @@ struct ClientApi {
 impl ClientApi {
     async fn new() -> Result<ClientApi, kube::Error> {
         println!("Getting kube config...");
-        let config = Config::from_cluster_env()?;
+        let config_result = Config::from_cluster_env(); //This is breaking
+
+        println!("Resolving kube config result...");
+        let config = match config_result {
+            Ok(config) => config,
+            Err(e) => {
+                println!("Error getting config {:?}", e);
+                return Err(e);
+            }
+        };
 
         println!("Getting client...");
         let client = KubeClient::new(config);

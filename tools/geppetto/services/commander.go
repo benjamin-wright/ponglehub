@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -44,7 +45,7 @@ func (c *Commander) Run(ctx context.Context, workDir string, command string) (st
 			}
 		}
 
-		logrus.Debugf("Command `%s` output:\n%s", command, string(out))
+		logrus.Debugf("Command `%s` output: %s", command, string(out))
 		results <- result{
 			value: strings.TrimSpace(string(out)),
 			err:   err,
@@ -56,7 +57,11 @@ func (c *Commander) Run(ctx context.Context, workDir string, command string) (st
 		return r.value, r.err
 	case <-ctx.Done():
 		if cmd.Process != nil {
-			cmd.Process.Kill()
+			cmd.Process.Signal(os.Interrupt)
+			_, err := cmd.Process.Wait()
+			if err != nil {
+				logrus.Errorf("Failed to interrupt command `%s`: %+v", command, err)
+			}
 		}
 		return "", context.Canceled
 	}

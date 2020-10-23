@@ -17,12 +17,12 @@ tokio = { version = "0.2.22", features = ["full"] }
 reqwest = { version = "0.10.8", default-features = false, features = ["json", "gzip", "stream", "native-tls"] }
 
 [profile.release]
-opt-level = 1
-debug = true
-debug-assertions = true
+opt-level = 0
+debug = false
+debug-assertions = false
 overflow-checks = false
-lto = true
+lto = false
 panic = 'unwind'
 incremental = true
 codegen-units = 256
-rpath = true
+rpath = false
