@@ -27,5 +27,3 @@ FROM scratch
 COPY --from=builder /home/rust/auth-controller/target/release/auth-controller .
 USER 1000
 CMD ["./auth-controller"]
-
-cargo +nightly stack-sizes --release -v -- -C link-arg=-Wl,-Tkeep-stack-sizes.x -C link-arg=-N
