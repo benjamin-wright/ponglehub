@@ -1,6 +1,12 @@
 {{- define "ponglehub.server" -}}
 {{ $server := first . }}
 {{ $top := (index . 1) }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $server.name }}
+automountServiceAccountToken: true
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,6 +29,7 @@ spec:
       {{- end }}
       {{- end }}
     spec:
+      serviceAccountName: {{ $server.name }}
       {{- if $server.initContainers }}
       initContainers:
       {{- range $key, $container := $server.initContainers }}
@@ -55,6 +62,18 @@ spec:
       - name: server
         image: {{ required "must enter an image property!" $server.image}}
         imagePullPolicy: {{ $server.pullPolicy | default "Always" }}
+        {{- if $server.command }}
+        command:
+          {{- range $server.command }}
+        - {{ . }}
+          {{- end }}
+        {{- end }}
+        {{- if $server.args }}
+        args:
+          {{- range $server.args }}
+        - {{ . | quote }}
+          {{- end }}
+        {{- end }}
         {{- if $server.env }}
         env:
         {{- range $key, $value := $server.env }}

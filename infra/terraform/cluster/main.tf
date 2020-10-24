@@ -6,8 +6,17 @@ resource "docker_network" "registry" {
     name = "${var.cluster}-network"
 }
 
+data "docker_registry_image" "registry" {
+  name = "registry:2"
+}
+
+resource "docker_image" "registry" {
+  name          = "${data.docker_registry_image.registry.name}"
+  pull_triggers = ["${data.docker_registry_image.registry.sha256_digest}"]
+}
+
 resource "docker_container" "registry" {
-    image = "sha256:2d4f4b5309b1e41b4f83ae59b44df6d673ef44433c734b14c1c103ebca82c116"
+    image = docker_image.registry.latest
     name = "${var.cluster}-registry"
     restart = "always"
     ports {

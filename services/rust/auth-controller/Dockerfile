@@ -18,8 +18,14 @@ RUN cargo install --path .
 COPY src ./src
 
 RUN cargo build --release
+
+RUN cargo stack-sizes --release -v -- -C link-arg=-Wl,-Tkeep-stack-sizes.x -C link-arg=-N
+RUN RUSTC=stack-sizes-rustc "cargo" "rustc" "--bin" "hello" "--release" "--" "-C" "link-arg=-Wl,-Tkeep-stack-sizes.x" "-C" "link-arg=-N"
+
 FROM scratch
 
 COPY --from=builder /home/rust/auth-controller/target/release/auth-controller .
 USER 1000
 CMD ["./auth-controller"]
+
+cargo +nightly stack-sizes --release -v -- -C link-arg=-Wl,-Tkeep-stack-sizes.x -C link-arg=-N

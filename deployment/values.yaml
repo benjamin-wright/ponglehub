@@ -39,7 +39,12 @@ servers:
     ROCKET_ADDRESS: "0.0.0.0"
 - name: auth-controller
   image: auth-controller
-
+  command: [ "/bin/sh" ]
+  args:
+  - -c
+  - while true; do echo "tick"; sleep 5; done;
+  env:
+    RUST_LOG: trace,kube=trace
 static:
 - name: landing-page
   image: landing-page

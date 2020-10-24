@@ -3,7 +3,7 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "version": "1.0.37",
+  "version": "1.0.43",
   "main": "lib/index.js",
   "scripts": {
     "lint": "echo \"NA\"",
