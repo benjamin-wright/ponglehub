@@ -112,7 +112,7 @@ func (r Rust) Build(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker exec %s-builder /bin/sh -c \"cargo build --release && mkdir -p build && cp target/release/%s build/%s\"",
+			"docker exec %s-builder /bin/sh -c \"cargo build --release && mkdir -p build && cp target/x86_64-unknown-linux-musl/release/%s build/%s\"",
 			repo.Name,
 			repo.Name,
 			repo.Name,
