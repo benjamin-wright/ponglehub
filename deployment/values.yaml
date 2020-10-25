@@ -40,7 +40,18 @@ servers:
 - name: auth-controller
   image: auth-controller
   env:
-    RUST_LOG: trace,kube=trace
+    RUST_LOG: info,hyper=info
+  rbac:
+    apiGroups:
+    - auth.ponglehub.co.uk
+    resources:
+    - clients
+    verbs:
+    - get
+    - list
+    - create
+    - delete
+    - watch
 
 static:
 - name: landing-page

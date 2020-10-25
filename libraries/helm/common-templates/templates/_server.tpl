@@ -116,8 +116,8 @@ spec:
   selector:
     app: {{ $server.name }}
   type: ClusterIP
----
 {{- if not (empty $server.host) }}
+---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
@@ -140,5 +140,38 @@ spec:
   - hosts:
     - {{ $server.host }}
     secretName: ssl-secret
+{{- end }}
+{{- if not (empty $server.rbac) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $server.name }}
+rules:
+- apiGroups:
+  {{- range $server.rbac.apiGroups }}
+  - {{ . }}
+  {{- end }}
+  resources:
+  {{- range $server.rbac.resources }}
+  - {{ . }}
+  {{- end }}
+  verbs:
+  {{- range $server.rbac.verbs }}
+  - {{ . }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $server.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $server.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ $server.name }}
+  namespace: {{ $top.Release.Namespace }}
 {{- end }}
 {{- end -}}
