@@ -18,3 +18,7 @@ export NPM_PASSWORD=
 export NPM_EMAIL=admin@ponglehub.co.uk
 
 export PATH=$PATH:$(pwd)/bin
+
+export TF_VAR_cluster=pongle
+export TF_VAR_domain=ponglehub.co.uk
+export TF_VAR_grafana_password=

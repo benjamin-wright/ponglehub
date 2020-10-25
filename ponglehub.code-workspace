@@ -5,12 +5,16 @@
 			"path": "."
 		},
 		{
-			"name": "infra-cluster",
+			"name": "infra: cluster",
 			"path": "infra/cluster"
 		},
 		{
-			"name": "infra-repos",
+			"name": "infra: repos",
 			"path": "infra/repos"
+		},
+		{
+			"name": "infra: terraform",
+			"path": "infra/terraform"
 		},
 		{
 			"name": "tools: geppetto",

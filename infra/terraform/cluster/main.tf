@@ -28,12 +28,6 @@ resource "docker_container" "registry" {
     }
 }
 
-resource "null_resource" "rust-builder" {
-    provisioner "local-exec" {
-        command = "docker build -t rust-builder ../../../tools/rust-builder"
-    }
-}
-
 resource "null_resource" "geppetto" {
     provisioner "local-exec" {
         command = "cd ../../../tools/geppetto && make install"

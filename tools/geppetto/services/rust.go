@@ -59,7 +59,7 @@ func (r Rust) startBuilder(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker run --rm -d --name %s-builder -v $(pwd):/home/rust/app:delegated -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry -v %s-cargo-target:/home/rust/app/target rust-builder tail -f /dev/null",
+			"docker run --rm -d --name %s-builder -v $(pwd):/volume:delegated -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry -v %s-cargo-target:/volume/target clux/muslrust:nightly tail -f /dev/null",
 			repo.Name,
 			repo.Name,
 			repo.Name,

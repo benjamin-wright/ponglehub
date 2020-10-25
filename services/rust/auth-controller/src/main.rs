@@ -15,7 +15,7 @@ async fn main() -> Result<(), kube::Error> {
 
     info!("Starting...");
 
-    info!("An info message");
+    info!("An info message for you");
     trace!("A trace message");
     info!("Getting kube configs...");
     let config_result = Config::from_cluster_env(); //This is breaking
