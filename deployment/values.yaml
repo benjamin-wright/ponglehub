@@ -47,10 +47,7 @@ servers:
     resources:
     - clients
     verbs:
-    - get
     - list
-    - create
-    - delete
     - watch
 
 static:

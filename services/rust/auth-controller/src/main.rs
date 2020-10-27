@@ -4,15 +4,17 @@ extern crate kube;
 extern crate serde;
 extern crate serde_json;
 
-use futures::{TryStreamExt};
-use kube::{ api::Api, Client as KubeClient, Config, CustomResource };
-use kube_runtime::{ watcher, utils::try_flatten_applied };
-use serde::{ Serialize, Deserialize };
+mod resources;
 
-use log::{info, error};
+use crate::resources::client::Client;
+
+use futures::{StreamExt, TryStreamExt};
+use kube::{ api::{ Api, Meta }, Client as KubeClient, Config };
+use kube_runtime::{ watcher, watcher::Event };
+use log::info;
 
 #[tokio::main]
-async fn main() -> Result<(), kube::Error> {
+async fn main() -> anyhow::Result<()> {
     env_logger::init();
     info!("Starting...");
 
@@ -26,30 +28,23 @@ async fn main() -> Result<(), kube::Error> {
     let api: Api<Client> = Api::namespaced(client, "ponglehub");
 
     println!("Starting watcher...");
-    let watcher = watcher(api, kube::api::ListParams::default());
-    let result = try_flatten_applied(watcher)
-        .try_for_each(|client| async move {
-            log::debug!("Client: {}", kube::api::Meta::name(&client));
-            Ok(())
-        })
-        .await;
-
-    match result {
-        Ok(_) => {
-            info!("Finished!");
-            Ok(())
-        },
-        Err(e) => {
-            error!("This: {:?}", e);
-            Ok(())
+    let mut watcher = watcher(api, kube::api::ListParams::default()).boxed();
+    while let Some(event) = watcher.try_next().await? {
+        match event {
+            Event::Applied(e) => {
+                info!("Applied: {:?}", Meta::name(&e));
+            }
+            Event::Deleted(e) => {
+                info!("Deleted: {:?}", Meta::name(&e));
+            }
+            Event::Restarted(e) => {
+                for r in e {
+                    info!("Restarted: {:?}", Meta::name(&r));
+                }
+            }
         }
     }
-}
 
-#[derive(CustomResource, Serialize, Deserialize, Default, Debug, Clone)]
-#[kube(group = "auth.ponglehub.co.uk", version = "v1beta1", kind = "Client", namespaced)]
-pub struct ClientSpec {
-    name: String,
-    #[serde(rename = "callbackUrl")]
-    callback_url: String,
+    info!("Finished!");
+    Ok(())
 }
