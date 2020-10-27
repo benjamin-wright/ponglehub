@@ -8,8 +8,8 @@ def namespace(name):
 kind: Namespace
 metadata:
   name: %s
-  annotations:
-    linkerd.io/inject: enabled
+  # annotations:
+  #   linkerd.io/inject: enabled
 """ % name)
 
 k8s_yaml(namespace('ponglehub'))

@@ -5,12 +5,13 @@ extern crate serde;
 extern crate serde_json;
 
 mod resources;
+mod auth;
 
-use crate::resources::client::Client;
+use crate::resources::client::get_client_events;
 
-use futures::{StreamExt, TryStreamExt};
-use kube::{ api::{ Api, Meta }, Client as KubeClient, Config };
-use kube_runtime::{ watcher, watcher::Event };
+use futures::TryStreamExt;
+use kube::{ api::{ Meta }, };
+use kube_runtime::{ watcher::Event };
 use log::info;
 
 #[tokio::main]
@@ -18,21 +19,14 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
     info!("Starting...");
 
-    println!("Getting kube config...");
-    let config = Config::from_cluster_env()?;
+    let mut watcher = get_client_events().await?;
 
-    println!("Getting client...");
-    let client = KubeClient::new(config);
-
-    println!("Getting namespaced API...");
-    let api: Api<Client> = Api::namespaced(client, "ponglehub");
-
-    println!("Starting watcher...");
-    let mut watcher = watcher(api, kube::api::ListParams::default()).boxed();
     while let Some(event) = watcher.try_next().await? {
         match event {
             Event::Applied(e) => {
-                info!("Applied: {:?}", Meta::name(&e));
+                if let Err(e) = assert_client(e).await {
+                    log::error!("Failed to create client: {:?}", e);
+                }
             }
             Event::Deleted(e) => {
                 info!("Deleted: {:?}", Meta::name(&e));
@@ -46,5 +40,17 @@ async fn main() -> anyhow::Result<()> {
     }
 
     info!("Finished!");
+    Ok(())
+}
+
+async fn assert_client(client: crate::resources::client::Client) -> anyhow::Result<()> {
+    let name = Meta::name(&client);
+    info!("Client created or modified: {:?}", name);
+
+    match auth::api::get_client(name.as_str()).await? {
+        Some(body) => info!("Got result from client: {:?}", body),
+        None => info!("Client not found, creating...")
+    }
+
     Ok(())
 }
