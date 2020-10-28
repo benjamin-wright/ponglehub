@@ -82,3 +82,9 @@ k8s_yaml(helm(
     'global.ssl.crt='+file('infra/terraform/infra/.scratch/ingress.crt'),
   ]
 ))
+
+k8s_resource(
+  'migrations',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False
+)

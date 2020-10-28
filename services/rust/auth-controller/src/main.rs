@@ -8,6 +8,7 @@ mod resources;
 mod auth;
 
 use crate::resources::client::get_client_events;
+use crate::auth::api;
 
 use futures::TryStreamExt;
 use kube::{ api::{ Meta }, };
@@ -24,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     while let Some(event) = watcher.try_next().await? {
         match event {
             Event::Applied(e) => {
-                if let Err(e) = assert_client(e).await {
+                if let Err(e) = assert_client(&e).await {
                     log::error!("Failed to create client: {:?}", e);
                 }
             }
@@ -33,7 +34,9 @@ async fn main() -> anyhow::Result<()> {
             }
             Event::Restarted(e) => {
                 for r in e {
-                    info!("Restarted: {:?}", Meta::name(&r));
+                    if let Err(e) = assert_client(&r).await {
+                        log::error!("Failed to create client: {:?}", e);
+                    }
                 }
             }
         }
@@ -43,14 +46,29 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn assert_client(client: crate::resources::client::Client) -> anyhow::Result<()> {
-    let name = Meta::name(&client);
+async fn assert_client(client: &crate::resources::client::Client) -> anyhow::Result<()> {
+    let name = Meta::name(client);
     info!("Client created or modified: {:?}", name);
 
-    match auth::api::get_client(name.as_str()).await? {
-        Some(body) => info!("Got result from client: {:?}", body),
-        None => info!("Client not found, creating...")
+    match api::get_client(name.as_str()).await? {
+        Some(body) => update_client(client, &body).await,
+        None => create_client(client).await
     }
+}
 
-    Ok(())
+async fn create_client(client: &crate::resources::client::Client) -> anyhow::Result<()> {
+    info!("Creating client!");
+
+    api::post_client(api::ClientPayload{
+        name: client.spec.name.clone(),
+        callback_url: client.spec.callback_url.clone()
+    }).await?;
+
+    return Ok(())
+}
+
+async fn update_client(client: &crate::resources::client::Client, payload: &api::ClientPayload) -> anyhow::Result<()> {
+    info!("Updating client!");
+
+    return Ok(())
 }

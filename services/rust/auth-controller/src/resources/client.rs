@@ -8,9 +8,9 @@ use kube_runtime::{ watcher, watcher::Event, watcher::Error };
 #[derive(CustomResource, Serialize, Deserialize, Default, Debug, Clone)]
 #[kube(group = "auth.ponglehub.co.uk", version = "v1beta1", kind = "Client", namespaced)]
 pub struct ClientSpec {
-    name: String,
+    pub name: String,
     #[serde(rename = "callbackUrl")]
-    callback_url: String,
+    pub callback_url: String,
 }
 
 pub async fn get_client_events() -> anyhow::Result<Pin<Box<dyn Stream<Item = Result<Event<Client>, Error>> + Send>>> {

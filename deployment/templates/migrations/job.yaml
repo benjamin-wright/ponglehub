@@ -1,4 +1,5 @@
 {{- $db := .Values.migrations.db -}}
+{{- $flywayImage := .Values.migrations.flywayImage -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -32,6 +33,24 @@ spec:
             cpu: 0.1
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+      {{- range .Values.migrations.sets }}
+      - name: {{ .database }}-clean
+        image: {{ $flywayImage }}
+        imagePullPolicy: Always
+        args:
+        - clean
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        volumeMounts:
+        - name: {{ .database }}-migration
+          mountPath: /flyway/conf/flyway.conf
+          subPath: flyway.conf
+      {{- end }}
       containers:
       {{- range .Values.migrations.sets }}
       - name: {{ .database }}-migration
