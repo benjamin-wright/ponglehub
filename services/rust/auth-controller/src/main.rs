@@ -7,7 +7,7 @@ extern crate serde_json;
 mod resources;
 mod auth;
 
-use crate::resources::client::get_client_events;
+use crate::resources::{ client::get_client_events, user_seed::get_user_seed_events };
 use crate::auth::api;
 
 use futures::TryStreamExt;
@@ -20,29 +20,95 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
     info!("Starting...");
 
-    let mut watcher = get_client_events().await?;
+    let join = tokio::spawn(async move {
+        let mut watcher = match get_client_events().await {
+            Err(e) => {
+                panic!("Failed to get client events: {:?}", e);
+            },
+            Ok(watcher) => watcher
+        };
 
-    while let Some(event) = watcher.try_next().await? {
-        match event {
-            Event::Applied(e) => {
-                if let Err(e) = assert_client(&e).await {
-                    log::error!("Failed to create client: {:?}", e);
+        loop {
+            let event = match watcher.try_next().await {
+                Err(e) => {
+                    panic!("Failed to get watch event: {:?}", e);
+                },
+                Ok(event_option) => match event_option {
+                    None => {
+                        panic!("No more client events to get");
+                    },
+                    Some(event) => event
                 }
-            }
-            Event::Deleted(e) => {
-                if let Err(e) = delete_client(&e).await {
-                    log::error!("Failed to delete client: {:?}", e);
-                }
-                info!("Deleted: {:?}", Meta::name(&e));
-            }
-            Event::Restarted(e) => {
-                for r in e {
-                    if let Err(e) = assert_client(&r).await {
+            };
+
+            match event {
+                Event::Applied(e) => {
+                    if let Err(e) = assert_client(&e).await {
                         log::error!("Failed to create client: {:?}", e);
+                    }
+                }
+                Event::Deleted(e) => {
+                    if let Err(e) = delete_client(&e).await {
+                        log::error!("Failed to delete client: {:?}", e);
+                    }
+                    info!("Deleted: {:?}", Meta::name(&e));
+                }
+                Event::Restarted(e) => {
+                    for r in e {
+                        if let Err(e) = assert_client(&r).await {
+                            log::error!("Failed to create client: {:?}", e);
+                        }
                     }
                 }
             }
         }
+    });
+
+    let user_join = tokio::spawn(async move {
+        let mut watcher = match get_user_seed_events().await {
+            Err(e) => {
+                panic!("Failed to get user_seed events: {:?}", e);
+                return;
+            },
+            Ok(watcher) => watcher
+        };
+
+        loop {
+            let event = match watcher.try_next().await {
+                Err(e) => {
+                    panic!("Failed to get watch event: {:?}", e);
+                },
+                Ok(event_option) => match event_option {
+                    None => {
+                        log::error!("No more user_seed events to get");
+                        return;
+                    },
+                    Some(event) => event
+                }
+            };
+
+            match event {
+                Event::Applied(e) => {
+                    info!("User seed added");
+                }
+                Event::Deleted(e) => {
+                    info!("User seed removed");
+                }
+                Event::Restarted(e) => {
+                    info!("User seed updated");
+                }
+            }
+        }
+    });
+
+    info!("All threads running!");
+
+    if let Err(e) = user_join.await {
+        return Err(anyhow::anyhow!(e));
+    }
+
+    if let Err(e) = join.await {
+        return Err(anyhow::anyhow!(e));
     }
 
     info!("Finished!");

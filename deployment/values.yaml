@@ -48,6 +48,7 @@ servers:
     - auth.ponglehub.co.uk
     resources:
     - clients
+    - userseeds
     verbs:
     - list
     - watch
