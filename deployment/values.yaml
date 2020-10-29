@@ -29,6 +29,7 @@ servers:
 - name: auth-server
   image: auth-server
   env:
+    RUST_LOG: info
     ROCKET_PORT: "80"
     ROCKET_ADDRESS: "0.0.0.0"
     ROCKET_DATABASES: '{auth={url="postgresql://authserver@cockroach-cockroachdb-public.infra.svc.cluster.local:26257/auth?sslmode=disable"}}'

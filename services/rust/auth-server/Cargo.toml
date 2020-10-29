@@ -9,6 +9,10 @@ edition = "2018"
 [dependencies]
 rocket = "0.4.5"
 serde = { version = "1.0.116", features = ["derive"] }
+log = "0.4.11"
+env_logger = "0.8.1"
+uuid = { version = "0.5", features = ["serde"] }
+postgres = { version = "0.15", features = ["with-uuid"] }
 
 [dependencies.rocket_contrib]
 version = "0.4.5"

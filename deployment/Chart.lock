@@ -1,6 +1,6 @@
 dependencies:
 - name: common-templates
   repository: https://helm.ponglehub.co.uk
-  version: 1.0.4
-digest: sha256:602c04439567a6734de2ba222fa88b2845b84042982edebc8639fc4424847d1b
-generated: "2020-10-28T07:57:08.84819Z"
+  version: 1.0.9
+digest: sha256:a0f0b5129e1a6403807088b8772d694f599146c269afa5b284d4d7f0dd91bb90
+generated: "2020-10-29T07:01:42.620345Z"

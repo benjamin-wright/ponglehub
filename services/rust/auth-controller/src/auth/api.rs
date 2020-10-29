@@ -31,7 +31,7 @@ pub async fn get_client(name: &str) -> anyhow::Result<Option<ClientPayload>> {
 
 pub async fn post_client(payload: ClientPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let post_result = client.post("http://auth-server/clients/")
+    let post_result = client.post("http://auth-server/clients")
         .body(serde_json::to_string(&payload).unwrap())
         .send()
         .await;

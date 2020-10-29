@@ -47,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn assert_client(client: &crate::resources::client::Client) -> anyhow::Result<()> {
-    let name = Meta::name(client);
+    let name = client.spec.name.clone();
     info!("Client created or modified: {:?}", name);
 
     match api::get_client(name.as_str()).await? {
@@ -63,6 +63,8 @@ async fn create_client(client: &crate::resources::client::Client) -> anyhow::Res
         name: client.spec.name.clone(),
         callback_url: client.spec.callback_url.clone()
     }).await?;
+
+    info!("Client created");
 
     return Ok(())
 }
