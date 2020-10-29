@@ -76,3 +76,15 @@ pub fn put_client(client: AuthDB, body: Json<PutData>, name: String) -> Result<S
 
     Ok(Status::Ok)
 }
+
+#[delete("/clients/<name>")]
+pub fn delete_client(client: AuthDB, name: String) -> Result<Status, Status> {
+    log::info!("Deleting client: {}", name);
+
+    if let Err(err) = client.0.query("DELETE FROM clients WHERE name = $1", &[ &name ]) {
+        log::error!("Failed to delete client: {:?}", err);
+        return Err(Status::InternalServerError);
+    }
+
+    Ok(Status::Ok)
+}

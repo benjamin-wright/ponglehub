@@ -76,3 +76,21 @@ pub async fn put_client(name: &str, payload: ClientPutPayload) -> anyhow::Result
 
     Ok(())
 }
+
+pub async fn delete_client(name: &str) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    let delete_result = client.delete(format!("http://auth-server/clients/{}", name).as_str())
+        .send()
+        .await;
+
+    let response = match delete_result {
+        Ok(response) => response,
+        Err(e) => return Err(anyhow::anyhow!("Error deleting client on auth server: {:?}", e))
+    };
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!("Auth server returned non-200 code deleting client {}: {}", name, response.status()));
+    }
+
+    Ok(())
+}

@@ -12,6 +12,6 @@ fn main() {
 
     rocket::ignite()
         .attach(database::fairing())
-        .mount("/", routes![users::get_users, clients::get_client, clients::post_client, clients::put_client])
+        .mount("/", routes![users::get_users, clients::get_client, clients::post_client, clients::put_client, clients::delete_client])
         .launch();
 }

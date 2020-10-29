@@ -30,6 +30,9 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             Event::Deleted(e) => {
+                if let Err(e) = delete_client(&e).await {
+                    log::error!("Failed to delete client: {:?}", e);
+                }
                 info!("Deleted: {:?}", Meta::name(&e));
             }
             Event::Restarted(e) => {
@@ -95,5 +98,20 @@ async fn update_client(client: &crate::resources::client::Client, name: &str, ex
 
     info!("Updated client");
 
-    return Ok(())
+    Ok(())
+}
+
+async fn delete_client(client: &crate::resources::client::Client) -> anyhow::Result<()> {
+    info!("Deleting client!");
+
+    let name = match client.metadata.name.as_ref() {
+        Some(name) => name.clone(),
+        None => return Err(anyhow::anyhow!("client had no name!"))
+    };
+
+    api::delete_client(name.as_str()).await?;
+
+    info!("Deleted client");
+
+    Ok(())
 }
