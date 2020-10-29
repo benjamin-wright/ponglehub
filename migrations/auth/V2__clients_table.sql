@@ -6,7 +6,8 @@ DROP TABLE IF EXISTS clients;
 
 CREATE TABLE clients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
     callback_url VARCHAR(100) NOT NULL
 );
 

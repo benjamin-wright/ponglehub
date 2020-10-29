@@ -3,6 +3,8 @@ use serde::{ Serialize, Deserialize };
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct ClientPayload {
     pub name: String,
+    #[serde(rename = "displayName")]
+    pub display_name: String,
     #[serde(rename = "callbackUrl")]
     pub callback_url: String
 }
@@ -43,6 +45,33 @@ pub async fn post_client(payload: ClientPayload) -> anyhow::Result<()> {
 
     if !response.status().is_success() {
         return Err(anyhow::anyhow!("Auth server returned non-200 code posting client '{:?}': {}", payload, response.status()));
+    }
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct ClientPutPayload {
+    #[serde(rename = "displayName")]
+    pub display_name: String,
+    #[serde(rename = "callbackUrl")]
+    pub callback_url: String
+}
+
+pub async fn put_client(name: &str, payload: ClientPutPayload) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    let put_result = client.put(format!("http://auth-server/clients/{}", name).as_str())
+        .body(serde_json::to_string(&payload).unwrap())
+        .send()
+        .await;
+
+    let response = match put_result {
+        Ok(response) => response,
+        Err(e) => return Err(anyhow::anyhow!("Error updating client to auth server: {:?}", e))
+    };
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!("Auth server returned non-200 code updating client '{:?}': {}", payload, response.status()));
     }
 
     Ok(())

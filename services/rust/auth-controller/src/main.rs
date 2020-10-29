@@ -47,21 +47,26 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn assert_client(client: &crate::resources::client::Client) -> anyhow::Result<()> {
-    let name = client.spec.name.clone();
+    let name = match client.metadata.name.as_ref() {
+        Some(name) => name.clone(),
+        None => return Err(anyhow::anyhow!("client had no name!"))
+    };
+
     info!("Client created or modified: {:?}", name);
 
     match api::get_client(name.as_str()).await? {
-        Some(body) => update_client(client, &body).await,
-        None => create_client(client).await
+        Some(body) => update_client(client, name.as_str(), &body).await,
+        None => create_client(name.as_str(), &client.spec).await
     }
 }
 
-async fn create_client(client: &crate::resources::client::Client) -> anyhow::Result<()> {
+async fn create_client(name: &str, client: &crate::resources::client::ClientSpec) -> anyhow::Result<()> {
     info!("Creating client!");
 
     api::post_client(api::ClientPayload{
-        name: client.spec.name.clone(),
-        callback_url: client.spec.callback_url.clone()
+        name: String::from(name),
+        display_name: client.display_name.clone(),
+        callback_url: client.callback_url.clone()
     }).await?;
 
     info!("Client created");
@@ -69,8 +74,26 @@ async fn create_client(client: &crate::resources::client::Client) -> anyhow::Res
     return Ok(())
 }
 
-async fn update_client(client: &crate::resources::client::Client, payload: &api::ClientPayload) -> anyhow::Result<()> {
+impl api::ClientPayload {
+    fn same(&self, client: &crate::resources::client::Client) -> bool {
+        return self.display_name == client.spec.display_name && self.callback_url == client.spec.callback_url;
+    }
+}
+
+async fn update_client(client: &crate::resources::client::Client, name: &str, existing: &api::ClientPayload) -> anyhow::Result<()> {
     info!("Updating client!");
+
+    if existing.same(client) {
+        info!("Client details have not changed");
+        return Ok(());
+    }
+
+    api::put_client(name, api::ClientPutPayload{
+        display_name: client.spec.display_name.clone(),
+        callback_url: client.spec.callback_url.clone()
+    }).await?;
+
+    info!("Updated client");
 
     return Ok(())
 }

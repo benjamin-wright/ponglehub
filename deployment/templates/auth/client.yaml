@@ -3,5 +3,5 @@ kind: Client
 metadata:
   name: games
 spec:
-  name: gamer
+  displayName: games
   callbackUrl: games.ponglehub.co.uk

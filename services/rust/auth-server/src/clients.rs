@@ -8,12 +8,14 @@ use crate::database::AuthDB;
 pub struct Client {
     id: Uuid,
     name: String,
+    #[serde(rename = "displayName")]
+    display_name: String,
     #[serde(rename = "callbackUrl")]
     callback_url: String
 }
 
 #[get("/clients/<name>")]
-pub fn get_clients(client: AuthDB, name: String) -> Result<Json<Client>, Status> {
+pub fn get_client(client: AuthDB, name: String) -> Result<Json<Client>, Status> {
     log::info!("Getting client {}", name);
     let client_rows = client.0.query("SELECT * FROM clients WHERE name = $1", &[ &name ]).unwrap();
 
@@ -28,6 +30,7 @@ pub fn get_clients(client: AuthDB, name: String) -> Result<Json<Client>, Status>
         Client{
             id: row.get("id"),
             name: row.get("name"),
+            display_name: row.get("display_name"),
             callback_url: row.get("callback_url")
         }
     ))
@@ -36,6 +39,8 @@ pub fn get_clients(client: AuthDB, name: String) -> Result<Json<Client>, Status>
 #[derive(Deserialize, Debug)]
 pub struct PostData {
     name: String,
+    #[serde(rename = "displayName")]
+    display_name: String,
     #[serde(rename = "callbackUrl")]
     callback_url: String
 }
@@ -44,8 +49,28 @@ pub struct PostData {
 pub fn post_client(client: AuthDB, body: Json<PostData>) -> Result<Status, Status> {
     log::info!("Adding new client: {}", body.name);
 
-    if let Err(err) = client.0.query("INSERT INTO clients (name, callback_url) VALUES ($1, $2)", &[ &body.name, &body.callback_url ]) {
+    if let Err(err) = client.0.query("INSERT INTO clients (name, display_name, callback_url) VALUES ($1, $2, $3)", &[ &body.name, &body.display_name, &body.callback_url ]) {
         log::error!("Failed to add client: {:?}", err);
+        return Err(Status::InternalServerError);
+    }
+
+    Ok(Status::Ok)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct PutData {
+    #[serde(rename = "displayName")]
+    display_name: String,
+    #[serde(rename = "callbackUrl")]
+    callback_url: String
+}
+
+#[put("/clients/<name>", data = "<body>")]
+pub fn put_client(client: AuthDB, body: Json<PutData>, name: String) -> Result<Status, Status> {
+    log::info!("Updating client: {}", name);
+
+    if let Err(err) = client.0.query("UPDATE clients SET display_name = $2, callback_url = $3 WHERE name = $1", &[ &name, &body.display_name, &body.callback_url ]) {
+        log::error!("Failed to update client: {:?}", err);
         return Err(Status::InternalServerError);
     }
 

@@ -3,12 +3,13 @@ use std::pin::Pin;
 use futures::{Stream, StreamExt};
 use serde::{ Serialize, Deserialize };
 use kube::{Api, Client as KubeClient, Config, CustomResource};
-use kube_runtime::{ watcher, watcher::Event, watcher::Error };
+use kube_runtime::{watcher, watcher::Error, watcher::Event};
 
 #[derive(CustomResource, Serialize, Deserialize, Default, Debug, Clone)]
 #[kube(group = "auth.ponglehub.co.uk", version = "v1beta1", kind = "Client", namespaced)]
 pub struct ClientSpec {
-    pub name: String,
+    #[serde(rename = "displayName")]
+    pub display_name: String,
     #[serde(rename = "callbackUrl")]
     pub callback_url: String,
 }
