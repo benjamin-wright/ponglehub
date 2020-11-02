@@ -11,3 +11,7 @@ global:
   ssl:
     key: encodedvalue
     crt: encodedvalue
+
+seed:
+  name: seed-name
+  email: seed-email

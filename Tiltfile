@@ -80,6 +80,8 @@ k8s_yaml(helm(
     'global.smtp.from='+envvar('KEYCLOAK_SMTP_FROM'),
     'global.ssl.key='+file('infra/terraform/infra/.scratch/ingress.key'),
     'global.ssl.crt='+file('infra/terraform/infra/.scratch/ingress.crt'),
+    'seed.name='+envvar('SEED_USER_NAME'),
+    'seed.email='+envvar('SEED_USER_EMAIL'),
   ]
 ))
 

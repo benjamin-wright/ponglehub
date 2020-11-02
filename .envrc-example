@@ -22,3 +22,6 @@ export PATH=$PATH:$(pwd)/bin
 export TF_VAR_cluster=pongle
 export TF_VAR_domain=ponglehub.co.uk
 export TF_VAR_grafana_password=
+
+export SEED_USER_NAME=
+export SEED_USER_EMAIL=

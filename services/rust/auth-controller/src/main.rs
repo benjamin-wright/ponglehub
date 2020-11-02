@@ -11,7 +11,6 @@ use crate::resources::{ client::get_client_events, user_seed::get_user_seed_even
 use crate::auth::api;
 
 use futures::TryStreamExt;
-use kube::{ api::{ Meta }, };
 use kube_runtime::{ watcher::Event };
 use log::info;
 
@@ -42,20 +41,19 @@ async fn main() -> anyhow::Result<()> {
             };
 
             match event {
-                Event::Applied(e) => {
-                    if let Err(e) = assert_client(&e).await {
+                Event::Applied(client) => {
+                    if let Err(e) = assert_client(&client).await {
                         log::error!("Failed to create client: {:?}", e);
                     }
                 }
-                Event::Deleted(e) => {
-                    if let Err(e) = delete_client(&e).await {
+                Event::Deleted(client) => {
+                    if let Err(e) = delete_client(&client).await {
                         log::error!("Failed to delete client: {:?}", e);
                     }
-                    info!("Deleted: {:?}", Meta::name(&e));
                 }
-                Event::Restarted(e) => {
-                    for r in e {
-                        if let Err(e) = assert_client(&r).await {
+                Event::Restarted(clients) => {
+                    for client in clients {
+                        if let Err(e) = assert_client(&client).await {
                             log::error!("Failed to create client: {:?}", e);
                         }
                     }
@@ -68,7 +66,6 @@ async fn main() -> anyhow::Result<()> {
         let mut watcher = match get_user_seed_events().await {
             Err(e) => {
                 panic!("Failed to get user_seed events: {:?}", e);
-                return;
             },
             Ok(watcher) => watcher
         };
@@ -88,14 +85,22 @@ async fn main() -> anyhow::Result<()> {
             };
 
             match event {
-                Event::Applied(e) => {
-                    info!("User seed added");
+                Event::Applied(seed) => {
+                    if let Err(e) = assert_user_seed(&seed).await {
+                        log::error!("Failed to create user seed: {:?}", e);
+                    }
                 }
-                Event::Deleted(e) => {
-                    info!("User seed removed");
+                Event::Deleted(seed) => {
+                    if let Err(e) = delete_user(&seed).await {
+                        log::error!("Failed to delete user: {:?}", e);
+                    }
                 }
-                Event::Restarted(e) => {
-                    info!("User seed updated");
+                Event::Restarted(seeds) => {
+                    for seed in seeds {
+                        if let Err(e) = assert_user_seed(&seed).await {
+                            log::error!("Failed to create user seed: {:?}", e);
+                        }
+                    }
                 }
             }
         }
@@ -178,6 +183,75 @@ async fn delete_client(client: &crate::resources::client::Client) -> anyhow::Res
     api::delete_client(name.as_str()).await?;
 
     info!("Deleted client");
+
+    Ok(())
+}
+
+async fn assert_user_seed(seed: &crate::resources::user_seed::UserSeed) -> anyhow::Result<()> {
+    let name = match seed.metadata.name.as_ref() {
+        Some(name) => name.clone(),
+        None => return Err(anyhow::anyhow!("user seed had no name!"))
+    };
+
+    info!("User seed created or modified: {:?}", name);
+
+    match api::get_user(name.as_str()).await? {
+        Some(body) => update_user(seed, name.as_str(), &body).await,
+        None => create_user_seed(name.as_str(), &seed.spec).await
+    }
+}
+
+async fn create_user_seed(name: &str, seed: &crate::resources::user_seed::UserSeedSpec) -> anyhow::Result<()> {
+    info!("Creating user seed!");
+
+    api::post_user_seed(api::UserPayload{
+        name: String::from(name),
+        email: seed.email.clone()
+    }).await?;
+
+    crate::resources::user_seed::set_user_seeded(name).await?;
+
+    info!("User seed created");
+
+    return Ok(())
+}
+
+impl api::UserPayload {
+    fn same(&self, client: &crate::resources::user_seed::UserSeed) -> bool {
+        return self.email == client.spec.email;
+    }
+}
+
+async fn update_user(seed: &crate::resources::user_seed::UserSeed, name: &str, existing: &api::UserPayload) -> anyhow::Result<()> {
+    info!("Updating user seed!");
+
+    if existing.same(seed) {
+        info!("User seed details have not changed");
+        return Ok(());
+    }
+
+    api::put_user_seed(name, api::UserSeedPutPayload{
+        email: seed.spec.email.clone()
+    }).await?;
+
+    crate::resources::user_seed::set_user_seeded(name).await?;
+
+    info!("Updated user seed");
+
+    Ok(())
+}
+
+async fn delete_user(seed: &crate::resources::user_seed::UserSeed) -> anyhow::Result<()> {
+    info!("Deleting user!");
+
+    let name = match seed.metadata.name.as_ref() {
+        Some(name) => name.clone(),
+        None => return Err(anyhow::anyhow!("user seed had no name!"))
+    };
+
+    api::delete_user(name.as_str()).await?;
+
+    info!("Deleted user");
 
     Ok(())
 }

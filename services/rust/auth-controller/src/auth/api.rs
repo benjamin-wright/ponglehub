@@ -10,13 +10,13 @@ pub struct ClientPayload {
 }
 
 pub async fn get_client(name: &str) -> anyhow::Result<Option<ClientPayload>> {
-    let user_result = reqwest::get(format!("http://auth-server/clients/{}", name).as_str()).await;
+    let client_result = reqwest::get(format!("http://auth-server/clients/{}", name).as_str()).await;
 
-    if let Err(e) = user_result {
+    if let Err(e) = client_result {
         return Err(anyhow::anyhow!("Error getting client from auth server: {:?}", e));
     }
 
-    let response = user_result.unwrap();
+    let response = client_result.unwrap();
 
     if response.status() == reqwest::StatusCode::NOT_FOUND {
         return Ok(None);
@@ -90,6 +90,95 @@ pub async fn delete_client(name: &str) -> anyhow::Result<()> {
 
     if !response.status().is_success() {
         return Err(anyhow::anyhow!("Auth server returned non-200 code deleting client {}: {}", name, response.status()));
+    }
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct UserPayload {
+    pub name: String,
+    pub email: String
+}
+
+pub async fn get_user(name: &str) -> anyhow::Result<Option<UserPayload>> {
+    let user_result = reqwest::get(format!("http://auth-server/users/{}", name).as_str()).await;
+
+    if let Err(e) = user_result {
+        return Err(anyhow::anyhow!("Error getting user from auth server: {:?}", e));
+    }
+
+    let response = user_result.unwrap();
+
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!("Auth server returned non-200 code getting user '{}': {}", name, response.status()));
+    }
+
+    let body: UserPayload = response.json().await?;
+
+    Ok(Some(body))
+}
+
+pub async fn post_user_seed(payload: UserPayload) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    let post_result = client.post("http://auth-server/users")
+        .body(serde_json::to_string(&payload).unwrap())
+        .send()
+        .await;
+
+    let response = match post_result {
+        Ok(response) => response,
+        Err(e) => return Err(anyhow::anyhow!("Error posting user seed to auth server: {:?}", e))
+    };
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!("Auth server returned non-200 code posting user seed '{:?}': {}", payload, response.status()));
+    }
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct UserSeedPutPayload {
+    pub email: String
+}
+
+pub async fn put_user_seed(name: &str, payload: UserSeedPutPayload) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    let put_result = client.put(format!("http://auth-server/users/{}", name).as_str())
+        .body(serde_json::to_string(&payload).unwrap())
+        .send()
+        .await;
+
+    let response = match put_result {
+        Ok(response) => response,
+        Err(e) => return Err(anyhow::anyhow!("Error updating user seed to auth server: {:?}", e))
+    };
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!("Auth server returned non-200 code updating user seed '{:?}': {}", payload, response.status()));
+    }
+
+    Ok(())
+}
+
+pub async fn delete_user(name: &str) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    let delete_result = client.delete(format!("http://auth-server/users/{}", name).as_str())
+        .send()
+        .await;
+
+    let response = match delete_result {
+        Ok(response) => response,
+        Err(e) => return Err(anyhow::anyhow!("Error deleting user on auth server: {:?}", e))
+    };
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!("Auth server returned non-200 code deleting user {}: {}", name, response.status()));
     }
 
     Ok(())

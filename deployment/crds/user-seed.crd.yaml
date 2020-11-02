@@ -17,9 +17,7 @@ spec:
             properties:
               email:
                 type: string
-              name:
-                type: string
-            required: [ email, name ]
+            required: [ email ]
           status:
               type: object
               properties:

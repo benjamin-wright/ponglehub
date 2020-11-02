@@ -12,6 +12,10 @@ global:
     # key:
     # crt:
 
+seed:
+  # name:
+  # email:
+
 migrations:
   baseImage: db-init
   flywayImage: docker.io/flyway/flyway:7
@@ -49,9 +53,11 @@ servers:
     resources:
     - clients
     - userseeds
+    - userseeds/status
     verbs:
     - list
     - watch
+    - patch
 
 static:
 - name: landing-page
