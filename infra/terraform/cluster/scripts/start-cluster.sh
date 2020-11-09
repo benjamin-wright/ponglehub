@@ -118,4 +118,4 @@ fi
 
 start-cluster
 wait-for-traefik
-overwrite-traefik-config
+# overwrite-traefik-config

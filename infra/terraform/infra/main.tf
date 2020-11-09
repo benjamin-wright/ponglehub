@@ -6,9 +6,9 @@ resource "kubernetes_namespace" "infra" {
     }
   }
 
-  depends_on = [
-    helm_release.linkerd
-  ]
+  # depends_on = [
+  #   helm_release.linkerd
+  # ]
 }
 
 resource "tls_private_key" "ingress_ca" {

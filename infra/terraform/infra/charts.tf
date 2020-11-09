@@ -6,7 +6,7 @@ resource "helm_release" "verdaccio" {
   version = "0.10.0"
 
   values = [
-    "${file("values/verdaccio.yaml")}"
+    file("values/verdaccio.yaml")
   ]
 }
 
@@ -18,7 +18,7 @@ resource "helm_release" "chartmuseum" {
   version = "2.14.0"
 
   values = [
-    "${file("values/chartmuseum.yaml")}"
+    file("values/chartmuseum.yaml")
   ]
 }
 
@@ -27,7 +27,11 @@ resource "helm_release" "kafka" {
   namespace = kubernetes_namespace.infra.metadata[0].name
   chart = "strimzi-kafka-operator"
   repository = "https://strimzi.io/charts/"
-  version = "0.19.0"
+  version = "0.20.0"
+
+  values = [
+    file("values/kafka.yaml")
+  ]
 }
 
 resource "helm_release" "cockroach" {
@@ -38,6 +42,6 @@ resource "helm_release" "cockroach" {
   version = "4.1.10"
 
   values = [
-    "${file("values/cockroach.yaml")}"
+    file("values/cockroach.yaml")
   ]
 }

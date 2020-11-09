@@ -6,6 +6,7 @@
 mod database;
 mod users;
 mod clients;
+mod kafka;
 
 fn main() {
     env_logger::init();

@@ -11,8 +11,8 @@ data "docker_registry_image" "registry" {
 }
 
 resource "docker_image" "registry" {
-  name          = "${data.docker_registry_image.registry.name}"
-  pull_triggers = ["${data.docker_registry_image.registry.sha256_digest}"]
+  name          = data.docker_registry_image.registry.name
+  pull_triggers = [data.docker_registry_image.registry.sha256_digest]
 }
 
 resource "docker_container" "registry" {
