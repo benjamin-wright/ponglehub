@@ -5,12 +5,13 @@ use std::time::Duration;
 
 #[derive(Clone)]
 pub struct Kafka {
-    tx: Sender<String>
+    pub tx: Sender<String>
 }
 
 impl Kafka {
-    pub async fn send(&mut self, message: String) -> anyhow::Result<()> {
-        match self.tx.send(message).await {
+    pub async fn send(&self, message: String) -> anyhow::Result<()> {
+        let mut tx = self.tx.clone();
+        match tx.send(message).await {
             Ok(_) => {
                 log::info!("Sent message");
                 Ok(())

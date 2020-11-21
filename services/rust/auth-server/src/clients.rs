@@ -1,7 +1,8 @@
 use deadpool_postgres::Pool;
 use serde::{Serialize, Deserialize};
+use crate::kafka::Kafka;
 use uuid::Uuid;
-use actix_web::{ web, get, HttpResponse };
+use actix_web::{ web, get, post, HttpResponse };
 
 #[derive(Serialize, Deserialize)]
 pub struct Client {
@@ -50,33 +51,39 @@ pub async fn get_client(pool: web::Data<Pool>, web::Path(name): web::Path<String
     }
 }
 
-// #[derive(Deserialize, Debug)]
-// pub struct PostData {
-//     name: String,
-//     #[serde(rename = "displayName")]
-//     display_name: String,
-//     #[serde(rename = "callbackUrl")]
-//     callback_url: String
-// }
+#[derive(Deserialize, Debug)]
+pub struct PostData {
+    name: String,
+    #[serde(rename = "displayName")]
+    display_name: String,
+    #[serde(rename = "callbackUrl")]
+    callback_url: String
+}
 
-// #[post("/clients", data = "<body>")]
-// pub fn post_client(client: AuthDB, body: Json<PostData>) -> Result<Status, Status> {
-//     log::info!("Adding new client: {}", body.name);
+#[post("/clients")]
+pub async fn post_client(body: web::Json<PostData>, pool: web::Data<Pool>, kafka: web::Data<Kafka>) -> HttpResponse {
+    let data: PostData = body.into_inner();
+    log::info!("Adding new client: {}", data.name);
 
-//     let mut producer = kafka::new();
-//     let result = producer.send("Hi there!".to_string());
+    let client = match pool.get().await {
+        Ok(client) => client,
+        Err(e) => {
+            log::error!("Failed to get connection from pool: {:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
 
-//     // if let Err(err) = result {
-//     //     log::error!("Failed to post to kafka: {:?}", err);
-//     // }
+    if let Err(e) = kafka.send("Hi there!".to_string()).await {
+        log::error!("Failed to post to kafka: {:?}", e);
+    }
 
-//     if let Err(err) = client.0.query("INSERT INTO clients (name, display_name, callback_url) VALUES ($1, $2, $3)", &[ &body.name, &body.display_name, &body.callback_url ]) {
-//         log::error!("Failed to add client: {:?}", err);
-//         return Err(Status::InternalServerError);
-//     }
+    if let Err(err) = client.query("INSERT INTO clients (name, display_name, callback_url) VALUES ($1, $2, $3)", &[ &data.name, &data.display_name, &data.callback_url ]).await {
+        log::error!("Failed to add client: {:?}", err);
+        return HttpResponse::InternalServerError().finish();
+    }
 
-//     Ok(Status::Ok)
-// }
+    HttpResponse::Ok().finish()
+}
 
 // #[derive(Deserialize, Debug)]
 // pub struct PutData {

@@ -14,6 +14,13 @@ async fn main() -> std::io::Result<()> {
     cfg.user = Some("authserver".to_string());
 
     let pool = cfg.create_pool(tokio_postgres::NoTls).unwrap();
+    match pool.get().await {
+        Ok(client) => log::info!("Postgres connection available"),
+        Err(e) => {
+            panic!(format!("Postgres connection not available: {:?}", e));
+        }
+    };
+
     let producer = kafka::new();
 
     HttpServer::new(move || {
@@ -21,6 +28,7 @@ async fn main() -> std::io::Result<()> {
             .data(pool.clone())
             .data(producer.clone())
             .service(clients::get_client)
+            .service(clients::post_client)
     })
     .bind("0.0.0.0:80")?
     .run()
