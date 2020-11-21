@@ -1,43 +1,72 @@
-use rocket::{ Data, Request, Rocket, request::{ FromRequest, Outcome } };
-use rocket::fairing::{ Info, Fairing, Kind };
-use rdkafka::producer::FutureProducer;
+use rdkafka::{ producer::{ FutureProducer, FutureRecord } };
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::{ Receiver, Sender };
+use std::time::Duration;
 
-pub struct KafkaFairing {
-    kafka: FutureProducer
-}
-
+#[derive(Clone)]
 pub struct Kafka {
-    kafka: FutureProducer
+    tx: Sender<String>
 }
 
-#[derive(Debug)]
-enum KafkaError {
-    DodgyConnection,
-}
-
-impl<'a, 'r> FromRequest<'a, 'r> for Kafka {
-    type Error = KafkaError;
-
-    fn from_request(request: &'a Request<'r>) -> Outcome<Self, Self::Error> {
-        Outcome::Success(Kafka{
-            kafka: rdkafka::ClientConfig::new().create().expect("to work")
-        })
-    }
-}
-
-impl Fairing for KafkaFairing {
-    fn info(&self) -> Info {
-        Info {
-            name: "KAFKA Connector",
-            kind: Kind::Request | Kind::Launch
+impl Kafka {
+    pub async fn send(&mut self, message: String) -> anyhow::Result<()> {
+        match self.tx.send(message).await {
+            Ok(_) => {
+                log::info!("Sent message");
+                Ok(())
+            },
+            Err(e) => {
+                log::error!("Failed to send");
+                Err(anyhow::anyhow!("Failed to send message: {:?}", e))
+            }
         }
     }
+}
 
-    fn on_attach(&self, rocket: Rocket) -> Result<Rocket, Rocket> {
+pub fn new() -> Kafka {
+    let (tx, rx) = mpsc::channel(100);
 
-    }
+    let kafka = Kafka{
+        tx: tx
+    };
 
-    fn on_request(&self, request: &mut Request, data: &Data) {
-        request.
-    }
+    start(rx);
+
+    return kafka;
+}
+
+fn start(mut rx: Receiver<String>) {
+    tokio::spawn(async move {
+        let producer: FutureProducer = rdkafka::ClientConfig::new()
+            .set("bootstrap.servers", "pongle-cluster-kafka-bootstrap")
+            .create()
+            .expect("Failed to connect to kafka");
+
+        log::info!("Running the kafka thread");
+
+        loop {
+            match rx.recv().await {
+                Some(message) => {
+                    let result = producer.send(
+                        FutureRecord::to("my.topic")
+                            .payload(&format!("{}", message))
+                            .key("Key: 1")
+                        , Duration::from_secs(0)
+                    ).await;
+
+                    match result {
+                        Ok((val1, val2)) => {
+                            log::info!("Success! {} {}", val1, val2);
+                        },
+                        Err((err, _)) => {
+                            log::error!("That failed: {:?}", err);
+                        }
+                    }
+                },
+                None => {
+                    log::error!("Empty send");
+                }
+            }
+        }
+    });
 }

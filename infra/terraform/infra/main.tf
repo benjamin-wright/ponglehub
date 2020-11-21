@@ -11,6 +11,19 @@ resource "kubernetes_namespace" "infra" {
   # ]
 }
 
+resource "kubernetes_namespace" "ponglehub" {
+  metadata {
+    name = "ponglehub"
+    annotations = {
+      "linkerd.io/inject" = "enabled"
+    }
+  }
+
+  # depends_on = [
+  #   helm_release.linkerd
+  # ]
+}
+
 resource "tls_private_key" "ingress_ca" {
   algorithm   = "ECDSA"
   ecdsa_curve = "P384"

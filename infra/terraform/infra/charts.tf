@@ -32,6 +32,10 @@ resource "helm_release" "kafka" {
   values = [
     file("values/kafka.yaml")
   ]
+
+  depends_on = [
+    kubernetes_namespace.ponglehub
+  ]
 }
 
 resource "helm_release" "cockroach" {

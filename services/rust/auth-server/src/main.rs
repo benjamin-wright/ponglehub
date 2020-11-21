@@ -1,21 +1,28 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate rocket_contrib;
-
-mod database;
 mod users;
 mod clients;
 mod kafka;
+use actix_web::{App, HttpServer};
 
-fn main() {
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     env_logger::init();
 
-    rocket::ignite()
-        .attach(database::fairing())
-        .mount("/", routes![
-            users::get_users, users::get_user, users::post_user, users::put_user, users::delete_user,
-            clients::get_client, clients::post_client, clients::put_client, clients::delete_client
-        ])
-        .launch();
+    let mut cfg = deadpool_postgres::Config::default();
+    cfg.host = Some("cockroach-cockroachdb-public.infra.svc.cluster.local".to_string());
+    cfg.port = Some(26257);
+    cfg.dbname = Some("auth".to_string());
+    cfg.user = Some("authserver".to_string());
+
+    let pool = cfg.create_pool(tokio_postgres::NoTls).unwrap();
+    let producer = kafka::new();
+
+    HttpServer::new(move || {
+        App::new()
+            .data(pool.clone())
+            .data(producer.clone())
+            .service(clients::get_client)
+    })
+    .bind("0.0.0.0:80")?
+    .run()
+    .await
 }
