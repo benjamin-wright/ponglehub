@@ -5,11 +5,28 @@ use std::time::Duration;
 
 #[derive(Clone)]
 pub struct Kafka {
-    pub tx: Sender<String>
+    pub tx: Sender<KafkaMessage>
+}
+
+#[derive(Debug)]
+pub struct KafkaMessage {
+    pub topic: String,
+    pub message: String
+}
+
+#[macro_export]
+macro_rules! send_to_kafka {
+    ($kafka:expr, $topic:expr, $message:expr) => {
+        if let Err(e) = $kafka.send(
+            KafkaMessage{ topic: format!($topic), message: $message }
+        ).await {
+            log::error!("Failed to post to kafka: {:?}", e);
+        }
+    }
 }
 
 impl Kafka {
-    pub async fn send(&self, message: String) -> anyhow::Result<()> {
+    pub async fn send(&self, message: KafkaMessage) -> anyhow::Result<()> {
         let mut tx = self.tx.clone();
         match tx.send(message).await {
             Ok(_) => {
@@ -36,7 +53,7 @@ pub fn new() -> Kafka {
     return kafka;
 }
 
-fn start(mut rx: Receiver<String>) {
+fn start(mut rx: Receiver<KafkaMessage>) {
     tokio::spawn(async move {
         let producer: FutureProducer = rdkafka::ClientConfig::new()
             .set("bootstrap.servers", "pongle-cluster-kafka-bootstrap")
@@ -49,8 +66,8 @@ fn start(mut rx: Receiver<String>) {
             match rx.recv().await {
                 Some(message) => {
                     let result = producer.send(
-                        FutureRecord::to("my.topic")
-                            .payload(&format!("{}", message))
+                        FutureRecord::to(message.topic.as_str())
+                            .payload(message.message.as_str())
                             .key("Key: 1")
                         , Duration::from_secs(0)
                     ).await;

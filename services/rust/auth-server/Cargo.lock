@@ -334,6 +334,7 @@ dependencies = [
  "deadpool-postgres",
  "env_logger",
  "log 0.4.11",
+ "postgres-protocol 0.5.3",
  "rdkafka",
  "rocket_contrib",
  "serde",

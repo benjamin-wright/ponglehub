@@ -16,6 +16,7 @@ serde = { version = "1.0.116", features = ["derive"] }
 uuid = { version = "0.8", features = ["serde"] }
 tokio-postgres = { version = "0.5.1", features = ["with-uuid-0_8"] }
 deadpool-postgres = "0.5.0"
+postgres-protocol = "0.5.0"
 rdkafka = "0.24.0"
 
 [dependencies.rocket_contrib]

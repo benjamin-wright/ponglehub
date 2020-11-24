@@ -1,111 +1,137 @@
-// use rocket::http::Status;
-// use serde::{ Serialize, Deserialize };
-// use uuid::Uuid;
-// use crate::database::AuthDB;
+use deadpool_postgres::Pool;
+use serde::{ Serialize, Deserialize };
+use uuid::Uuid;
+use actix_web::{ web, get, post, put, delete, HttpResponse };
 
-// #[derive(Serialize, Deserialize)]
-// pub struct User {
-//     id: Uuid,
-//     name: String,
-//     email: String
-// }
+pub fn get_routes() -> actix_web::Scope {
+    web::scope("/users")
+        .service(get_users)
+        .service(get_user)
+        .service(post_user)
+        .service(put_user)
+        .service(delete_user)
+}
 
+#[derive(Serialize, Deserialize)]
+pub struct User {
+    id: Uuid,
+    name: String,
+    email: String
+}
 
-// #[get("/users")]
-// pub fn get_users(client: AuthDB) -> Json<Vec<User>> {
-//     let user_rows = client.0.query("SELECT * FROM users", &[]).unwrap();
+#[get("")]
+pub async fn get_users(pool: web::Data<Pool>) -> HttpResponse {
+    let client = get_client!(pool);
+    let user_rows = match client.query("SELECT * FROM users", &[]).await {
+        Ok(user_rows) => user_rows,
+        Err(e) => {
+            log::error!("Failed to get user rows: {:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
 
-//     let mut usernames: Vec<User> = vec!();
-//     for row in user_rows.iter() {
-//         usernames.push(User{
-//             id: row.get("id"),
-//             name: row.get("name"),
-//             email: row.get("email")
-//         });
-//     }
+    let mut usernames: Vec<User> = vec!();
+    for row in user_rows.iter() {
+        usernames.push(User{
+            id: row.get("id"),
+            name: row.get("name"),
+            email: row.get("email")
+        });
+    }
 
-//     Json(usernames)
-// }
+    HttpResponse::Ok().json(usernames)
+}
 
-// #[get("/users/<name>")]
-// pub fn get_user(client: AuthDB, name: String) -> Result<Json<User>, Status> {
-//     log::info!("Getting user {}", name);
-//     let user_rows = client.0.query("SELECT * FROM users WHERE name = $1", &[ &name ]).unwrap();
+#[get("/{name}")]
+pub async fn get_user(pool: web::Data<Pool>, web::Path(name): web::Path<String>) -> HttpResponse {
+    let client = get_client!(pool);
+    let user_rows = match client.query("SELECT * FROM users WHERE name = $1", &[ &name ]).await {
+        Ok(user_rows) => user_rows,
+        Err(e) => {
+            log::error!("Failed to fetch user {}: {:?}", name, e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
 
-//     if user_rows.len() != 1 {
-//         log::error!("Error: Expected 1 user, got {}", user_rows.len());
-//         return Err(Status::NotFound);
-//     }
+    if user_rows.len() != 1 {
+        log::error!("Error: Expected 1 user, got {}", user_rows.len());
+        return HttpResponse::NotFound().finish();
+    }
 
-//     let row = user_rows.get(0);
+    let row = match user_rows.get(0) {
+        Some(row) => row,
+        None => {
+            log::error!("Failed to get user from user_rows: {}", name);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
 
-//     Ok(Json(
-//         User{
-//             id: row.get("id"),
-//             name: row.get("name"),
-//             email: row.get("email")
-//         }
-//     ))
-// }
+    HttpResponse::Ok().json(User{
+        id: row.get("id"),
+        name: row.get("name"),
+        email: row.get("email")
+    })
+}
 
-// #[derive(Serialize, Deserialize)]
-// pub struct UserSeed {
-//     name: String,
-//     email: String
-// }
+#[derive(Serialize, Deserialize)]
+pub struct UserSeed {
+    name: String,
+    email: String
+}
 
-// #[post("/users", data = "<user>")]
-// pub fn post_user(client: AuthDB, user: Json<UserSeed>) -> Result<Status, Status> {
-//     if let Err(e) = client.0.query("INSERT INTO users (name, email, verified) VALUES ($1, $2, false)", &[ &user.name, &user.email ]) {
-//         log::error!("Failed to add new user: {:?}", e);
+#[post("")]
+pub async fn post_user(pool: web::Data<Pool>, user: web::Json<UserSeed>) -> HttpResponse {
+    let client = get_client!(pool);
+    if let Err(e) = client.query("INSERT INTO users (name, email, verified) VALUES ($1, $2, false)", &[ &user.name, &user.email ]).await {
+        log::error!("Failed to add new user: {:?}", e);
 
-//         if e.code() == Some(&postgres::error::UNIQUE_VIOLATION) {
-//             return Err(Status::Conflict);
-//         }
+        if e.code() == Some(&tokio_postgres::error::SqlState::UNIQUE_VIOLATION) {
+            return HttpResponse::Conflict().finish();
+        }
 
-//         return Err(Status::InternalServerError);
-//     }
+        return HttpResponse::InternalServerError().finish();
+    }
 
-//     Ok(Status::Ok)
-// }
+    HttpResponse::Ok().finish()
+}
 
-// #[derive(Deserialize, Debug)]
-// pub struct PutData {
-//     email: String
-// }
+#[derive(Deserialize, Debug)]
+pub struct PutData {
+    email: String
+}
 
-// #[put("/users/<name>", data = "<body>")]
-// pub fn put_user(client: AuthDB, body: Json<PutData>, name: String) -> Result<Status, Status> {
-//     log::info!("Updating user: {}", name);
+#[put("/{name}")]
+pub async fn put_user(pool: web::Data<Pool>, body: web::Json<PutData>, web::Path(name): web::Path<String>) -> HttpResponse {
+    let client = get_client!(pool);
 
-//     if let Err(err) = client.0.query("UPDATE USERS SET email = $2, verified = false WHERE name = $1", &[ &name, &body.email ]) {
-//         log::error!("Failed to update client: {:?}", err);
-//         return Err(Status::InternalServerError);
-//     }
+    if let Err(err) = client.query("UPDATE USERS SET email = $2, verified = false WHERE name = $1", &[ &name, &body.email ]).await {
+        log::error!("Failed to update client: {:?}", err);
+        return HttpResponse::InternalServerError().finish();
+    }
 
-//     Ok(Status::Ok)
-// }
+    HttpResponse::Ok().finish()
+}
 
-// #[delete("/users/<name>")]
-// pub fn delete_user(client: AuthDB, name: String) -> Result<Status, Status> {
-//     log::info!("Deleting user: {}", name);
+#[delete("/{name}")]
+pub async fn delete_user(pool: web::Data<Pool>, web::Path(name): web::Path<String>) -> HttpResponse {
+    let client = get_client!(pool);
+    match client.execute("DELETE FROM users WHERE name = $1", &[ &name ]).await {
+        Err(err) => {
+            log::error!("Failed to delete user: {:?}", err);
+            HttpResponse::InternalServerError().finish()
+        }
+        Ok(modified) => {
+            if modified < 1 {
+                log::error!("Failed to delete user: 0 rows affected");
+                return HttpResponse::NotFound().finish();
+            }
 
-//     let result = client.0.execute("DELETE FROM users WHERE name = $1", &[ &name ]);
-//     if let Err(err) = result {
-//         log::error!("Failed to delete user: {:?}", err);
-//         return Err(Status::InternalServerError);
-//     }
+            if modified > 1 {
+                log::error!("Failed to delete user: {} rows affected", modified);
+                return HttpResponse::InternalServerError().finish();
+            }
 
-//     let modified = result.unwrap();
-//     if modified < 1 {
-//         log::error!("Failed to delete user: 0 rows affected");
-//         return Err(Status::NotFound);
-//     }
-
-//     if modified > 1 {
-//         log::error!("Failed to delete user: {} rows affected", modified);
-//         return Err(Status::InternalServerError);
-//     }
-
-//     Ok(Status::Ok)
-// }
+            HttpResponse::Ok().finish()
+        }
+    }
+}

@@ -61,7 +61,7 @@ pub struct ClientPutPayload {
 pub async fn put_client(name: &str, payload: ClientPutPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let put_result = client.put(format!("http://auth-server/clients/{}", name).as_str())
-        .body(serde_json::to_string(&payload).unwrap())
+        .json(&payload)
         .send()
         .await;
 
@@ -126,7 +126,7 @@ pub async fn get_user(name: &str) -> anyhow::Result<Option<UserPayload>> {
 pub async fn post_user_seed(payload: UserPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let post_result = client.post("http://auth-server/users")
-        .body(serde_json::to_string(&payload).unwrap())
+        .json(&payload)
         .send()
         .await;
 
@@ -150,7 +150,7 @@ pub struct UserSeedPutPayload {
 pub async fn put_user_seed(name: &str, payload: UserSeedPutPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let put_result = client.put(format!("http://auth-server/users/{}", name).as_str())
-        .body(serde_json::to_string(&payload).unwrap())
+        .json(&payload)
         .send()
         .await;
 

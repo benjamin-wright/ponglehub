@@ -1,8 +1,16 @@
 use deadpool_postgres::Pool;
 use serde::{Serialize, Deserialize};
-use crate::kafka::Kafka;
+use crate::kafka::{ Kafka, KafkaMessage };
 use uuid::Uuid;
-use actix_web::{ web, get, post, HttpResponse };
+use actix_web::{ web, get, post, put, delete, HttpResponse };
+
+pub fn get_routes() -> actix_web::Scope {
+    web::scope("/clients")
+        .service(get_client)
+        .service(post_client)
+        .service(put_client)
+        .service(delete_client)
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Client {
@@ -14,16 +22,9 @@ pub struct Client {
     callback_url: String
 }
 
-#[get("/clients/{name}")]
+#[get("/{name}")]
 pub async fn get_client(pool: web::Data<Pool>, web::Path(name): web::Path<String>) -> HttpResponse {
-    log::info!("Getting client {}", name);
-    let client = match pool.get().await {
-        Ok(client) => client,
-        Err(e) => {
-            log::error!("Failed to get connection from pool: {:?}", e);
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
+    let client = get_client!(pool);
 
     let client_rows = match client.query("SELECT * FROM clients WHERE name = $1", &[ &name ]).await {
         Ok(client_rows) => client_rows,
@@ -60,59 +61,53 @@ pub struct PostData {
     callback_url: String
 }
 
-#[post("/clients")]
+#[post("")]
 pub async fn post_client(body: web::Json<PostData>, pool: web::Data<Pool>, kafka: web::Data<Kafka>) -> HttpResponse {
     let data: PostData = body.into_inner();
-    log::info!("Adding new client: {}", data.name);
-
-    let client = match pool.get().await {
-        Ok(client) => client,
-        Err(e) => {
-            log::error!("Failed to get connection from pool: {:?}", e);
-            return HttpResponse::InternalServerError().finish();
-        }
-    };
-
-    if let Err(e) = kafka.send("Hi there!".to_string()).await {
-        log::error!("Failed to post to kafka: {:?}", e);
-    }
+    let client = get_client!(pool);
 
     if let Err(err) = client.query("INSERT INTO clients (name, display_name, callback_url) VALUES ($1, $2, $3)", &[ &data.name, &data.display_name, &data.callback_url ]).await {
         log::error!("Failed to add client: {:?}", err);
         return HttpResponse::InternalServerError().finish();
     }
 
+    send_to_kafka!(kafka, "ponglehub.auth.create-user", format!("Created user: {}", data.name));
+
     HttpResponse::Ok().finish()
 }
 
-// #[derive(Deserialize, Debug)]
-// pub struct PutData {
-//     #[serde(rename = "displayName")]
-//     display_name: String,
-//     #[serde(rename = "callbackUrl")]
-//     callback_url: String
-// }
+#[derive(Deserialize, Debug)]
+pub struct PutData {
+    #[serde(rename = "displayName")]
+    display_name: String,
+    #[serde(rename = "callbackUrl")]
+    callback_url: String
+}
 
-// #[put("/clients/<name>", data = "<body>")]
-// pub fn put_client(client: AuthDB, body: Json<PutData>, name: String) -> Result<Status, Status> {
-//     log::info!("Updating client: {}", name);
+#[put("/{name}")]
+pub async fn put_client(pool: web::Data<Pool>, body: web::Json<PutData>, web::Path(name): web::Path<String>, kafka: web::Data<Kafka>) -> HttpResponse {
+    let client = get_client!(pool);
 
-//     if let Err(err) = client.0.query("UPDATE clients SET display_name = $2, callback_url = $3 WHERE name = $1", &[ &name, &body.display_name, &body.callback_url ]) {
-//         log::error!("Failed to update client: {:?}", err);
-//         return Err(Status::InternalServerError);
-//     }
+    if let Err(err) = client.query("UPDATE clients SET display_name = $2, callback_url = $3 WHERE name = $1", &[ &name, &body.display_name, &body.callback_url ]).await {
+        log::error!("Failed to update client: {:?}", err);
+        return HttpResponse::InternalServerError().finish();
+    }
 
-//     Ok(Status::Ok)
-// }
+    send_to_kafka!(kafka, "ponglehub.auth.update-user", format!("Updated user: {}", name));
 
-// #[delete("/clients/<name>")]
-// pub fn delete_client(client: AuthDB, name: String) -> Result<Status, Status> {
-//     log::info!("Deleting client: {}", name);
+    HttpResponse::Ok().finish()
+}
 
-//     if let Err(err) = client.0.query("DELETE FROM clients WHERE name = $1", &[ &name ]) {
-//         log::error!("Failed to delete client: {:?}", err);
-//         return Err(Status::InternalServerError);
-//     }
+#[delete("/{name}")]
+pub async fn delete_client(pool: web::Data<Pool>, web::Path(name): web::Path<String>, kafka: web::Data<Kafka>) -> HttpResponse {
+    let client = get_client!(pool);
 
-//     Ok(Status::Ok)
-// }
+    if let Err(err) = client.query("DELETE FROM clients WHERE name = $1", &[ &name ]).await {
+        log::error!("Failed to delete client: {:?}", err);
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    send_to_kafka!(kafka, "ponglehub.auth.delete-user", format!("Deleted user: {}", name));
+
+    HttpResponse::Ok().finish()
+}

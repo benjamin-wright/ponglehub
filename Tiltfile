@@ -88,5 +88,5 @@ k8s_yaml(helm(
 k8s_resource(
   'migrations',
   trigger_mode=TRIGGER_MODE_MANUAL,
-  auto_init=False
+  auto_init=True
 )
