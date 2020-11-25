@@ -3,4 +3,4 @@ kind: UserSeed
 metadata:
   name: {{ .Values.seed.name }}
 spec:
-  email: {{ .Values.seed.email }}.cot
+  email: {{ .Values.seed.email }}

@@ -110,30 +110,31 @@ pub async fn put_user(pool: web::Data<Pool>, body: web::Json<PutData>, web::Path
     let client = get_client!(pool);
 
     let mut parts = vec!();
-    // let mut params: Vec<&(dyn ToSql + Sync)> = vec!(name.to_owned());
+    let mut params = vec!(name.to_string());
     let mut index: i8 = 2;
 
     if let Some(email) = &body.email {
         parts.push(format!("email = ${},", index));
-    //     params.push(email.as_str());
-    //     index += 1;
+        params.push(email.to_string());
+        index += 1;
     }
 
     if let Some(password) = &body.password {
         parts.push(format!("password = ${},", index));
-    //     params.push(password.as_str());
+        params.push(password.to_string());
     }
 
     let query = format!("UPDATE USERS SET {} verified = false WHERE name = $1", parts.join(" "));
-    log::info!("Query: {}", query);
 
-    // let arr: &[&(dyn ToSql + Sync)] = params.as_slice();
+    let parms: Vec<&(dyn ToSql + Sync)> = params
+        .iter()
+        .map(|x| x as &(dyn ToSql + Sync))
+        .collect();
 
-    if let Err(err) = client.query(query.as_str(), &[ &name ]).await {
+    if let Err(err) = client.query(query.as_str(), &parms.as_slice()).await {
         log::error!("Failed to update client: {:?}", err);
         return HttpResponse::InternalServerError().finish();
     }
-
 
     send_to_kafka!(kafka, "ponglehub.auth.update-user", format!("Updated user: {}", name));
 
