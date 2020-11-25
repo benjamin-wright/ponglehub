@@ -25,13 +25,17 @@ def microservice(name):
   )
 
 def rust(name):
-  docker_build(
+  docker_build_with_restart(
     name,
     'services/rust/%s/build' % name,
     dockerfile='services/dockerfiles/rust.Dockerfile',
     build_args={
       'EXE_NAME': name
-    }
+    },
+    entrypoint='/rust_binary',
+    live_update=[
+      sync('services/rust/%s/build/%s' % (name, name), '/rust_binary')
+    ]
   )
 
 def migration(name):
