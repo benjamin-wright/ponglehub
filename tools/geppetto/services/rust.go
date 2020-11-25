@@ -59,7 +59,7 @@ func (r Rust) startBuilder(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker run --rm -d --name %s-builder -v $(pwd):/volume:delegated -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry -v %s-cargo-target:/volume/target clux/muslrust:nightly tail -f /dev/null",
+			"docker run --rm -d --name %s-builder -v $(pwd):/volume:delegated -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry -v %s-cargo-target:/volume/target rust:1.48.0 -c \"rustup update nightly; rustup default nightly; tail -f /dev/null\"",
 			repo.Name,
 			repo.Name,
 			repo.Name,
@@ -87,7 +87,7 @@ func (r Rust) Test(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker exec %s-builder cargo test --release",
+			"docker exec %s-builder cargo test",
 			repo.Name,
 		),
 	)
@@ -112,7 +112,7 @@ func (r Rust) Build(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker exec %s-builder /bin/sh -c \"cargo build --release && mkdir -p build && cp target/x86_64-unknown-linux-musl/release/%s build/%s\"",
+			"docker exec %s-builder /bin/sh -c \"cargo build && mkdir -p build && cp target/debug/%s build/%s\"",
 			repo.Name,
 			repo.Name,
 			repo.Name,

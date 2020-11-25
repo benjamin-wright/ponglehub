@@ -22,7 +22,7 @@ pub async fn create_pool() -> std::io::Result<Pool> {
 
     let pool = cfg.create_pool(tokio_postgres::NoTls).unwrap();
     match pool.get().await {
-        Ok(client) => log::info!("Postgres connection available"),
+        Ok(_) => log::info!("Postgres connection available"),
         Err(e) => {
             return Err(std::io::Error::new(std::io::ErrorKind::NotConnected, anyhow::anyhow!("Postgres connection not available: {:?}", e)));
         }

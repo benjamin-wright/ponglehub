@@ -1,4 +1,4 @@
-FROM scratch
+FROM rust:1.48.0
 
 ARG EXE_NAME
 

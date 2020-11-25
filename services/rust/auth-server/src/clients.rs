@@ -5,7 +5,7 @@ use uuid::Uuid;
 use actix_web::{ web, get, post, put, delete, HttpResponse };
 
 pub fn get_routes() -> actix_web::Scope {
-    web::scope("/clients")
+    web::scope("/api/clients")
         .service(get_client)
         .service(post_client)
         .service(put_client)
@@ -71,7 +71,7 @@ pub async fn post_client(body: web::Json<PostData>, pool: web::Data<Pool>, kafka
         return HttpResponse::InternalServerError().finish();
     }
 
-    send_to_kafka!(kafka, "ponglehub.auth.create-user", format!("Created user: {}", data.name));
+    send_to_kafka!(kafka, "ponglehub.auth.create-client", format!("Created client: {}", data.name));
 
     HttpResponse::Ok().finish()
 }
@@ -93,7 +93,7 @@ pub async fn put_client(pool: web::Data<Pool>, body: web::Json<PutData>, web::Pa
         return HttpResponse::InternalServerError().finish();
     }
 
-    send_to_kafka!(kafka, "ponglehub.auth.update-user", format!("Updated user: {}", name));
+    send_to_kafka!(kafka, "ponglehub.auth.update-client", format!("Updated client: {}", name));
 
     HttpResponse::Ok().finish()
 }
@@ -107,7 +107,7 @@ pub async fn delete_client(pool: web::Data<Pool>, web::Path(name): web::Path<Str
         return HttpResponse::InternalServerError().finish();
     }
 
-    send_to_kafka!(kafka, "ponglehub.auth.delete-user", format!("Deleted user: {}", name));
+    send_to_kafka!(kafka, "ponglehub.auth.delete-client", format!("Deleted client: {}", name));
 
     HttpResponse::Ok().finish()
 }

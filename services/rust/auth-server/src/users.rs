@@ -1,10 +1,12 @@
 use deadpool_postgres::Pool;
 use serde::{ Serialize, Deserialize };
+use tokio_postgres::types::ToSql;
 use uuid::Uuid;
+use crate::kafka::{ Kafka, KafkaMessage };
 use actix_web::{ web, get, post, put, delete, HttpResponse };
 
 pub fn get_routes() -> actix_web::Scope {
-    web::scope("/users")
+    web::scope("/api/users")
         .service(get_users)
         .service(get_user)
         .service(post_user)
@@ -80,7 +82,7 @@ pub struct UserSeed {
 }
 
 #[post("")]
-pub async fn post_user(pool: web::Data<Pool>, user: web::Json<UserSeed>) -> HttpResponse {
+pub async fn post_user(pool: web::Data<Pool>, user: web::Json<UserSeed>, kafka: web::Data<Kafka>) -> HttpResponse {
     let client = get_client!(pool);
     if let Err(e) = client.query("INSERT INTO users (name, email, verified) VALUES ($1, $2, false)", &[ &user.name, &user.email ]).await {
         log::error!("Failed to add new user: {:?}", e);
@@ -92,28 +94,54 @@ pub async fn post_user(pool: web::Data<Pool>, user: web::Json<UserSeed>) -> Http
         return HttpResponse::InternalServerError().finish();
     }
 
+    send_to_kafka!(kafka, "ponglehub.auth.create-user", format!("Added user: {}", user.name));
+
     HttpResponse::Ok().finish()
 }
 
 #[derive(Deserialize, Debug)]
 pub struct PutData {
-    email: String
+    email: Option<String>,
+    password: Option<String>
 }
 
 #[put("/{name}")]
-pub async fn put_user(pool: web::Data<Pool>, body: web::Json<PutData>, web::Path(name): web::Path<String>) -> HttpResponse {
+pub async fn put_user(pool: web::Data<Pool>, body: web::Json<PutData>, web::Path(name): web::Path<String>, kafka: web::Data<Kafka>) -> HttpResponse {
     let client = get_client!(pool);
 
-    if let Err(err) = client.query("UPDATE USERS SET email = $2, verified = false WHERE name = $1", &[ &name, &body.email ]).await {
+    let mut parts = vec!();
+    // let mut params: Vec<&(dyn ToSql + Sync)> = vec!(name.to_owned());
+    let mut index: i8 = 2;
+
+    if let Some(email) = &body.email {
+        parts.push(format!("email = ${},", index));
+    //     params.push(email.as_str());
+    //     index += 1;
+    }
+
+    if let Some(password) = &body.password {
+        parts.push(format!("password = ${},", index));
+    //     params.push(password.as_str());
+    }
+
+    let query = format!("UPDATE USERS SET {} verified = false WHERE name = $1", parts.join(" "));
+    log::info!("Query: {}", query);
+
+    // let arr: &[&(dyn ToSql + Sync)] = params.as_slice();
+
+    if let Err(err) = client.query(query.as_str(), &[ &name ]).await {
         log::error!("Failed to update client: {:?}", err);
         return HttpResponse::InternalServerError().finish();
     }
+
+
+    send_to_kafka!(kafka, "ponglehub.auth.update-user", format!("Updated user: {}", name));
 
     HttpResponse::Ok().finish()
 }
 
 #[delete("/{name}")]
-pub async fn delete_user(pool: web::Data<Pool>, web::Path(name): web::Path<String>) -> HttpResponse {
+pub async fn delete_user(pool: web::Data<Pool>, web::Path(name): web::Path<String>, kafka: web::Data<Kafka>) -> HttpResponse {
     let client = get_client!(pool);
     match client.execute("DELETE FROM users WHERE name = $1", &[ &name ]).await {
         Err(err) => {
@@ -130,6 +158,9 @@ pub async fn delete_user(pool: web::Data<Pool>, web::Path(name): web::Path<Strin
                 log::error!("Failed to delete user: {} rows affected", modified);
                 return HttpResponse::InternalServerError().finish();
             }
+
+
+            send_to_kafka!(kafka, "ponglehub.auth.delete-user", format!("Deleted user: {}", name));
 
             HttpResponse::Ok().finish()
         }

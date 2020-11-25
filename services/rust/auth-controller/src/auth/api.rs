@@ -10,7 +10,7 @@ pub struct ClientPayload {
 }
 
 pub async fn get_client(name: &str) -> anyhow::Result<Option<ClientPayload>> {
-    let client_result = reqwest::get(format!("http://auth-server/clients/{}", name).as_str()).await;
+    let client_result = reqwest::get(format!("http://auth-server/api/clients/{}", name).as_str()).await;
 
     if let Err(e) = client_result {
         return Err(anyhow::anyhow!("Error getting client from auth server: {:?}", e));
@@ -33,7 +33,7 @@ pub async fn get_client(name: &str) -> anyhow::Result<Option<ClientPayload>> {
 
 pub async fn post_client(payload: ClientPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let post_result = client.post("http://auth-server/clients")
+    let post_result = client.post("http://auth-server/api/clients")
         .json(&payload)
         .send()
         .await;
@@ -60,7 +60,7 @@ pub struct ClientPutPayload {
 
 pub async fn put_client(name: &str, payload: ClientPutPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let put_result = client.put(format!("http://auth-server/clients/{}", name).as_str())
+    let put_result = client.put(format!("http://auth-server/api/clients/{}", name).as_str())
         .json(&payload)
         .send()
         .await;
@@ -79,7 +79,7 @@ pub async fn put_client(name: &str, payload: ClientPutPayload) -> anyhow::Result
 
 pub async fn delete_client(name: &str) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let delete_result = client.delete(format!("http://auth-server/clients/{}", name).as_str())
+    let delete_result = client.delete(format!("http://auth-server/api/clients/{}", name).as_str())
         .send()
         .await;
 
@@ -102,7 +102,7 @@ pub struct UserPayload {
 }
 
 pub async fn get_user(name: &str) -> anyhow::Result<Option<UserPayload>> {
-    let user_result = reqwest::get(format!("http://auth-server/users/{}", name).as_str()).await;
+    let user_result = reqwest::get(format!("http://auth-server/api/users/{}", name).as_str()).await;
 
     if let Err(e) = user_result {
         return Err(anyhow::anyhow!("Error getting user from auth server: {:?}", e));
@@ -125,7 +125,7 @@ pub async fn get_user(name: &str) -> anyhow::Result<Option<UserPayload>> {
 
 pub async fn post_user_seed(payload: UserPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let post_result = client.post("http://auth-server/users")
+    let post_result = client.post("http://auth-server/api/users")
         .json(&payload)
         .send()
         .await;
@@ -149,7 +149,7 @@ pub struct UserSeedPutPayload {
 
 pub async fn put_user_seed(name: &str, payload: UserSeedPutPayload) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let put_result = client.put(format!("http://auth-server/users/{}", name).as_str())
+    let put_result = client.put(format!("http://auth-server/api/users/{}", name).as_str())
         .json(&payload)
         .send()
         .await;
@@ -168,7 +168,7 @@ pub async fn put_user_seed(name: &str, payload: UserSeedPutPayload) -> anyhow::R
 
 pub async fn delete_user(name: &str) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
-    let delete_result = client.delete(format!("http://auth-server/users/{}", name).as_str())
+    let delete_result = client.delete(format!("http://auth-server/api/users/{}", name).as_str())
         .send()
         .await;
 
