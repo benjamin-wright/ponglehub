@@ -4,6 +4,14 @@ start: tf-cluster tf-infra trust push-rust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
 
+pause:
+	k3d cluster stop pongle
+	docker stop pongle-registry
+
+resume:
+	docker start pongle-registry
+	k3d cluster start pongle
+
 tf-cluster:
 	cd infra/terraform/cluster && terraform apply -auto-approve
 

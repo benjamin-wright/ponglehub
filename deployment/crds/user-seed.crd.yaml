@@ -25,6 +25,13 @@ spec:
                   type: boolean
               default:
                 seeded: false
+    additionalPrinterColumns:
+    - name: Email
+      type: string
+      jsonPath: .spec.email
+    - name: Seeded
+      type: boolean
+      jsonPath: .status.seeded
   scope: Namespaced
   names:
     plural: userseeds

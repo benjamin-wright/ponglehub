@@ -19,6 +19,13 @@ spec:
                 type: string
               callbackUrl:
                 type: string
+    additionalPrinterColumns:
+      - name: Display
+        type: string
+        jsonPath: .spec.displayName
+      - name: URL
+        type: string
+        jsonPath: .spec.callbackUrl
   scope: Namespaced
   names:
     plural: clients
