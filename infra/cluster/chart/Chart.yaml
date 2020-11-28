@@ -32,4 +32,4 @@ dependencies:
 description: A Helm chart for Kubernetes
 name: ponglehub-infra
 type: application
-version: 1.0.43
+version: 1.0.44

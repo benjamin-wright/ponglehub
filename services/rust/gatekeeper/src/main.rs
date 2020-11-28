@@ -1,32 +1,22 @@
-#![feature(proc_macro_hygiene, decl_macro)]
+use actix_web::{App, HttpServer, HttpResponse, middleware::Logger, get, put, post};
 
-#[macro_use] extern crate rocket;
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    env_logger::init();
+    log::info!("Running server...");
 
-use std::{thread::sleep, time::Duration};
-
-use rocket_contrib::json::Json;
-use serde::{Serialize, Deserialize};
-
-mod logger;
-use logger::Logger;
-
-#[derive(Serialize, Deserialize)]
-struct IndexResp {
-    message: &'static str
+    HttpServer::new(move || {
+        App::new()
+            .wrap(Logger::default())
+            .service(index)
+    })
+    .bind("0.0.0.0:80")?
+    .run()
+    .await
 }
 
 #[get("/")]
-fn index() -> Json<IndexResp> {
-    sleep(Duration::from_millis(15));
-
-    Json(IndexResp{
-        message: "Oh hai!"
-    })
-}
-
-fn main() {
-    rocket::ignite()
-        .attach(Logger{})
-        .mount("/", routes![index])
-        .launch();
+pub async fn index() -> HttpResponse {
+    log::info!("Hit auth endpoint!");
+    return HttpResponse::Unauthorized().finish();
 }

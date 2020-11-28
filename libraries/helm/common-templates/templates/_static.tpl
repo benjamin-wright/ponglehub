@@ -56,6 +56,8 @@ kind: Ingress
 metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "true"
+    ingress.kubernetes.io/auth-url: http://gatekeeper.ponglehub.svc.cluster.local
+    ingress.kubernetes.io/auth-type: forward
   labels:
     app: {{ .name }}
   name: {{ .name }}
