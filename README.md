@@ -2,9 +2,7 @@
 
 ## Todo:
 
-- geppetto: copy rust build output to dist folder
-- deployment: generic scratch image and convert rust and go to use that instead
-- keycloak-init: bail out of realm setup if everything looks good
+- geppetto: assume builds are fine and check publish when geppetto watch launches
 - all: Add README.md to everything
 
 ## Dependencies:

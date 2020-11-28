@@ -49,7 +49,8 @@ func (w *Watcher) Start(target string) error {
 
 	watchEvents, errorEvents := w.scanner.WatchDir(repos)
 	commandEvents := w.devices.listen()
-	progressEvents := w.builder.Build(repos, watchEvents)
+	inputEvents := make(chan builder.InputSignal, 3)
+	progressEvents := w.builder.Build(repos, watchEvents, inputEvents)
 
 	for {
 		select {
@@ -82,6 +83,14 @@ func (w *Watcher) Start(target string) error {
 					selected = highlighted
 					maxScroll = 0
 					scroll = 0
+				}
+			case unlockCommand:
+				if highlighted != -1 {
+					logrus.Infof("Unlocking repo: %s", state[highlighted].Repo().Name)
+					inputEvents <- builder.InputSignal{
+						Repo:   state[highlighted].Repo().Name,
+						Unlock: true,
+					}
 				}
 			}
 		case event := <-progressEvents:
@@ -160,7 +169,11 @@ func (w *Watcher) Start(target string) error {
 					w.devices.drawText(repo.Phase(), 64, line+offset, 20, style)
 				}
 			} else {
-				w.devices.drawText("⏳", 60, line+offset, 5, style)
+				if w.builder.IsLocked(repo.Repo().Name) {
+					w.devices.drawText("🔒", 60, line+offset, 5, style)
+				} else {
+					w.devices.drawText("⏳", 60, line+offset, 5, style)
+				}
 			}
 		}
 

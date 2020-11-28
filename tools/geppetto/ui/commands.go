@@ -8,4 +8,5 @@ const (
 	upCommand     command = 2
 	downCommand   command = 3
 	selectCommand command = 4
+	unlockCommand command = 5
 )

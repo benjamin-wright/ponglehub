@@ -4,11 +4,11 @@ start: tf-cluster tf-infra trust push-rust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
 
-pause: untrust
+pause:
 	k3d cluster stop pongle
 	docker stop pongle-registry
 
-resume: trust
+resume:
 	docker start pongle-registry
 	k3d cluster start pongle
 

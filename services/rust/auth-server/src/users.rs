@@ -110,28 +110,30 @@ pub async fn put_user(pool: web::Data<Pool>, body: web::Json<PutData>, web::Path
     let client = get_client!(pool);
 
     let mut parts = vec!();
-    let mut params = vec!(name.to_string());
+    let mut params: Vec<&(dyn ToSql + Sync)> = vec!(&name);
     let mut index: i8 = 2;
+    let mut verified = false;
 
     if let Some(email) = &body.email {
-        parts.push(format!("email = ${},", index));
-        params.push(email.to_string());
+        parts.push(format!("email = ${}", index));
+        params.push(email);
         index += 1;
     }
 
     if let Some(password) = &body.password {
-        parts.push(format!("password = ${},", index));
-        params.push(password.to_string());
+        parts.push(format!("password = ${}", index));
+        params.push(password);
+        verified = true;
+        index += 1;
     }
 
-    let query = format!("UPDATE USERS SET {} verified = false WHERE name = $1", parts.join(" "));
+    parts.push(format!("verified = ${}", index));
+    params.push(&verified);
 
-    let parms: Vec<&(dyn ToSql + Sync)> = params
-        .iter()
-        .map(|x| x as &(dyn ToSql + Sync))
-        .collect();
+    let query = format!("UPDATE USERS SET {} WHERE name = $1", parts.join(", "));
+    log::info!("Query: {}", query);
 
-    if let Err(err) = client.query(query.as_str(), &parms.as_slice()).await {
+    if let Err(err) = client.query(query.as_str(), &params.as_slice()).await {
         log::error!("Failed to update client: {:?}", err);
         return HttpResponse::InternalServerError().finish();
     }

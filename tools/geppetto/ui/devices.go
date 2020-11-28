@@ -196,6 +196,10 @@ func (d *devices) listen() <-chan command {
 					commands <- downCommand
 				case tcell.KeyEnter:
 					commands <- selectCommand
+				case tcell.KeyRune:
+					if e.Rune() == ' ' {
+						commands <- unlockCommand
+					}
 				}
 			case nil:
 				logrus.Debug("Keyboard listener loop stopped: screen finalised")
