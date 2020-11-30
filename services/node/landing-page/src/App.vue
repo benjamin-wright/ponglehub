@@ -1,17 +1,31 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Ponglehub Games!"/>
+    <p>
+      <router-link to="/foo">Foo Component</router-link>
+      <router-link to="/bar">Bar Component</router-link>
+    </p>
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
 import HelloWorld from './components/HelloWorld.vue'
+import VueRouter from 'vue-router'
+
+const routes = [
+  { path: '/foo', component: HelloWorld, props: { msg: "Foo component!"} },
+  { path: '/bar', component: HelloWorld, props: { msg: "Bar component!"}  }
+]
+
+const router = new VueRouter({
+  routes
+})
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    // eslint-disable-next-line vue/no-unused-components
+    router
   }
 }
 </script>

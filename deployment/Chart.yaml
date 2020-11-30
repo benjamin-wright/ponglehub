@@ -7,4 +7,4 @@ dependencies:
 description: A Helm chart for Kubernetes
 name: ponglehub
 type: application
-version: 1.0.203
+version: 1.0.204
