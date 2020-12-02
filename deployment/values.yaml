@@ -30,6 +30,9 @@ migrations:
 jobs: []
 
 servers:
+- name: game-state
+  image: game-state
+  host: game-state.ponglehub.co.uk
 - name: auth-server
   image: auth-server
   env:

@@ -67,6 +67,10 @@
 		{
 			"name": "srv: landing-page",
 			"path": "services/node/landing-page"
+		},
+		{
+			"name": "srv: game-state",
+			"path": "services/golang/game-state"
 		}
 	],
 	"settings": {}

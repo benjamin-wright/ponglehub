@@ -63,6 +63,7 @@ rust('auth-server')
 rust('auth-controller')
 rust('gatekeeper')
 vue('landing-page')
+microservice('game-state')
 
 def envvar(name):
   return str(local("echo $%s" % name)).rstrip('\n')

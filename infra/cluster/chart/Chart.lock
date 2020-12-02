@@ -1,24 +1,24 @@
 dependencies:
 - name: prometheus
   repository: https://prometheus-community.github.io/helm-charts
-  version: ~11.15.0
+  version: 11.15.0
 - name: grafana
   repository: https://charts.helm.sh/stable
-  version: ~5.0.23
+  version: 5.0.26
 - name: verdaccio
   repository: https://charts.verdaccio.org
   version: 0.10.0
 - name: chartmuseum
   repository: https://charts.helm.sh/stable
-  version: '*'
+  version: 2.14.2
 - name: loki-stack
   repository: https://grafana.github.io/loki/charts
-  version: '*'
+  version: 2.1.1
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
   version: 0.20.0
 - name: cockroachdb
   repository: https://charts.cockroachdb.com/
-  version: '*'
-digest: sha256:5ffda683ff2db457eb1172fb96ad3d7eb99f0dbee59c80344af04cf5d4534312
-generated: "2020-11-21T08:01:05.759253Z"
+  version: 5.0.2
+digest: sha256:a6c3af8938a1aac50de34f98ab4c0d0b13d63ff0e307d382045cd8cb93dc395c
+generated: "2020-12-02T08:03:45.319841Z"
