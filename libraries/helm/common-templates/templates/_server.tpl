@@ -124,7 +124,7 @@ metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "true"
 {{- if not $server.noAuth }}
-    ingress.kubernetes.io/auth-url: http://gatekeeper.ponglehub.svc.cluster.local
+    ingress.kubernetes.io/auth-url: http://gatekeeper.ponglehub.svc.cluster.local/loggedIn
     ingress.kubernetes.io/auth-type: forward
 {{- end }}
   labels:

@@ -6,9 +6,9 @@ import HelloWorld from './components/HelloWorld.vue'
 Vue.config.productionTip = false
 Vue.use(VueRouter)
 
-const authGuard = (to, from, next) => {
+const authGuard = (to, from) => {
   console.log("Not logged in, ", from.path, " -> ", to.path)
-  next(false)
+  window.location.replace(`https://auth.ponglehub.co.uk/login?redirect=https://games.ponglehub.co.uk${to.fullPath}`)
 }
 
 const routes = [

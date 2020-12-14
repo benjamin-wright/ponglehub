@@ -3,5 +3,18 @@
     <title>Login to Ponglehub</title>
 </head>
 <body>
-    <h1>Login Page now!</h1>
+    <h1>Ponglehub Login Page!</h1>
+    <p>this</p>
+    <form action="\api\login" method="POST">
+        <input type = "hidden" name = "token" value = "{{login_token}}" />
+        <input type = "hidden" name = "redirect" value = "{{redirect}}" />
+
+        Username: <input type="text" name="username" maxlength="64" />
+        <br />
+        Password: <input type="password" name="password" maxlength="64" />
+        <br />
+
+        <input type="submit" name="ok" value="ok" />
+        <input type="reset" name="reset" value="cancel" />
+    </form>
 </body>
