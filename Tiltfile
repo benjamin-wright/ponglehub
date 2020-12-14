@@ -34,7 +34,8 @@ def rust(name):
     },
     entrypoint='/rust_binary',
     live_update=[
-      sync('services/rust/%s/build/%s' % (name, name), '/rust_binary')
+      sync('services/rust/%s/build/%s' % (name, name), '/rust_binary'),
+      sync('services/rust/%s/build/static' % name, '/static')
     ]
   )
 
@@ -58,11 +59,15 @@ def vue(name):
 # microservice('wait-for-service')
 # microservice('keycloak-init')
 migration('auth')
+
 rust('db-init')
 rust('auth-server')
 rust('auth-controller')
 rust('gatekeeper')
+rust('doorman')
+
 vue('landing-page')
+
 microservice('game-state')
 
 def envvar(name):

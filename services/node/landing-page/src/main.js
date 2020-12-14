@@ -6,9 +6,14 @@ import HelloWorld from './components/HelloWorld.vue'
 Vue.config.productionTip = false
 Vue.use(VueRouter)
 
+const authGuard = (to, from, next) => {
+  console.log("Not logged in, ", from.path, " -> ", to.path)
+  next(false)
+}
+
 const routes = [
-  { path: '/foo', component: HelloWorld, props: { msg: "Foo component!"} },
-  { path: '/bar', component: HelloWorld, props: { msg: "Bar component!"} },
+  { path: '/foo', component: HelloWorld, props: { msg: "Foo component!" }, beforeEnter: authGuard },
+  { path: '/bar', component: HelloWorld, props: { msg: "Bar component!"}, beforeEnter: authGuard },
   { path: '*', component: HelloWorld, props: { msg: "Missing component!"} },
 ]
 
@@ -18,5 +23,5 @@ const router = new VueRouter({
 
 new Vue({
   router,
-  render: h => h(App),
+  render: h => h(App)
 }).$mount('#app')

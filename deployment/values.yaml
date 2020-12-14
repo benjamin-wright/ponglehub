@@ -41,6 +41,12 @@ servers:
   image: gatekeeper
   env:
     RUST_LOG: info
+- name: doorman
+  image: doorman
+  host: auth.ponglehub.co.uk
+  noAuth: true
+  env:
+    RUST_LOG: info
 - name: auth-controller
   image: auth-controller
   env:

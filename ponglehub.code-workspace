@@ -57,6 +57,10 @@
 			"path": "services/rust/gatekeeper"
 		},
 		{
+			"name": "srv: doorman",
+			"path": "services/rust/doorman"
+		},
+		{
 			"name": "srv: wait-for-service",
 			"path": "services/golang/wait-for-service"
 		},

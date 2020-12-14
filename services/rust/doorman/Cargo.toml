@@ -1,0 +1,14 @@
+[package]
+name = "doorman"
+version = "0.1.0"
+authors = ["Ben Wright <benjamin.wright@nielsen.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "3.2.0"
+actix-files = "0.4.1"
+anyhow = "1.0.34"
+log = "0.4.11"
+env_logger = "0.8.2"

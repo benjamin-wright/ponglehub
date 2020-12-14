@@ -125,7 +125,20 @@ func (r Rust) Build(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker exec %s-builder /bin/sh -c \"cargo build && mkdir -p build && cp target/debug/%s build/%s\"",
+			"docker exec %s-builder /bin/sh -c \"mkdir -p build && rm -rf build/static && if [ -d static ]; then cp -r static* build/static; fi\"",
+			repo.Name,
+		),
+	)
+
+	if err != nil {
+		return fmt.Errorf("Error building package:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	output, err = r.cmd.Run(
+		ctx,
+		repo.Path,
+		fmt.Sprintf(
+			"docker exec %s-builder /bin/sh -c \"cargo build && cp target/debug/%s build/%s\"",
 			repo.Name,
 			repo.Name,
 			repo.Name,
