@@ -14,7 +14,7 @@ resource "helm_release" "chartmuseum" {
   name = "chartmuseum"
   namespace = kubernetes_namespace.infra.metadata[0].name
   chart = "chartmuseum"
-  repository = "https://kubernetes-charts.storage.googleapis.com/"
+  repository = "https://charts.helm.sh/stable"
   version = "2.14.0"
 
   values = [

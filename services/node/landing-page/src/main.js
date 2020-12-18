@@ -7,7 +7,7 @@ Vue.config.productionTip = false
 Vue.use(VueRouter)
 
 const authGuard = (to, from) => {
-  console.log("Not logged in, ", from.path, " -> ", to.path)
+  console.log("Not logged in or out: ", from.path, " -> ", to.path)
   window.location.replace(`https://auth.ponglehub.co.uk/login?redirect=https://games.ponglehub.co.uk${to.fullPath}`)
 }
 

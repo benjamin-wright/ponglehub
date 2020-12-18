@@ -15,3 +15,5 @@ global:
 seed:
   name: seed-name
   email: seed-email
+
+redisPassword: redis-password

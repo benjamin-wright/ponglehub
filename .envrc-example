@@ -25,3 +25,5 @@ export TF_VAR_grafana_password=
 
 export SEED_USER_NAME=
 export SEED_USER_EMAIL=
+
+export REDIS_PASSWORD=

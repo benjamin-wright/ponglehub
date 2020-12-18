@@ -16,6 +16,15 @@ seed:
   # name:
   # email:
 
+# redisPassword:
+redis:
+  enabled: true
+  cluster:
+    enabled: false
+  usePassword: true
+  usePasswordFile: true
+  existingSecret: redis-password
+
 migrations:
   baseImage: db-init
   flywayImage: docker.io/flyway/flyway:7
@@ -41,6 +50,8 @@ servers:
   image: gatekeeper
   env:
     RUST_LOG: info
+    REDIS_URL: ponglehub-redis-headless
+    REDIS_PASSWORD: "{{ .Values.redisPassword }}"
 - name: doorman
   image: doorman
   host: auth.ponglehub.co.uk

@@ -2,10 +2,12 @@
 extern crate serde_json;
 
 use actix_web::{App, web, HttpServer, HttpResponse, middleware::Logger, get, post};
-
 use serde::{ Serialize, Deserialize };
-
 use handlebars::Handlebars;
+
+mod api;
+
+use api::{ get_token, check_token };
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -37,8 +39,18 @@ pub struct LoginQuery {
 
 #[get("/login")]
 pub async fn login(query: web::Query<LoginQuery>, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
+    log::info!("Getting token from gatekeeper...");
+    let token = match get_token().await {
+        Ok(token) => token,
+        Err(e) => {
+            log::error!("Failed to get token: {:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    log::info!("Got new token");
     let data = json!({
-        "login_token": "abcde",
+        "login_token": token,
         "redirect": query.redirect
     });
 

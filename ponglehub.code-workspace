@@ -5,15 +5,7 @@
 			"path": "."
 		},
 		{
-			"name": "infra: cluster",
-			"path": "infra/cluster"
-		},
-		{
-			"name": "infra: repos",
-			"path": "infra/repos"
-		},
-		{
-			"name": "infra: terraform",
+			"name": "infra",
 			"path": "infra/terraform"
 		},
 		{
