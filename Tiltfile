@@ -25,18 +25,13 @@ def microservice(name):
   )
 
 def rust(name):
-  docker_build_with_restart(
+  docker_build(
     name,
     'services/rust/%s/build' % name,
-    dockerfile='services/dockerfiles/rust.Dockerfile',
+    dockerfile='services/dockerfiles/rust-prod.Dockerfile',
     build_args={
       'EXE_NAME': name
-    },
-    entrypoint='/rust_binary',
-    live_update=[
-      sync('services/rust/%s/build/%s' % (name, name), '/rust_binary'),
-      sync('services/rust/%s/build/static' % name, '/static')
-    ]
+    }
   )
 
 def migration(name):
@@ -56,8 +51,6 @@ def vue(name):
     ],
   )
 
-# microservice('wait-for-service')
-# microservice('keycloak-init')
 migration('auth')
 
 rust('db-init')

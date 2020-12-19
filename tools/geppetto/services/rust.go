@@ -59,7 +59,7 @@ func (r Rust) startBuilder(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker run --rm -d --name %s-builder --workdir /volume -v $(pwd):/volume:delegated -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry -v %s-cargo-target:/volume/target rust:1.48.0 tail -f /dev/null",
+			"docker run --rm -d --name %s-builder -v $(pwd):/volume:delegated -v %s-cargo-git:/root/.cargo/git -v %s-cargo-registry:/root/.cargo/registry -v %s-cargo-target:/volume/target clux/muslrust:nightly tail -f /dev/null",
 			repo.Name,
 			repo.Name,
 			repo.Name,
@@ -69,19 +69,6 @@ func (r Rust) startBuilder(ctx context.Context, repo types.Repo) error {
 
 	if err != nil {
 		return fmt.Errorf("Error starting builder:\nError\n%+v\nOutput:\n%s", err, output)
-	}
-
-	output, err = r.cmd.Run(
-		ctx,
-		repo.Path,
-		fmt.Sprintf(
-			"docker exec %s-builder /bin/sh -c \"rustup update nightly; rustup default nightly\"",
-			repo.Name,
-		),
-	)
-
-	if err != nil {
-		return fmt.Errorf("Error testing package:\nError\n%+v\nOutput:\n%s", err, output)
 	}
 
 	return nil
@@ -125,7 +112,7 @@ func (r Rust) Build(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker exec %s-builder /bin/sh -c \"mkdir -p build && rm -rf build/static && if [ -d static ]; then cp -r static* build/static; fi\"",
+			"docker exec %s-builder /bin/sh -c \"mkdir -p build && rm -rf build/static\"",
 			repo.Name,
 		),
 	)
@@ -138,7 +125,7 @@ func (r Rust) Build(ctx context.Context, repo types.Repo) error {
 		ctx,
 		repo.Path,
 		fmt.Sprintf(
-			"docker exec %s-builder /bin/sh -c \"cargo build && cp target/debug/%s build/%s\"",
+			"docker exec %s-builder /bin/sh -c \"cargo build --release && cp target/x86_64-unknown-linux-musl/release/%s build/%s && if [ -d static ]; then cp -r static* build/static; fi\"",
 			repo.Name,
 			repo.Name,
 			repo.Name,

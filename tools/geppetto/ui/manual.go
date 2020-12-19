@@ -8,13 +8,13 @@ import (
 	"ponglehub.co.uk/geppetto/types"
 )
 
-type Watcher struct {
+type Manual struct {
 	builder *builder.Builder
 	devices *devices
 	scanner *scanner.Scanner
 }
 
-func NewWatcher(chartRepo string) (*Watcher, error) {
+func NewManual(chartRepo string) (*Manual, error) {
 	devices, err := makeDevices()
 	if err != nil {
 		return nil, err
@@ -23,19 +23,19 @@ func NewWatcher(chartRepo string) (*Watcher, error) {
 	scanner := scanner.New()
 	builder := builder.New(chartRepo)
 
-	return &Watcher{
+	return &Manual{
 		builder: builder,
 		devices: devices,
 		scanner: scanner,
 	}, nil
 }
 
-func (w *Watcher) Destroy() {
-	w.devices.destroy()
+func (m *Manual) Destroy() {
+	m.devices.destroy()
 }
 
-func (w *Watcher) Start(target string) error {
-	repos, err := w.scanner.ScanDir(target)
+func (m *Manual) Start(target string) error {
+	repos, err := m.scanner.ScanDir(target)
 	if err != nil {
 		return err
 	}
@@ -47,10 +47,9 @@ func (w *Watcher) Start(target string) error {
 	selected := -1
 	highlighted := 0
 
-	watchEvents, errorEvents := w.scanner.WatchDir(repos)
-	commandEvents := w.devices.listen()
+	commandEvents := m.devices.listen()
 	inputEvents := make(chan builder.InputSignal, 3)
-	progressEvents := w.builder.Build(repos, watchEvents, inputEvents)
+	progressEvents := m.builder.Build(repos, inputEvents)
 
 	for {
 		select {
@@ -84,15 +83,31 @@ func (w *Watcher) Start(target string) error {
 					maxScroll = 0
 					scroll = 0
 				}
-			case unlockCommand:
+			case rebuildCommand:
 				if highlighted != -1 {
-					logrus.Infof("Unlocking repo: %s", state[highlighted].Repo().Name)
+					logrus.Infof("Rebuilding repo: %s", state[highlighted].Repo().Name)
 					inputEvents <- builder.InputSignal{
-						Repo:   state[highlighted].Repo().Name,
-						Unlock: true,
+						Repo:       state[highlighted].Repo().Name,
+						Invalidate: true,
+						Reinstall:  false,
 					}
 				}
+			case reinstallCommand:
+				if highlighted != -1 {
+					logrus.Infof("Rebuilding repo from scratch: %s", state[highlighted].Repo().Name)
+					inputEvents <- builder.InputSignal{
+						Repo:       state[highlighted].Repo().Name,
+						Invalidate: true,
+						Reinstall:  true,
+					}
+				}
+			case rebuildAllCommand:
+				logrus.Infof("Rebuilding repo: %s", state[highlighted].Repo().Name)
+				inputEvents <- builder.InputSignal{
+					Nuke: true,
+				}
 			}
+
 		case event := <-progressEvents:
 			if event == nil {
 				building = false
@@ -100,15 +115,13 @@ func (w *Watcher) Start(target string) error {
 				building = true
 				state = event
 			}
-		case err := <-errorEvents:
-			logrus.Fatalf("Error during run: %+v", err)
 		}
 
-		width, height := w.devices.getSize()
+		width, height := m.devices.getSize()
 
-		w.devices.clear()
-		w.devices.drawBorder(width, height)
-		w.devices.drawTitle("GEPPETTO", width, building)
+		m.devices.clear()
+		m.devices.drawBorder(width, height)
+		m.devices.drawTitle("GEPPETTO", width, building)
 
 		offset := 3
 		spareLines := height - 6 - len(state)
@@ -118,26 +131,26 @@ func (w *Watcher) Start(target string) error {
 
 			if line == highlighted {
 				style = style.Background(tcell.ColorDarkGreen)
-				w.devices.highlightLine(offset+line, width, style)
+				m.devices.highlightLine(offset+line, width, style)
 			}
 
 			if line == selected {
 				style = style.Foreground(tcell.ColorLightSlateGray)
 			}
 
-			w.devices.drawIcon(repo.Repo().RepoType, 2, line+offset, style)
-			w.devices.drawText(repo.Repo().Name, 5, line+offset, 50, style)
+			m.devices.drawIcon(repo.Repo().RepoType, 2, line+offset, style)
+			m.devices.drawText(repo.Repo().Name, 5, line+offset, 50, style)
 			if repo.Built() {
-				w.devices.drawText("✅", 60, line+offset, 5, style)
+				m.devices.drawText("✅", 60, line+offset, 5, style)
 			} else if repo.Skipped() {
-				w.devices.drawText("🔄", 60, line+offset, 5, style)
+				m.devices.drawText("🔄", 60, line+offset, 5, style)
 			} else if repo.Blocked() {
-				w.devices.drawText("❌", 60, line+offset, 5, style)
+				m.devices.drawText("❌", 60, line+offset, 5, style)
 			} else if repo.Errored() != nil {
-				w.devices.drawText("🔥", 60, line+offset, 5, style)
+				m.devices.drawText("🔥", 60, line+offset, 5, style)
 				if line == selected {
 					errorMsg := repo.Errored().Error()
-					lines := w.devices.getNumLines(errorMsg, width-6)
+					lines := m.devices.getNumLines(errorMsg, width-6)
 
 					logrus.Infof("Message length: %d", lines)
 					logrus.Infof("Screen height: %d", height)
@@ -158,25 +171,21 @@ func (w *Watcher) Start(target string) error {
 					logrus.Infof("Spare lines: %d", spareLines)
 					logrus.Infof("Lines: %d", lines)
 
-					w.devices.drawMultiline(errorMsg, 3, line+4, width-6, spareLines, scroll, tcell.StyleDefault)
+					m.devices.drawMultiline(errorMsg, 3, line+4, width-6, spareLines, scroll, tcell.StyleDefault)
 					offset = offset + 1 + lines
 				}
 			} else if repo.Building() {
 				if repo.Phase() == "check" {
-					w.devices.drawText("💡", 60, line+offset, 5, style)
+					m.devices.drawText("💡", 60, line+offset, 5, style)
 				} else {
-					w.devices.drawText("🏗", 60, line+offset, 5, style)
-					w.devices.drawText(repo.Phase(), 64, line+offset, 20, style)
+					m.devices.drawText("🏗", 60, line+offset, 5, style)
+					m.devices.drawText(repo.Phase(), 64, line+offset, 20, style)
 				}
 			} else {
-				if w.builder.IsLocked(repo.Repo().Name) {
-					w.devices.drawText("🔒", 60, line+offset, 5, style)
-				} else {
-					w.devices.drawText("⏳", 60, line+offset, 5, style)
-				}
+				m.devices.drawText("⏳", 60, line+offset, 5, style)
 			}
 		}
 
-		w.devices.flush()
+		m.devices.flush()
 	}
 }

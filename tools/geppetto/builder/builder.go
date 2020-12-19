@@ -18,24 +18,17 @@ type worker interface {
 // Builder builds your application
 type Builder struct {
 	worker worker
-	locks  repoLock
 }
 
 // New create a new builder object
 func New(chartRepo string) *Builder {
 	return &Builder{
 		worker: newDefaultWorker(chartRepo),
-		locks:  newRepoLock(),
 	}
 }
 
-// IsLocked returns true if the repo is locked
-func (b *Builder) IsLocked(repo string) bool {
-	return b.locks.isLocked(repo)
-}
-
 // Build build your repos
-func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate, inputs <-chan InputSignal) <-chan []types.RepoState {
+func (b *Builder) Build(repos []types.Repo, inputs <-chan InputSignal) <-chan []types.RepoState {
 	state := newBuildState(repos)
 	signals := make(chan signal)
 	progress := make(chan []types.RepoState, 5)
@@ -48,11 +41,6 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate, inp
 				ok, block := state.canBuild(repo.Name)
 
 				if ok {
-					if repo.RepoType == types.Rust && b.locks.isLocked(repo.Name) {
-						logrus.Debugf("Build locked until manual release: %s", repo.Name)
-						continue
-					}
-
 					logrus.Infof("Repo building: %s", repo.Name)
 					buildContext, cancelFunc := context.WithCancel(context.Background())
 					reinstall := state.find(repo.Name).Start(buildContext, cancelFunc)
@@ -66,7 +54,6 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate, inp
 						go b.worker.buildGolang(buildContext, repo, reinstall, signals)
 					case types.Rust:
 						go b.worker.buildRust(buildContext, repo, reinstall, signals)
-						b.locks.lock(repo.Name)
 					default:
 						state.find(repo.Name).Error(fmt.Errorf("Unknown repo type: %s", repo.RepoType))
 					}
@@ -89,13 +76,21 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate, inp
 			}
 
 			select {
-			case update := <-updates:
-				state.invalidate(update.Name, update.Path, update.Install)
 			case input := <-inputs:
-				if input.Unlock {
+				if input.Invalidate {
+					state.invalidate(input.Repo, input.Reinstall)
 					if state.find(input.Repo).Pending() {
 						logrus.Infof("Unlocking repo build: %s", input.Repo)
-						b.locks.unlock(input.Repo)
+					}
+					continue
+				}
+
+				if input.Nuke {
+					for _, repo := range repos {
+						state.invalidate(repo.Name, true)
+						if state.find(repo.Name).Pending() {
+							logrus.Infof("Unlocking repo build: %s", repo.Name)
+						}
 					}
 					continue
 				}
@@ -130,7 +125,7 @@ func (b *Builder) Build(repos []types.Repo, updates <-chan types.RepoUpdate, inp
 					for _, dep := range r.Repo().DependsOn {
 						if dep == repo.Repo().Name {
 							logrus.Debugf("Invalidating %s with dependency %s", r.Repo().Name, dep)
-							state.invalidate(r.Repo().Name, "", true)
+							state.invalidate(r.Repo().Name, true)
 						}
 					}
 				}

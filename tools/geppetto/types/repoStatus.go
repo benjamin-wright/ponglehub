@@ -28,7 +28,7 @@ type RepoState struct {
 func NewRepoState(repo Repo) RepoState {
 	return RepoState{
 		repo:  repo,
-		state: reinstall,
+		state: built,
 		err:   nil,
 		phase: "",
 	}
@@ -112,6 +112,16 @@ func (r *RepoState) Success() bool {
 	default:
 		return false
 	}
+}
+
+func (r *RepoState) DependsOn(repo string) bool {
+	for _, r := range r.Repo().DependsOn {
+		if r == repo {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Invalidate the previous build

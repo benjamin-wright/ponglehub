@@ -42,7 +42,7 @@ async fn get_logged_in_client(redis: web::Data<Pool>) -> anyhow::Result<Object<C
     let mut r = redis.get().await.unwrap();
     let redis_password = match std::env::var("REDIS_PASSWORD") {
         Ok(password) => password,
-        Err(e) => {
+        Err(_) => {
             return Err(anyhow::anyhow!("REDIS_PASSWORD environment variable must be defined!"));
         }
     };

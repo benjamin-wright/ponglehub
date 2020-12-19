@@ -5,64 +5,8 @@
 			"path": "."
 		},
 		{
-			"name": "infra",
-			"path": "infra/terraform"
-		},
-		{
-			"name": "tools: geppetto",
-			"path": "tools/geppetto"
-		},
-		{
-			"name": "deployment",
-			"path": "deployment"
-		},
-		{
-			"name": "lib: common-templates",
-			"path": "libraries/helm/common-templates"
-		},
-		{
 			"name": "lib: environment reader",
 			"path": "libraries/golang/envreader"
-		},
-		{
-			"name": "migrations: auth",
-			"path": "migrations/auth"
-		},
-		{
-			"name": "srv: dockerfiles",
-			"path": "services/dockerfiles"
-		},
-		{
-			"name": "srv: db-init",
-			"path": "services/rust/db-init"
-		},
-		{
-			"name": "srv: auth-controller",
-			"path": "services/rust/auth-controller"
-		},
-		{
-			"name": "srv: auth-server",
-			"path": "services/rust/auth-server"
-		},
-		{
-			"name": "srv: gatekeeper",
-			"path": "services/rust/gatekeeper"
-		},
-		{
-			"name": "srv: doorman",
-			"path": "services/rust/doorman"
-		},
-		{
-			"name": "srv: wait-for-service",
-			"path": "services/golang/wait-for-service"
-		},
-		{
-			"name": "srv: keycloak-init",
-			"path": "services/golang/keycloak-init"
-		},
-		{
-			"name": "srv: landing-page",
-			"path": "services/node/landing-page"
 		},
 		{
 			"name": "srv: game-state",

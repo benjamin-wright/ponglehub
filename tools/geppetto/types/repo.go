@@ -1,7 +1,5 @@
 package types
 
-import "github.com/sirupsen/logrus"
-
 // RepoType indicates the type of data in a repo
 type RepoType string
 
@@ -28,27 +26,4 @@ type Repo struct {
 	DependsOn []string
 	// Can be built
 	Application bool
-}
-
-// BuildTargets gets list of files that are updated during a build
-func (r Repo) BuildTargets() []string {
-	switch r.RepoType {
-	case Node:
-		return []string{
-			"package.json",
-			"package-lock.json",
-		}
-	case Golang:
-		return []string{}
-	case Helm:
-		return []string{
-			"Chart.yaml",
-			"Chart.lock",
-		}
-	case Rust:
-		return []string{}
-	default:
-		logrus.Fatalf("Cannot get build targets for type: %s", r.RepoType)
-		return []string{}
-	}
 }

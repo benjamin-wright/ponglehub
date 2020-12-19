@@ -196,9 +196,15 @@ func (d *devices) listen() <-chan command {
 					commands <- downCommand
 				case tcell.KeyEnter:
 					commands <- selectCommand
+				case tcell.KeyCtrlSpace:
+					commands <- reinstallCommand
 				case tcell.KeyRune:
 					if e.Rune() == ' ' {
-						commands <- unlockCommand
+						commands <- rebuildCommand
+					}
+
+					if e.Rune() == 'a' {
+						commands <- rebuildAllCommand
 					}
 				}
 			case nil:

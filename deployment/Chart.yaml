@@ -3,12 +3,12 @@ appVersion: 1.16.0
 dependencies:
 - name: common-templates
   repository: '@local'
-  version: 12.2.3
+  version: '*'
 - condition: redis.enabled
   name: redis
   repository: https://charts.bitnami.com/bitnami
-  version: '*'
+  version: 12.2.3
 description: A Helm chart for Kubernetes
 name: ponglehub
 type: application
-version: 1.0.259
+version: 1.0.273

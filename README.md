@@ -2,9 +2,8 @@
 
 ## Todo:
 
-- geppetto: assume builds are fine and check publish when geppetto watch launches
 - all: Add README.md to everything
-- pass redirect url from gatekeeper
+- auth-controller to refresh periodically and track rollout with CRD status
 
 ## Dependencies:
 

@@ -1,6 +1,6 @@
 .PHONY: cluster repos clean deploy
 
-start: tf-cluster tf-infra trust push-rust
+start: tf-cluster tf-infra trust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
 
@@ -39,11 +39,6 @@ untrust:
 	npm config delete -g cafile
 	mv ~/.npmrc.bak ~/.npmrc || true
 	helm repo remove local || true
-
-push-rust:
-	docker pull rust:1.48.0
-	docker tag rust:1.48.0 localhost:5000/rust:1.48.0
-	docker push localhost:5000/rust:1.48.0
 
 geppetto:
 	cd tools/geppetto && make install

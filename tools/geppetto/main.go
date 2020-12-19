@@ -58,22 +58,22 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
-				Name:    "watch",
-				Aliases: []string{"w"},
-				Usage:   "build everything whenever it changes",
+				Name:    "manual",
+				Aliases: []string{"m"},
+				Usage:   "build things on command",
 				Action: func(c *cli.Context) error {
 					cfg := getConfig(c)
 					initLogger(cfg)
 
-					watcher, err := ui.NewWatcher(cfg.ChartRepo)
+					manual, err := ui.NewManual(cfg.ChartRepo)
 					if err != nil {
-						logrus.Fatalf("Failed to create watcher instance: %+v", err)
+						logrus.Fatalf("Failed to create manual instance: %+v", err)
 					}
 
-					err = watcher.Start(cfg.Target)
-					defer watcher.Destroy()
+					err = manual.Start(cfg.Target)
+					defer manual.Destroy()
 					if err != nil {
-						logrus.Errorf("Watcher exited with unexpected error: %+v", err)
+						logrus.Errorf("Manual exited with unexpected error: %+v", err)
 					}
 
 					return nil

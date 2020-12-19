@@ -29,38 +29,22 @@ func (s *buildState) find(repo string) *types.RepoState {
 	return nil
 }
 
-func (s *buildState) invalidate(repo string, path string, reinstall bool) {
+func (s *buildState) invalidate(repo string, reinstall bool) {
 	logrus.Debugf("Invalidating %s", repo)
 	r := s.find(repo)
-	repoObj := r.Repo()
-
-	buildBypass := false
-
-	if r.Building() {
-		if repoObj.Application {
-			buildBypass = !reinstall
-		} else {
-			targets := repoObj.BuildTargets()
-			for _, target := range targets {
-				if target == path {
-					buildBypass = true
-					break
-				}
-			}
-		}
-	}
-
-	if buildBypass {
-		logrus.Debugf("Bypassing in-build invalidation of %s (%s) for file %s", repo, repoObj.RepoType, path)
-		return
-	}
 
 	if reinstall {
 		r.Cancel()
 		r.Reinstall()
-	} else if !repoObj.Application {
+	} else {
 		r.Cancel()
 		r.Invalidate()
+	}
+
+	for _, downstream := range s.repos {
+		if downstream.DependsOn(repo) {
+			s.invalidate(downstream.Repo().Name, true)
+		}
 	}
 }
 
