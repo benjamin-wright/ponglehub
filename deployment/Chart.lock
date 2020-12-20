@@ -1,9 +1,9 @@
 dependencies:
 - name: common-templates
   repository: https://helm.ponglehub.co.uk
-  version: 1.0.156
+  version: 1.0.157
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 12.2.3
-digest: sha256:235e99aca67e3595a869f5c054b343d6437c1de317cae1f16ba882753925f749
-generated: "2020-12-20T11:59:05.996618Z"
+digest: sha256:4a7b9eb0575002b27782c1a707aec0172a7d6c8389a86e510a707d129f4fc4ec
+generated: "2020-12-20T17:12:01.27489Z"

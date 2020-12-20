@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate serde_json;
 
-use actix_web::{App, web, HttpServer, HttpResponse, middleware::Logger, get, post};
+use actix_web::{App, cookie, web, http, HttpServer, HttpResponse, middleware::Logger, get, post};
+use actix_cors::Cors;
 use serde::{ Serialize, Deserialize };
 use handlebars::Handlebars;
 
@@ -26,11 +27,17 @@ async fn main() -> std::io::Result<()> {
             panic!("{:?}", e);
         }
     };
+    let api_ref = web::Data::new(api);
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("http://localhost")
+            .allowed_origin("https://auth.ponglehub.co.uk");
+
         App::new()
             .wrap(Logger::default())
-            .app_data(api.clone())
+            .wrap(cors)
+            .app_data(api_ref.clone())
             .app_data(handlebars_ref.clone())
             .service(login)
             .service(login_api)
@@ -48,7 +55,7 @@ pub struct LoginQuery {
 #[get("/login")]
 pub async fn login(query: web::Query<LoginQuery>, api: web::Data<TokenApi>, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     log::info!("Getting token from gatekeeper...");
-    let token = match api.get_token().await {
+    let token = match api.get_login_token().await {
         Ok(token) => token,
         Err(e) => {
             log::error!("Failed to get token: {:?}", e);
@@ -76,7 +83,29 @@ pub struct LoginData {
 }
 
 #[post("/api/login")]
-pub async fn login_api(body: web::Form<LoginData>, _api: web::Data<TokenApi>) -> HttpResponse {
+pub async fn login_api(body: web::Form<LoginData>, api: web::Data<TokenApi>) -> HttpResponse {
     log::info!("Hit auth endpoint -> {}:{} ({} => {})", body.username, body.password, body.token, body.redirect);
-    return HttpResponse::Ok().body("Logged in!");
+
+    let ok = match api.check_login_token(body.token.clone()).await {
+        Ok(ok) => ok,
+        Err(e) => {
+            log::error!("Failed to check login token: {:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    if !ok {
+        log::warn!("Login token {} not found", body.token);
+        return HttpResponse::Unauthorized().finish();
+    }
+
+    let session_token = "special_token";
+    let session_cookie = cookie::Cookie::build("pongle_auth", session_token)
+        .http_only(true)
+        .finish();
+
+    return HttpResponse::TemporaryRedirect()
+        .header(http::header::LOCATION, body.redirect.clone())
+        .cookie(session_cookie)
+        .finish();
 }

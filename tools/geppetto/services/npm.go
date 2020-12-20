@@ -76,7 +76,7 @@ func (n NPM) GetRepo(path string) (types.Repo, error) {
 
 // Install run an NPM install
 func (n NPM) Install(ctx context.Context, repo types.Repo) error {
-	output, err := n.cmd.Run(ctx, repo.Path, "npm install")
+	output, err := n.cmd.Run(ctx, repo.Path, "npm update")
 	if err != nil {
 		return fmt.Errorf("Error installing NPM module:\nError\n%+v\nOutput:\n%s", err, output)
 	}

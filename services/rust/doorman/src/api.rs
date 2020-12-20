@@ -26,7 +26,7 @@ impl TokenApi {
         })
     }
 
-    pub async fn get_token(&self) -> anyhow::Result<String> {
+    pub async fn get_login_token(&self) -> anyhow::Result<String> {
         let client = reqwest::Client::new();
         let post_result = client.post(format!("{}/login", self.gatekeeper_url).as_str())
             .send()
@@ -47,7 +47,7 @@ impl TokenApi {
         Ok(body.token)
     }
 
-    pub async fn check_token(&self, token: String) -> anyhow::Result<bool> {
+    pub async fn check_login_token(&self, token: String) -> anyhow::Result<bool> {
         let url = format!("{}/login/{}", self.gatekeeper_url, token);
         let get_result = reqwest::get(url.as_str())
             .await;

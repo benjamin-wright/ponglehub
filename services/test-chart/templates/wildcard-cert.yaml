@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ssl-secret
+data:
+  tls.key: {{ .Values.global.ssl.key }}
+  tls.crt: {{ .Values.global.ssl.crt }}
+type: kubernetes.io/tls
