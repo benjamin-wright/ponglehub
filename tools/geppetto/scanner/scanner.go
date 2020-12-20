@@ -97,6 +97,17 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 			logrus.Infof("repo: %+v", repo)
 
 			repos = append(repos, repo)
+
+			if s.io.FileExists(path + "/int-test/package.json") {
+				logrus.Infof("RUST int-tests: %s", path+"/int-test")
+				repo, err := s.npm.GetRepo(path + "/int-test")
+				if err != nil {
+					return err
+				}
+				logrus.Infof("repo: %+v", repo)
+
+				repos = append(repos, repo)
+			}
 			return filepath.SkipDir
 		}
 
