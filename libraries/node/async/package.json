@@ -3,7 +3,7 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "version": "1.0.67",
+  "version": "1.0.68",
   "main": "lib/index.js",
   "scripts": {
     "lint": "eslint .",

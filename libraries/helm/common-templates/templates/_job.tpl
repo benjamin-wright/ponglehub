@@ -1,6 +1,11 @@
 {{- define "ponglehub.job" -}}
 {{ $job := first . }}
 {{ $top := (index . 1) }}
+{{ $service := $job.service }}
+{{- if kindIs "bool" $service }}
+{{ $service = (dict "enabled" $service) }}
+{{- end }}
+
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -69,4 +74,22 @@ spec:
       schedulerName: default-scheduler
       securityContext: {}
       terminationGracePeriodSeconds: 30
+{{- if $service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ $job.name }}
+  name: {{ $job.name }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: {{ $service.port | default 80 }}
+  selector:
+    app: {{ $job.name }}
+  type: ClusterIP
+{{- end }}
 {{- end -}}

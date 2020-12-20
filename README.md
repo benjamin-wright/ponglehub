@@ -4,6 +4,7 @@
 
 - all: Add README.md to everything
 - auth-controller to refresh periodically and track rollout with CRD status
+- geppetto to find int-test repos inside service repos
 
 ## Dependencies:
 

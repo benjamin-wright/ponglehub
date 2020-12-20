@@ -1,0 +1,77 @@
+allow_k8s_contexts(['k3d-pongle'])
+default_registry('localhost:5000')
+
+load('ext://restart_process', 'docker_build_with_restart')
+
+def namespace(name):
+  return blob("""apiVersion: v1
+kind: Namespace
+metadata:
+  name: %s
+  # annotations:
+  #   linkerd.io/inject: enabled
+""" % name)
+
+k8s_yaml(namespace('int-doorman'))
+
+docker_build(
+  'doorman',
+  '.',
+  ignore=[
+    'build',
+    'int-test',
+    'target',
+    'tilt_modules'
+  ],
+  build_args={
+    'EXE_NAME': 'doorman'
+  },
+  dockerfile='../../dockerfiles/rust.Dockerfile'
+)
+
+def envvar(name):
+  return str(local("echo $%s" % name)).rstrip('\n')
+
+docker_build(
+  'doorman-tests',
+  'int-test',
+  secret=[
+    'id=npmrc,src=%s/.npmrc' % envvar('HOME'),
+    'id=cert,src=%s/../../../infra/terraform/infra/.scratch/ingress-ca.crt' % envvar('PWD')
+  ],
+  network='host',
+  ignore=[
+    'node_modules'
+  ],
+  dockerfile='../../dockerfiles/int-test.Dockerfile'
+)
+
+def file(name):
+  return str(local("cat %s | base64" % name)).rstrip('\n')
+
+k8s_yaml(helm(
+  '../../test-chart',
+  name='doorman',
+  namespace='int-doorman',
+  set=[
+    'app.name=doorman',
+    'app.image=doorman',
+    'app.env.RUST_LOG=info',
+    'app.env.GATEKEEPER_URL=http://test',
+    'test.name=test',
+    'test.image=doorman-tests',
+    'test.service=true'
+  ]
+))
+
+k8s_resource(
+  'doorman',
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_resource(
+  'test',
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)

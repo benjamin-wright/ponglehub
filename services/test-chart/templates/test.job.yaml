@@ -1,0 +1,1 @@
+{{ include "ponglehub.job" (list .Values.test .) }}

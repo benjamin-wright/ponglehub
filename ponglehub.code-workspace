@@ -5,8 +5,16 @@
 			"path": "."
 		},
 		{
+			"name": "tools: Geppetto",
+			"path": "tools/geppetto"
+		},
+		{
 			"name": "lib: environment reader",
 			"path": "libraries/golang/envreader"
+		},
+		{
+			"name": "srv: doorman",
+			"path": "services/rust/doorman"
 		},
 		{
 			"name": "srv: game-state",

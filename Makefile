@@ -1,6 +1,6 @@
 .PHONY: cluster repos clean deploy
 
-start: tf-cluster tf-infra trust
+start: tf-cluster tf-infra pull-rust trust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
 
@@ -39,6 +39,9 @@ untrust:
 	npm config delete -g cafile
 	mv ~/.npmrc.bak ~/.npmrc || true
 	helm repo remove local || true
+
+pull-rust:
+	docker pull clux/muslrust:nightly
 
 geppetto:
 	cd tools/geppetto && make install

@@ -56,46 +56,19 @@ func main() {
 				EnvVars: []string{"GEPETTO_CHART_REPO"},
 			},
 		},
+		Action: manualAction,
 		Commands: []*cli.Command{
 			{
 				Name:    "manual",
 				Aliases: []string{"m"},
 				Usage:   "build things on command",
-				Action: func(c *cli.Context) error {
-					cfg := getConfig(c)
-					initLogger(cfg)
-
-					manual, err := ui.NewManual(cfg.ChartRepo)
-					if err != nil {
-						logrus.Fatalf("Failed to create manual instance: %+v", err)
-					}
-
-					err = manual.Start(cfg.Target)
-					defer manual.Destroy()
-					if err != nil {
-						logrus.Errorf("Manual exited with unexpected error: %+v", err)
-					}
-
-					return nil
-				},
+				Action:  manualAction,
 			},
 			{
 				Name:    "rollback",
 				Aliases: []string{"r"},
 				Usage:   "rollback all versions to 1.0.0",
-				Action: func(c *cli.Context) error {
-					cfg := getConfig(c)
-					initLogger(cfg)
-
-					rollback, err := ui.NewRollback(cfg.ChartRepo)
-					if err != nil {
-						logrus.Fatalf("Failed to create rollback instance: %+v", err)
-					}
-
-					rollback.Start(cfg.Target)
-					defer rollback.Destroy()
-					return nil
-				},
+				Action:  rollbackAction,
 			},
 		},
 	}
@@ -104,4 +77,36 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+func manualAction(c *cli.Context) error {
+	cfg := getConfig(c)
+	initLogger(cfg)
+
+	manual, err := ui.NewManual(cfg.ChartRepo)
+	if err != nil {
+		logrus.Fatalf("Failed to create manual instance: %+v", err)
+	}
+
+	err = manual.Start(cfg.Target)
+	defer manual.Destroy()
+	if err != nil {
+		logrus.Errorf("Manual exited with unexpected error: %+v", err)
+	}
+
+	return nil
+}
+
+func rollbackAction(c *cli.Context) error {
+	cfg := getConfig(c)
+	initLogger(cfg)
+
+	rollback, err := ui.NewRollback(cfg.ChartRepo)
+	if err != nil {
+		logrus.Fatalf("Failed to create rollback instance: %+v", err)
+	}
+
+	rollback.Start(cfg.Target)
+	defer rollback.Destroy()
+	return nil
 }

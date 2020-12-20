@@ -1,0 +1,18 @@
+{
+  "name": "int-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "int-test": "jest ."
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pongle/async": "^1.0.68",
+    "@pongle/eslint-config-ponglehub": "^1.0.70",
+    "eslint": "^7.6.0",
+    "jest": "^26.6.3"
+  }
+}
