@@ -92,4 +92,24 @@ spec:
     app: {{ $job.name }}
   type: ClusterIP
 {{- end }}
+{{- if $job.extraServices }}
+{{- range $job.extraServices }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ $job.name }}
+  name: {{ . }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: {{ $service.port | default 80 }}
+  selector:
+    app: {{ $job.name }}
+  type: ClusterIP
+{{- end }}
+{{- end }}
 {{- end -}}

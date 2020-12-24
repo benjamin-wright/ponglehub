@@ -3,7 +3,7 @@ FROM node:10.15.3-alpine
 
 WORKDIR /usr/tests/src
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
 RUN --mount=type=secret,id=npmrc,dst=/root/.npmrc \
     --mount=type=secret,id=cert,dst=/root/ca \

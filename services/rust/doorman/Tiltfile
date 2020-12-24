@@ -58,13 +58,14 @@ k8s_yaml(helm(
     'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
     'app.name=doorman',
     'app.image=doorman',
-    'app.env.RUST_LOG=debug',
-    'app.env.GATEKEEPER_URL=http://test',
+    'app.env.RUST_LOG=info',
+    'app.env.GATEKEEPER_URL=http://mock-gatekeeper',
+    'app.env.AUTH_SERVER_URL=http://mock-auth-server',
     'app.host=auth.ponglehub.co.uk',
     'app.noAuth=true',
     'test.name=test',
     'test.image=doorman-tests',
-    'test.service=true'
+    'test.extraServices={mock-gatekeeper,mock-auth-server}'
   ]
 ))
 

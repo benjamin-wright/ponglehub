@@ -2,22 +2,27 @@ const Koa = require('koa');
 const cors = require('koa-cors');
 
 class MockServer {
-    constructor() {
+    constructor(origin) {
         this.app = new Koa();
-        this.app.use(cors());
+        this.app.use(cors({
+            origin,
+            credentials: true
+        }));
 
         this.app.use(async ctx => {
-            console.log(`Recieved ${ctx.method} request to ${ctx.path}`);
-
             let notFound = true;
             this.routes.forEach(route => {
-                if (route.path === ctx.path) {
-                    console.log(ctx.cookies.get('pongle_auth'));
-
+                if (route.path === ctx.path && route.host === ctx.host) {
                     ctx.status = route.status || 200;
                     ctx.body = route.body;
                     notFound = false;
                 }
+
+                this.calls.push({
+                    method: ctx.method,
+                    host: ctx.host,
+                    path: ctx.path
+                });
             });
 
             if (notFound) {
@@ -27,6 +32,7 @@ class MockServer {
         });
 
         this.routes = [];
+        this.calls = [];
     }
 
     start(port) {
@@ -41,9 +47,10 @@ class MockServer {
         });
     }
 
-    addRoute(path, body, status) {
+    addRoute({ path, host, body, status }) {
         this.routes.push({
             path,
+            host,
             body,
             status
         });

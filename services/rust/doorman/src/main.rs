@@ -5,6 +5,7 @@ use actix_web::{App, cookie, web, http, HttpServer, HttpResponse, middleware::Lo
 use actix_cors::Cors;
 use serde::{ Serialize, Deserialize };
 use handlebars::Handlebars;
+use cookie::SameSite;
 
 mod api;
 
@@ -101,11 +102,11 @@ pub async fn login_api(body: web::Form<LoginData>, api: web::Data<TokenApi>) -> 
 
     let session_token = "special_token";
     let session_cookie = cookie::Cookie::build("pongle_auth", session_token)
-        .http_only(true)
+        .domain("ponglehub.co.uk")
         .finish();
 
-    return HttpResponse::TemporaryRedirect()
-        .header(http::header::LOCATION, body.redirect.clone())
-        .cookie(session_cookie)
-        .finish();
+        return HttpResponse::Found()
+            .header(http::header::LOCATION, body.redirect.clone())
+            .cookie(session_cookie)
+            .finish();
 }

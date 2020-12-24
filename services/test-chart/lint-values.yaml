@@ -1,0 +1,4 @@
+global:
+  ssl:
+    key: somekey
+    crt: somevalue
