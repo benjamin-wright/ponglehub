@@ -3,14 +3,14 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "version": "1.0.74",
+  "version": "1.0.75",
   "main": "lib/index.js",
   "scripts": {
     "lint": "eslint .",
     "test": "jest ."
   },
   "devDependencies": {
-    "@pongle/eslint-config-ponglehub": "^1.0.76",
+    "@pongle/eslint-config-ponglehub": "^1.0.77",
     "eslint": "^7.17.0",
     "jest": "^26.6.3"
   }

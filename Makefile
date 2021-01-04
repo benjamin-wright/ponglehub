@@ -7,14 +7,12 @@ restart: stop start
 
 pause: untrust
 	k3d cluster stop pongle
-	docker stop pongle-registry
-	docker stop pongle-npm
-	docker stop pongle-charts
+	docker stop $(shell docker ps -q --filter name=pongle-) || true
+	docker stop $(shell docker ps -q --filter name=-builder) || true
 
 resume:
-	docker start pongle-npm
-	docker start pongle-registry
-	docker start pongle-charts
+	docker start $(shell docker ps -aq --filter name=pongle-)
+	docker start $(shell docker ps -aq --filter name=-builder)
 	k3d cluster start pongle
 	make trust
 

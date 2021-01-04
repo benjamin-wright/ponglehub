@@ -1,6 +1,6 @@
 dependencies:
 - name: common-templates
   repository: http://localhost:5002
-  version: 1.0.164
-digest: sha256:0f1b47988ccb348e414b0afef35e4832d5b4c16222bb9d38fedfe8abac7dc4ff
-generated: "2021-01-04T09:23:43.460392Z"
+  version: 1.0.165
+digest: sha256:53564ac218d3742d016618a867d2cdcfbd24c1b2e81fd6b37e0b346116d26991
+generated: "2021-01-04T12:01:05.750644Z"
