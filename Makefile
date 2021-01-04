@@ -11,8 +11,8 @@ pause: untrust
 	docker stop $(shell docker ps -q --filter name=-builder) || true
 
 resume:
-	docker start $(shell docker ps -aq --filter name=pongle-)
-	docker start $(shell docker ps -aq --filter name=-builder)
+	docker start $(shell docker ps -aq --filter name=pongle-) || true
+	docker start $(shell docker ps -aq --filter name=-builder) || true
 	k3d cluster start pongle
 	make trust
 

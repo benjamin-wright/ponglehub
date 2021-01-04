@@ -3,15 +3,15 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "version": "1.0.8",
+  "version": "1.0.10",
   "main": "index.js",
   "scripts": {
     "int-test": "jest .",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@pongle/async": "^1.0.75",
-    "@pongle/eslint-config-ponglehub": "^1.0.77",
+    "@pongle/async": "^1.0.77",
+    "@pongle/eslint-config-ponglehub": "^1.0.81",
     "axios": "^0.21.1",
     "eslint": "^7.17.0",
     "form-data": "^3.0.0",
