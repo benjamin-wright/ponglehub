@@ -1,5 +1,6 @@
 .PHONY: cluster repos clean deploy
 
+local: tf-cluster-local pull-rust config
 start: tf-cluster tf-infra pull-rust trust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
@@ -7,13 +8,21 @@ restart: stop start
 pause: untrust
 	k3d cluster stop pongle
 	docker stop pongle-registry
+	docker stop pongle-npm
+	docker stop pongle-charts
 
 resume:
+	docker start pongle-npm
 	docker start pongle-registry
+	docker start pongle-charts
 	k3d cluster start pongle
+	make trust
 
 tf-cluster:
 	cd infra/terraform/cluster && terraform apply -auto-approve
+
+tf-cluster-local:
+	cd infra/terraform/cluster && TF_VAR_deploy_cluster=false terraform apply -auto-approve
 
 tf-cluster-rm:
 	cd infra/terraform/cluster && terraform destroy -auto-approve
@@ -27,17 +36,16 @@ tf-infra-rm:
 tf-infra-clean:
 	cd infra/terraform/infra && rm -f terraform.tfstate && rm -f terraform.tfstate.backup
 
-trust:
+config:
+	./infra/setup-npm.sh
+	helm repo add local http://localhost:5002
+
+trust: config
 	sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $(shell pwd)/infra/terraform/infra/.scratch/ingress-ca.crt
-	npm config set -g cafile $(shell pwd)/infra/terraform/infra/.scratch/ingress-ca.crt
-	cp ~/.npmrc ~/.npmrc.bak
-	./infra/setup-local.sh
-	helm repo add local https://helm.ponglehub.co.uk
 
 untrust:
 	sudo security remove-trusted-cert -d $(shell pwd)/infra/terraform/infra/.scratch/ingress-ca.crt || true
-	npm config delete -g cafile
-	mv ~/.npmrc.bak ~/.npmrc || true
+	./infra/restore-npm.sh
 	helm repo remove local || true
 
 pull-rust:

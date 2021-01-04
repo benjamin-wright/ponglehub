@@ -2,7 +2,10 @@
 
 set -o errexit
 
-/usr/bin/expect <<EOD
+if [ ! -f ~/.npmrc.bak ]; then
+  cp ~/.npmrc ~/.npmrc.bak
+
+  /usr/bin/expect <<EOD
 spawn npm login --registry "$NPM_REGISTRY" --scope=pongle
 expect {
   "Username:" {send "$NPM_USERNAME\r"; exp_continue}
@@ -11,4 +14,6 @@ expect {
 }
 EOD
 
-npm config set registry $NPM_REGISTRY
+  npm config set registry $NPM_REGISTRY
+fi
+

@@ -1,4 +1,5 @@
 use actix_web::{App, HttpResponse, HttpServer, get, post, middleware::Logger, web};
+use actix_cors::Cors;
 use deadpool_redis::{Config, ConnectionWrapper, Pool, cmd, redis::RedisError};
 use serde::{Serialize};
 use deadpool::managed::{ Object };
@@ -15,8 +16,16 @@ async fn main() -> std::io::Result<()> {
         cfg.url = Some(String::from("redis://ponglehub-redis-headless:6379"));
         let pool = cfg.create_pool().unwrap();
 
+        let cors = Cors::default()
+            .allowed_origin("http://localhost")
+            .allowed_origin_fn(|origin, _req_head| {
+                origin.as_bytes().ends_with(b".ponglehub.co.uk")
+            })
+            .supports_credentials();
+
         App::new()
             .wrap(Logger::default())
+            .wrap(cors)
             .data(pool)
             .service(index)
             .service(get_login)
@@ -25,12 +34,6 @@ async fn main() -> std::io::Result<()> {
     .bind("0.0.0.0:80")?
     .run()
     .await
-}
-
-#[get("/")]
-pub async fn index() -> HttpResponse {
-    log::info!("Hit auth endpoint!");
-    return HttpResponse::Unauthorized().finish();
 }
 
 #[derive(Serialize)]
@@ -97,4 +100,10 @@ pub async fn post_login(redis: web::Data<Pool>) -> HttpResponse {
     return HttpResponse::Ok().json(TokenResponse{
         token: String::from(token),
     });
+}
+
+#[get("/loggedIn")]
+pub async fn index() -> HttpResponse {
+    log::info!("Hit auth endpoint!");
+    return HttpResponse::Unauthorized().finish();
 }

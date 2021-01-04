@@ -1,11 +1,10 @@
 #[macro_use]
 extern crate serde_json;
 
-use actix_web::{App, cookie, web, http, HttpServer, HttpResponse, middleware::Logger, get, post};
+use actix_web::{App, HttpResponse, HttpServer, cookie::{self, SameSite}, get, http, middleware::Logger, post, web};
 use actix_cors::Cors;
 use serde::{ Serialize, Deserialize };
 use handlebars::Handlebars;
-use cookie::SameSite;
 
 mod api;
 
@@ -33,7 +32,11 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin("http://localhost")
-            .allowed_origin("https://auth.ponglehub.co.uk");
+            .allowed_origin_fn(|origin, _req_head| {
+                origin.as_bytes().ends_with(b".ponglehub.co.uk")
+            })
+            .allowed_header(http::header::SET_COOKIE)
+            .supports_credentials();
 
         App::new()
             .wrap(Logger::default())
@@ -103,6 +106,10 @@ pub async fn login_api(body: web::Form<LoginData>, api: web::Data<TokenApi>) -> 
     let session_token = "special_token";
     let session_cookie = cookie::Cookie::build("pongle_auth", session_token)
         .domain("ponglehub.co.uk")
+        .path("/")
+        .secure(true)
+        .http_only(true)
+        .same_site(SameSite::None)
         .finish();
 
         return HttpResponse::Found()

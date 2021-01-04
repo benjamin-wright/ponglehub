@@ -10,15 +10,15 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@pongle/async": "^1.0.72",
-    "@pongle/eslint-config-ponglehub": "^1.0.73",
+    "@pongle/async": "^1.0.74",
+    "@pongle/eslint-config-ponglehub": "^1.0.76",
     "axios": "^0.21.1",
-    "eslint": "^7.6.0",
+    "eslint": "^7.17.0",
     "form-data": "^3.0.0",
     "jest": "^26.6.3",
     "koa": "^2.13.0",
     "koa-cors": "0.0.16",
-    "node-html-parser": "^2.0.0"
+    "node-html-parser": "^2.0.1"
   },
   "jest": {
     "testEnvironment": "node"

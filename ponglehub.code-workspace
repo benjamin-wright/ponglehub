@@ -17,6 +17,10 @@
 			"path": "services/rust/doorman"
 		},
 		{
+			"name": "srv: gatekeeper",
+			"path": "services/rust/gatekeeper"
+		},
+		{
 			"name": "srv: game-state",
 			"path": "services/golang/game-state"
 		}

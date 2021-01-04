@@ -8,7 +8,7 @@ Vue.use(VueRouter)
 
 const authGuard = (to, from) => {
   console.log("Not logged in or out: ", from.path, " -> ", to.path)
-  window.location.replace(`https://auth.ponglehub.co.uk/login?redirect=https://games.ponglehub.co.uk${to.fullPath}`)
+  window.location.replace(`https://auth.ponglehub.co.uk/login?redirect=https://games.ponglehub.co.uk/#${to.fullPath}`)
 }
 
 const routes = [

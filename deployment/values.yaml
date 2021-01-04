@@ -58,6 +58,7 @@ servers:
   noAuth: true
   env:
     RUST_LOG: info
+    GATEKEEPER_URL: http://gatekeeper
 - name: auth-controller
   image: auth-controller
   env:

@@ -73,7 +73,7 @@ describe('login api endpoint', () => {
                     { maxRedirects: 0 }
                 );
 
-                fail('should have failed to redirect');
+                fail('should have tried to redirect');
             } catch (err) {
                 expect(mockServer.calls).toEqual([{
                     host: 'mock-gatekeeper',
@@ -81,7 +81,45 @@ describe('login api endpoint', () => {
                     path: '/login/test-token'
                 }]);
                 expect(err.response.status).toEqual(302);
-                expect(err.response.headers['set-cookie']).toEqual(['pongle_auth=special_token; Domain=ponglehub.co.uk']);
+                expect(err.response.headers['set-cookie']).toEqual(['pongle_auth=special_token; HttpOnly; SameSite=None; Secure; Path=/; Domain=ponglehub.co.uk']);
+            }
+        });
+    });
+
+    describe('login token is bad', () => {
+        beforeEach(() => {
+            mockServer.addRoute({
+                path: '/login/test-token',
+                host: 'mock-gatekeeper',
+                body: {},
+                status: 404
+            });
+        });
+
+        it('should return an error', async () => {
+            const params = new url.URLSearchParams({
+                token: 'test-token',
+                redirect: 'test-redirect',
+                username: 'test-user',
+                password: 'test-pass'
+            });
+
+            try {
+                await axios.post(
+                    'http://doorman/api/login',
+                    params.toString(),
+                    { maxRedirects: 0 }
+                );
+
+                fail('should have errored');
+            } catch (err) {
+                expect(mockServer.calls).toEqual([{
+                    host: 'mock-gatekeeper',
+                    method: 'GET',
+                    path: '/login/test-token'
+                }]);
+                expect(err.response.status).toEqual(401);
+                expect(err.response.headers['set-cookie']).toBeUndefined();
             }
         });
     });
