@@ -47,6 +47,26 @@ impl TokenApi {
         Ok(body.token)
     }
 
+    pub async fn delete_session_token(&self, token: String) -> anyhow::Result<()> {
+        let url = format!("{}/session/{}", self.gatekeeper_url, token);
+        let client = reqwest::Client::new();
+        let get_result = client.delete(url.as_str())
+            .send()
+            .await;
+
+        if let Err(e) = get_result {
+            return Err(anyhow::anyhow!("Error deleting token: {:?}", e));
+        }
+
+        let response = get_result.unwrap();
+
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!("Gatekeeper returned non-200 code checking token '{}': {}", token, response.status()));
+        }
+
+        Ok(())
+    }
+
     pub async fn check_login_token(&self, token: String) -> anyhow::Result<bool> {
         let url = format!("{}/login/{}", self.gatekeeper_url, token);
         let get_result = reqwest::get(url.as_str())

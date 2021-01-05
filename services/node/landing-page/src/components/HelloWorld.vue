@@ -1,6 +1,7 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
+    <p>{{ result }}</p>
     <p>{{ done }}</p>
   </div>
 </template>
@@ -27,7 +28,7 @@ export default {
       .then(response => {
         this.result = response.data
       })
-      .catch(error => this.result = error.toString())
+      .catch(error => { console.log("Failed: ", error.message); this.result = error; })
       .finally(() => this.done = true)
 
   }

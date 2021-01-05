@@ -1,4 +1,4 @@
-use actix_web::{App, HttpResponse, HttpServer, get, post, middleware::Logger, web};
+use actix_web::{App, HttpRequest, HttpResponse, HttpMessage, HttpServer, middleware::Logger, web, get, post, delete};
 use actix_cors::Cors;
 use deadpool_redis::{Config, ConnectionWrapper, Pool, cmd, redis::RedisError};
 use serde::{Serialize};
@@ -30,6 +30,7 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(get_login)
             .service(post_login)
+            .service(delete_session)
     })
     .bind("0.0.0.0:80")?
     .run()
@@ -102,8 +103,39 @@ pub async fn post_login(redis: web::Data<Pool>) -> HttpResponse {
     });
 }
 
+#[delete("/session/{token}")]
+pub async fn delete_session(redis: web::Data<Pool>, web::Path(token): web::Path<String>) -> HttpResponse {
+    log::info!("Deleting session token!");
+    let mut r = match get_logged_in_client(redis).await {
+        Ok(r) => r,
+        Err(e) => {
+            log::error!("Failed to get client: {:?}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    match cmd("DEL").arg(&[token.as_str()]).query_async::<i32>(&mut r).await {
+        Ok(result) => {
+            log::info!("Worked: {}", result);
+            HttpResponse::Ok().finish()
+        },
+        Err(e) => {
+            log::error!("Failed to delete: {:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
+    }
+}
+
 #[get("/loggedIn")]
-pub async fn index() -> HttpResponse {
-    log::info!("Hit auth endpoint!");
-    return HttpResponse::Unauthorized().finish();
+pub async fn index(req: HttpRequest) -> HttpResponse {
+    let cookie = match req.cookie("pongle_auth") {
+        Some(cookie) => cookie,
+        None => {
+            log::info!("Auth cookie missing");
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+
+    log::info!("Cookie: {:?}", cookie.value());
+    return HttpResponse::Ok().finish();
 }

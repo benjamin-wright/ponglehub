@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate serde_json;
+extern crate time;
 
-use actix_web::{App, HttpResponse, HttpServer, cookie::{self, SameSite}, get, http, middleware::Logger, post, web};
+use actix_web::{App, HttpRequest, HttpMessage, HttpResponse, HttpServer, cookie::{self, SameSite}, get, http, middleware::Logger, post, web};
 use actix_cors::Cors;
 use serde::{ Serialize, Deserialize };
 use handlebars::Handlebars;
@@ -9,6 +10,7 @@ use handlebars::Handlebars;
 mod api;
 
 use api::{ TokenApi };
+use time::OffsetDateTime;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -45,6 +47,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(handlebars_ref.clone())
             .service(login)
             .service(login_api)
+            .service(logout_api)
     })
     .bind("0.0.0.0:80")?
     .run()
@@ -116,4 +119,35 @@ pub async fn login_api(body: web::Form<LoginData>, api: web::Data<TokenApi>) -> 
             .header(http::header::LOCATION, body.redirect.clone())
             .cookie(session_cookie)
             .finish();
+}
+
+#[post("/api/logout")]
+pub async fn logout_api(request: HttpRequest, api: web::Data<TokenApi>) -> HttpResponse {
+    let cookie = match request.cookie("pongle_auth") {
+        Some(cookie) => cookie.value().to_string(),
+        None => {
+            log::info!("Logged out witout being logged in!");
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+
+    log::info!("Hit logout endpoint -> Cookie: {}", cookie);
+
+    match api.delete_session_token(cookie.clone()).await {
+        Ok(_) => log::info!("Session token deleted"),
+        Err(e) => log::error!("Failed to delete login token: {:?}", e)
+    }
+
+    let session_cookie = cookie::Cookie::build("pongle_auth", "")
+        .domain("ponglehub.co.uk")
+        .path("/")
+        .secure(true)
+        .http_only(true)
+        .same_site(SameSite::None)
+        .expires(OffsetDateTime::now_utc())
+        .finish();
+
+    return HttpResponse::Ok()
+        .cookie(session_cookie)
+        .finish();
 }

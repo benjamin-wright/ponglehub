@@ -11,8 +11,9 @@ func main() {
 	r := gin.Default()
 
 	config := cors.DefaultConfig()
+	config.AllowCredentials = true
 	config.AllowOriginFunc = func(origin string) bool {
-		fmt.Printf("Allowing %s", origin)
+		fmt.Printf("Allowing origin: %s\n", origin)
 		return true
 	}
 	r.Use(cors.New(config))
