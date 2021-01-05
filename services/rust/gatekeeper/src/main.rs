@@ -1,6 +1,6 @@
 use actix_web::{App, HttpRequest, HttpResponse, HttpMessage, HttpServer, middleware::Logger, web, get, post, delete};
 use actix_cors::Cors;
-use deadpool_redis::{Config, ConnectionWrapper, Pool, cmd, redis::RedisError};
+use deadpool_redis::{Config, ConnectionWrapper, Pool, cmd, redis::RedisError, redis::ErrorKind};
 use serde::{Serialize};
 use deadpool::managed::{ Object };
 
@@ -11,9 +11,14 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     log::info!("Running server...");
 
+    let redis_url = match std::env::var("REDIS_URL") {
+        Ok(url) => url,
+        Err(e) => panic!("Error loading REDIS_URL: {:?}", e)
+    };
+
     HttpServer::new(move || {
         let mut cfg = Config::default();
-        cfg.url = Some(String::from("redis://ponglehub-redis-headless:6379"));
+        cfg.url = Some(redis_url.clone());
         let pool = cfg.create_pool().unwrap();
 
         let cors = Cors::default()
@@ -75,8 +80,13 @@ pub async fn get_login(redis: web::Data<Pool>, web::Path(token): web::Path<Strin
             HttpResponse::Ok().finish()
         },
         Err(e) => {
-            log::error!("Failed to create: {:?}", e);
-            HttpResponse::InternalServerError().finish()
+            if ErrorKind::TypeError == e.kind() {
+                log::warn!("Token not found");
+                HttpResponse::NotFound().finish()
+            } else {
+                log::error!("Failed to fetch token: {:?}", e);
+                HttpResponse::InternalServerError().finish()
+            }
         }
     }
 }

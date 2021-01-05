@@ -20,4 +20,5 @@ FROM debian:buster-slim as runtime
 ARG EXE_NAME
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/debug/${EXE_NAME} /usr/local/bin/myapp
+COPY static /static
 CMD ["myapp"]

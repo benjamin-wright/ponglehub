@@ -12,10 +12,10 @@ metadata:
   #   linkerd.io/inject: enabled
 """ % name)
 
-k8s_yaml(namespace('int-doorman'))
+k8s_yaml(namespace('int-gatekeeper'))
 
 docker_build(
-  'doorman',
+  'gatekeeper',
   '.',
   ignore=[
     'build',
@@ -24,16 +24,16 @@ docker_build(
     'tilt_modules'
   ],
   build_args={
-    'EXE_NAME': 'doorman'
+    'EXE_NAME': 'gatekeeper'
   },
-  dockerfile='../../dockerfiles/rust-static.Dockerfile'
+  dockerfile='../../dockerfiles/rust.Dockerfile'
 )
 
 def envvar(name):
   return str(local("echo $%s" % name)).rstrip('\n')
 
 docker_build(
-  'doorman-tests',
+  'gatekeeper-tests',
   'int-test',
   secret=[
     'id=npmrc,src=%s/.npmrc' % envvar('HOME'),
@@ -51,26 +51,28 @@ def file(name):
 
 k8s_yaml(helm(
   '../../test-chart',
-  name='doorman',
-  namespace='int-doorman',
+  name='gatekeeper',
+  namespace='int-gatekeeper',
   set=[
     'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
     'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
-    'app.name=doorman',
-    'app.image=doorman',
+    'app.name=gatekeeper',
+    'app.image=gatekeeper',
     'app.env.RUST_LOG=info',
-    'app.env.GATEKEEPER_URL=http://mock-gatekeeper',
-    'app.env.AUTH_SERVER_URL=http://mock-auth-server',
-    'app.host=auth.ponglehub.co.uk',
+    'app.env.REDIS_URL=redis://gatekeeper-redis-headless:6379',
+    'app.env.REDIS_PASSWORD=redis-pass',
+    'app.host=gatekeeper.ponglehub.co.uk',
     'app.noAuth=true',
     'test.name=test',
-    'test.image=doorman-tests',
-    'test.extraServices={mock-gatekeeper,mock-auth-server}'
+    'test.image=gatekeeper-tests',
+    'test.extraServices={mock-auth-server}',
+    'redis.enabled=true',
+    'redisPassword=redis-pass',
   ]
 ))
 
 k8s_resource(
-  'doorman',
+  'gatekeeper',
   auto_init=True,
   trigger_mode=TRIGGER_MODE_MANUAL
 )

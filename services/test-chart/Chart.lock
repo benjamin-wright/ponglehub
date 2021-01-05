@@ -2,5 +2,8 @@ dependencies:
 - name: common-templates
   repository: http://localhost:5002
   version: 1.0.169
-digest: sha256:46ce9d848c78f54399f63ebd64100c8b95b112883b045e3f45922e3313435afc
-generated: "2021-01-04T12:18:00.849464Z"
+- name: redis
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.2.3
+digest: sha256:3059dacbcf9b2c3599032b92c7fea572830b02d659df30776ec4fa5607927917
+generated: "2021-01-05T20:53:59.873098Z"

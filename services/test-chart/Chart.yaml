@@ -4,7 +4,11 @@ dependencies:
 - name: common-templates
   repository: '@local'
   version: '*'
+- condition: redis.enabled
+  name: redis
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.2.3
 description: A Helm chart for Kubernetes
 name: test-chart
 type: application
-version: 0.1.22
+version: 0.1.32

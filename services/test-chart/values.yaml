@@ -6,3 +6,12 @@ test:
   name: test
 #   image:
   service: true
+
+# redisPassword:
+redis:
+  enabled: false
+  cluster:
+    enabled: false
+  usePassword: true
+  usePasswordFile: true
+  existingSecret: redis-password
