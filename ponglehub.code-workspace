@@ -13,12 +13,12 @@
 			"path": "libraries/golang/envreader"
 		},
 		{
-			"name": "srv: doorman",
-			"path": "services/rust/doorman"
+			"name": "srv: db-init",
+			"path": "services/golang/db-init"
 		},
 		{
-			"name": "srv: gatekeeper",
-			"path": "services/rust/gatekeeper"
+			"name": "srv: auth-server",
+			"path": "services/golang/auth-server"
 		},
 		{
 			"name": "srv: game-state",

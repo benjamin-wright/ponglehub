@@ -53,14 +53,15 @@ def vue(name):
 
 migration('auth')
 
-rust('db-init')
-rust('auth-server')
-rust('auth-controller')
-rust('gatekeeper')
-rust('doorman')
+# rust('db-init')
+# rust('auth-controller')
+# rust('gatekeeper')
+# rust('doorman')
 
 vue('landing-page')
 
+microservice('db-init')
+microservice('auth-server')
 microservice('game-state')
 
 def envvar(name):

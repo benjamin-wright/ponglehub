@@ -11,6 +11,7 @@
 - brew install coreutils
 - brew install k3d
 - brew install step
+- brew install jq
 - setup your .envrc (copy .envrc-example and fill in the blanks)
 - rust (nightly)
   - `brew tap SergioBenitez/osxct && brew install FiloSottile/musl-cross/musl-cross` for cross-compiling on OSX

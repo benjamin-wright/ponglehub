@@ -11,4 +11,4 @@ dependencies:
 description: A Helm chart for Kubernetes
 name: test-chart
 type: application
-version: 0.1.32
+version: 0.1.35

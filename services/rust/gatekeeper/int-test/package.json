@@ -1,16 +1,14 @@
 {
-  "name": "int-test",
-  "version": "1.0.0",
+  "name": "@pongle/gatekeeper-tests",
   "description": "",
+  "license": "ISC",
+  "author": "",
+  "version": "1.0.1",
   "main": "index.js",
   "scripts": {
     "int-test": "jest .",
-    "lint": "eslint ."
-  },
-  "author": "",
-  "license": "ISC",
-  "jest": {
-    "testEnvironment": "node"
+    "lint": "eslint .",
+    "test": "echo \"NA\""
   },
   "dependencies": {
     "@pongle/async": "^1.0.77",
@@ -19,5 +17,8 @@
     "eslint": "^7.17.0",
     "faker": "^5.1.0",
     "jest": "^26.6.3"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }

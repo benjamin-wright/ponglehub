@@ -2,6 +2,10 @@
 
 set -o errexit
 
+if [ ! -f ~/.npmrc ]; then
+  touch ~/.npmrc
+fi
+
 if [ ! -f ~/.npmrc.bak ]; then
   cp ~/.npmrc ~/.npmrc.bak
 

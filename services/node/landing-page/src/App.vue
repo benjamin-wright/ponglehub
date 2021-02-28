@@ -21,7 +21,7 @@ axios.defaults.withCredentials = true
 export default {
   name: 'App',
   methods: {
-    logout: function(event) {
+    logout: function() {
       console.log("hi!");
       axios
         .post('https://auth.ponglehub.co.uk/api/logout')

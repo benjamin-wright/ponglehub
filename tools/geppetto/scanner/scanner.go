@@ -54,6 +54,11 @@ func (s *Scanner) ScanDir(targetDir string) ([]types.Repo, error) {
 			return filepath.SkipDir
 		}
 
+		if s.io.FileExists(path + "/.geppetto-ignore") {
+			logrus.Infof("IGNORED: %s", path)
+			return filepath.SkipDir
+		}
+
 		if s.io.FileExists(path + "/chart.yaml") {
 			logrus.Infof("HELM: %s", path)
 			repo, err := s.helm.GetRepo(path)

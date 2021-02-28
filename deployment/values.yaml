@@ -44,36 +44,34 @@ servers:
   host: game-state.ponglehub.co.uk
 - name: auth-server
   image: auth-server
-  env:
-    RUST_LOG: info
-- name: gatekeeper
-  image: gatekeeper
-  env:
-    RUST_LOG: info
-    REDIS_URL: ponglehub-redis-headless
-    REDIS_PASSWORD: "{{ .Values.redisPassword }}"
-- name: doorman
-  image: doorman
-  host: auth.ponglehub.co.uk
-  noAuth: true
-  env:
-    RUST_LOG: info
-    GATEKEEPER_URL: http://gatekeeper
-- name: auth-controller
-  image: auth-controller
-  env:
-    RUST_LOG: info,hyper=info
-  rbac:
-    apiGroups:
-    - auth.ponglehub.co.uk
-    resources:
-    - clients
-    - userseeds
-    - userseeds/status
-    verbs:
-    - list
-    - watch
-    - patch
+# - name: gatekeeper
+#   image: gatekeeper
+#   env:
+#     RUST_LOG: info
+#     REDIS_URL: ponglehub-redis-headless
+#     REDIS_PASSWORD: "{{ .Values.redisPassword }}"
+# - name: doorman
+#   image: doorman
+#   host: auth.ponglehub.co.uk
+#   noAuth: true
+#   env:
+#     RUST_LOG: info
+#     GATEKEEPER_URL: http://gatekeeper
+# - name: auth-controller
+#   image: auth-controller
+#   env:
+#     RUST_LOG: info,hyper=info
+#   rbac:
+#     apiGroups:
+#     - auth.ponglehub.co.uk
+#     resources:
+#     - clients
+#     - userseeds
+#     - userseeds/status
+#     verbs:
+#     - list
+#     - watch
+#     - patch
 
 static:
 - name: landing-page

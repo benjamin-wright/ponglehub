@@ -17,7 +17,6 @@ EOL
 
   k3d cluster create $CLUSTER_NAME \
     --wait \
-    --image docker.io/rancher/k3s:v1.18.9-k3s1 \
     --volume $SCRATCH_DIR/k3s/registries.yaml:/etc/rancher/k3s/registries.yaml:cached \
     --volume $SCRATCH_DIR/k3s/traefik.yaml:/var/lib/rancher/k3s/server/manifests/traefik.yaml:cached \
     --agents $WORKER_NODES \

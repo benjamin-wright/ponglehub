@@ -1,18 +1,18 @@
 .PHONY: cluster repos clean deploy
 
-local: tf-cluster-local pull-rust config
-start: tf-cluster tf-infra pull-rust trust
+local: tf-cluster-local config
+start: tf-cluster tf-infra trust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
 
 pause: untrust
 	k3d cluster stop pongle
 	docker stop $(shell docker ps -q --filter name=pongle-) || true
-	docker stop $(shell docker ps -q --filter name=-builder) || true
+	# docker stop $(shell docker ps -q --filter name=-builder) || true
 
 resume:
 	docker start $(shell docker ps -aq --filter name=pongle-) || true
-	docker start $(shell docker ps -aq --filter name=-builder) || true
+	# docker start $(shell docker ps -aq --filter name=-builder) || true
 	k3d cluster start pongle
 	make trust
 

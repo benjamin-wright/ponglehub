@@ -3,11 +3,12 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "main": "index.js",
   "scripts": {
     "int-test": "jest .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "echo \"NA\""
   },
   "dependencies": {
     "@pongle/async": "^1.0.77",
