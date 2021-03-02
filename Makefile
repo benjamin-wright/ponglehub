@@ -1,6 +1,5 @@
 .PHONY: cluster repos clean deploy
 
-local: tf-cluster-local config
 start: tf-cluster tf-infra trust
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
@@ -8,19 +7,14 @@ restart: stop start
 pause: untrust
 	k3d cluster stop pongle
 	docker stop $(shell docker ps -q --filter name=pongle-) || true
-	# docker stop $(shell docker ps -q --filter name=-builder) || true
 
 resume:
 	docker start $(shell docker ps -aq --filter name=pongle-) || true
-	# docker start $(shell docker ps -aq --filter name=-builder) || true
 	k3d cluster start pongle
 	make trust
 
 tf-cluster:
 	cd infra/terraform/cluster && terraform apply -auto-approve
-
-tf-cluster-local:
-	cd infra/terraform/cluster && TF_VAR_deploy_cluster=false terraform apply -auto-approve
 
 tf-cluster-rm:
 	cd infra/terraform/cluster && terraform destroy -auto-approve
@@ -45,9 +39,6 @@ untrust:
 	sudo security remove-trusted-cert -d $(shell pwd)/infra/terraform/infra/.scratch/ingress-ca.crt || true
 	./infra/restore-npm.sh
 	helm repo remove local || true
-
-pull-rust:
-	docker pull clux/muslrust:nightly
 
 geppetto:
 	cd tools/geppetto && make install

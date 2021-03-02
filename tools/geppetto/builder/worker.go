@@ -12,7 +12,6 @@ type defaultWorker struct {
 	npm       services.NPM
 	helm      services.Helm
 	golang    services.Golang
-	rust      services.Rust
 	chartRepo string
 }
 
@@ -21,7 +20,6 @@ func newDefaultWorker(chartRepo string) *defaultWorker {
 		npm:       services.NewNpmService(),
 		helm:      services.NewHelmService(),
 		golang:    services.NewGolangService(),
-		rust:      services.NewRustService(),
 		chartRepo: chartRepo,
 	}
 }
@@ -84,24 +82,6 @@ func (w *defaultWorker) buildHelm(ctx context.Context, repo types.Repo, reinstal
 
 	signals <- signal{repo: repo.Name, phase: "publish"}
 	if err := w.helm.Publish(ctx, repo, w.chartRepo); err != nil {
-		signals <- makeErrorSignal(ctx, repo.Name, err)
-		return
-	}
-
-	signals <- signal{repo: repo.Name, finished: true}
-}
-
-func (w *defaultWorker) buildRust(ctx context.Context, repo types.Repo, reinstall bool, signals chan<- signal) {
-	logrus.Debugf("Building RUST repo: %s", repo.Name)
-
-	signals <- signal{repo: repo.Name, phase: "test"}
-	if err := w.rust.Test(ctx, repo); err != nil {
-		signals <- makeErrorSignal(ctx, repo.Name, err)
-		return
-	}
-
-	signals <- signal{repo: repo.Name, phase: "build"}
-	if err := w.rust.Build(ctx, repo); err != nil {
 		signals <- makeErrorSignal(ctx, repo.Name, err)
 		return
 	}
