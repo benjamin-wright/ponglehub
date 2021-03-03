@@ -1,0 +1,23 @@
+{
+  "name": "@pongle/auth-server-tests",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "version": "1.0.12",
+  "main": "index.js",
+  "scripts": {
+    "int-test": "jest .",
+    "lint": "eslint .",
+    "test": "echo \"NA\""
+  },
+  "dependencies": {
+    "@pongle/async": "^1.0.77",
+    "@pongle/eslint-config-ponglehub": "^1.0.81",
+    "axios": "^0.21.1",
+    "eslint": "^7.17.0",
+    "jest": "^26.6.3"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  }
+}

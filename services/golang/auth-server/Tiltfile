@@ -1,0 +1,60 @@
+allow_k8s_contexts(['k3d-pongle'])
+default_registry('localhost:5000')
+load('ext://namespace', 'namespace_yaml')
+
+k8s_yaml(namespace_yaml('int-auth-server'))
+
+docker_build(
+  'auth-server',
+  './build/ponglehub.co.uk',
+  build_args={
+    'EXE_NAME': 'auth-server'
+  },
+  dockerfile='../../dockerfiles/golang.Dockerfile'
+)
+
+def envvar(name):
+  return str(local("echo $%s" % name)).rstrip('\n')
+
+docker_build(
+  'auth-server-tests',
+  'int-test',
+  secret=[
+    'id=npmrc,src=%s/.npmrc' % envvar('HOME'),
+    'id=cert,src=%s/../../../infra/terraform/infra/.scratch/ingress-ca.crt' % envvar('PWD')
+  ],
+  network='host',
+  ignore=[
+    'node_modules'
+  ],
+  dockerfile='../../dockerfiles/int-test.Dockerfile'
+)
+
+def file(name):
+  return str(local("cat %s | base64" % name)).rstrip('\n')
+
+k8s_yaml(helm(
+  '../../test-chart',
+  name='auth-server',
+  namespace='int-auth-server',
+  set=[
+    'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
+    'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
+    'app.name=auth-server',
+    'app.image=auth-server',
+    'test.name=test',
+    'test.image=auth-server-tests'
+  ]
+))
+
+k8s_resource(
+  'auth-server',
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_resource(
+  'test',
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)

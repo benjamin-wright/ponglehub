@@ -38,7 +38,6 @@ func main() {
 		logrus.Fatalf("error configuring the database: %+v", err)
 	}
 
-	// Connect to the "bank" database.
 	conn, err := pgx.ConnectConfig(context.Background(), config)
 	if err != nil {
 		logrus.Fatalf("error connecting to the database: %+v", err)
