@@ -37,7 +37,7 @@ func New(ctx context.Context, config *AuthClientConfig) (*AuthClient, error) {
 	}, nil
 }
 
+// Close - Remember to call this when you're done with the client
 func (a *AuthClient) Close(ctx context.Context) error {
-	// Close - Remember to call this when you're done with the client
 	return a.Close(ctx)
 }

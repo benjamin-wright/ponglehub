@@ -49,7 +49,8 @@ module.exports = {
         {
             "files": [
                 "**/*.spec.js",
-                "**/*.test.js"
+                "**/*.test.js",
+                "**/*.support.js"
             ],
             "env": {
                 "jest": true

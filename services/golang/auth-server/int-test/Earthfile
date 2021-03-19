@@ -1,0 +1,36 @@
+FROM node:10.15.3-alpine
+WORKDIR /src
+
+deps:
+  DEPENDS ON ../../../../libraries/node/eslint-config-ponglehub+publish
+  DEPENDS ON ../../../../libraries/node/async+publish
+
+  RUN --secret NPMRC_FILE=+secrets/NPMRC_FILE printf "$NPMRC_FILE" > ~/.npmrc
+  COPY package*.json ./
+  RUN npm install
+
+  SAVE ARTIFACT package.json AS LOCAL ./package.json
+  SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
+  
+  COPY ./.eslintrc ./.eslintrc
+  COPY ./tests ./tests
+
+lint:
+  FROM +deps
+  RUN npm run lint
+
+docker:
+  FROM +deps
+
+  ENTRYPOINT [ "npm" ]
+  CMD [ "run", "int-test" ]
+
+  ARG IMAGE_NAME=auth-server
+  SAVE IMAGE $IMAGE_NAME
+
+chart:
+  BUILD ../../../test-chart+publish
+
+all:
+  BUILD +lint
+  BUILD +docker

@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "scripts": {
     "build": "vue-cli-service build --no-clean",
-    "watch": "vue-cli-service build --no-clean --watch",
     "lint": "vue-cli-service lint",
     "serve": "vue-cli-service serve",
-    "test": "echo \"NA\""
+    "test": "echo \"NA\"",
+    "watch": "vue-cli-service build --no-clean --watch"
   },
   "dependencies": {
     "axios": "^0.21.1",

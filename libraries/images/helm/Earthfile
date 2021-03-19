@@ -1,0 +1,7 @@
+FROM alpine/helm:3.4.2
+
+image:
+  RUN apk add git && \
+    helm plugin install https://github.com/chartmuseum/helm-push.git
+  
+  SAVE IMAGE localhost:5000/helm

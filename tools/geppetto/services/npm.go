@@ -180,6 +180,54 @@ func (n NPM) GetDependencyNames(repo types.Repo) ([]string, error) {
 	return names, nil
 }
 
+// SetDependencyVersions updates the named dependencies to the given versions
+func (n NPM) SetDependencyVersions(ctx context.Context, repo types.Repo, versions map[string]string) error {
+	packageJSON := repo.Path + "/package.json"
+
+	data, err := n.io.ReadJSON(packageJSON)
+	if err != nil {
+		return err
+	}
+
+	if deps, ok := data["dependencies"]; ok {
+		depsMap, ok := deps.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("Dependencies found, but format was wrong: %+v", deps)
+		}
+
+		for key := range depsMap {
+			if _, ok := versions[key]; ok {
+				depsMap[key] = versions[key]
+			}
+		}
+	}
+
+	if deps, ok := data["devDependencies"]; ok {
+		depsMap, ok := deps.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("Dev dependencies found, but format was wrong: %+v", deps)
+		}
+
+		for key := range depsMap {
+			if _, ok := versions[key]; ok {
+				depsMap[key] = versions[key]
+			}
+		}
+	}
+
+	err = n.io.WriteJSON(packageJSON, data)
+	if err != nil {
+		return err
+	}
+
+	output, err := n.cmd.Run(ctx, repo.Path, "npx prettier-package-json --write ./package.json")
+	if err != nil {
+		return fmt.Errorf("Error setting dependencies NPM module:\nError\n%+v\nOutput:\n%s", err, output)
+	}
+
+	return nil
+}
+
 // SetVersion update the version number in package.json
 func (n NPM) SetVersion(ctx context.Context, repo types.Repo, version string) error {
 	path := repo.Path + "/package.json"

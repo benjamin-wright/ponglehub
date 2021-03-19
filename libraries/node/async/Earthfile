@@ -1,0 +1,34 @@
+FROM node:10.15.3-alpine
+WORKDIR /src
+
+deps:
+  DEPENDS ON ../eslint-config-ponglehub+publish
+
+  RUN --secret NPMRC_FILE=+secrets/NPMRC_FILE printf "$NPMRC_FILE" > ~/.npmrc
+  COPY package*.json ./
+  RUN npm install
+
+  SAVE ARTIFACT package.json AS LOCAL ./package.json
+  SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
+  
+  COPY ./.eslintrc ./.eslintrc
+  COPY ./lib ./lib
+
+lint:
+  FROM +deps
+  RUN npm run lint
+
+unit:
+  FROM +deps
+  RUN npm run test
+
+publish:
+  FROM +deps
+
+  RUN npm run patch
+  RUN npm publish
+
+all:
+  BUILD +lint
+  BUILD +unit
+  BUILD +publish

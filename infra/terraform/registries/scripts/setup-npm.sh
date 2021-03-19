@@ -9,6 +9,13 @@ fi
 if [ ! -f ~/.npmrc.bak ]; then
   cp ~/.npmrc ~/.npmrc.bak
 
+  success="1"
+
+  while [[ "$success" != "0" ]]; do
+    npm ping --registry "$NPM_REGISTRY"
+    success="$?"
+  done
+
   /usr/bin/expect <<EOD
 spawn npm login --registry "$NPM_REGISTRY" --scope=pongle
 expect {

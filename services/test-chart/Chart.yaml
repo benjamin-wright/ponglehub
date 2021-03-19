@@ -8,7 +8,12 @@ dependencies:
   name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 12.2.3
+- condition: cockroach.enabled
+  name: cockroachdb
+  alias: cockroach
+  repository: https://charts.cockroachdb.com
+  version: 4.1.10
 description: A Helm chart for Kubernetes
 name: test-chart
 type: application
-version: 0.1.37
+version: 1.0.0

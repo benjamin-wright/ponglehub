@@ -2,6 +2,7 @@
 *.crt
 *.key
 *.csr
+*.helm
 *.DS_Store
 .envrc
 infra/k3s/*

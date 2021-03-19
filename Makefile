@@ -11,7 +11,19 @@ pause: untrust
 resume:
 	docker start $(shell docker ps -aq --filter name=pongle-) || true
 	k3d cluster start pongle
+	sleep 3
 	make trust
+
+tf-init:
+	cd infra/terraform/registries && terraform init
+	cd infra/terraform/cluster && terraform init
+	cd infra/terraform/infra && terraform init
+
+tf-repos:
+	cd infra/terraform/registries && terraform apply -auto-approve
+
+tf-repos-rm:
+	cd infra/terraform/registries && terraform destroy -auto-approve
 
 tf-cluster:
 	cd infra/terraform/cluster && terraform apply -auto-approve

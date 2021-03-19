@@ -2,8 +2,10 @@ package ui
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/geppetto/builder"
 	"ponglehub.co.uk/geppetto/scanner"
 	"ponglehub.co.uk/geppetto/services"
@@ -55,10 +57,24 @@ func (r *Rollback) Start(target string) error {
 			switch repo.RepoType {
 			case types.Node:
 				npm.SetVersion(ctx, repo, "1.0.0")
-				npm.Install(ctx, repo)
+
+				deps, err := npm.GetDependencyNames(repo)
+				if err != nil {
+					logrus.Errorf("Failed to get deps: %+v", err)
+					rollbackEvents <- repo.Name
+					return
+				}
+
+				updates := map[string]string{}
+				for _, dep := range deps {
+					if strings.HasPrefix(dep, "@pongle") {
+						updates[dep] = "^1.0.0"
+					}
+				}
+
+				err = npm.SetDependencyVersions(ctx, repo, updates)
 			case types.Helm:
 				helm.SetVersion(repo, "1.0.0")
-				helm.Install(ctx, repo)
 			}
 			rollbackEvents <- repo.Name
 		}(repo, index)

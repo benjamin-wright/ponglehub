@@ -27,3 +27,5 @@ export SEED_USER_NAME=
 export SEED_USER_EMAIL=
 
 export REDIS_PASSWORD=
+
+export EARTHLY_SECRETS="NPMRC_FILE=/Users/whoami/.npmrc"

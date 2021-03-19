@@ -80,6 +80,9 @@ func (a *AuthClient) ListUsers(ctx context.Context) ([]*User, error) {
 	return users, nil
 }
 
+// DeleteUser - delete a user
 func (a *AuthClient) DeleteUser(ctx context.Context, id string) error {
 	_, err := a.conn.Exec(ctx, "DELETE FROM users WHERE id = $1", id)
+
+	return err
 }

@@ -1,0 +1,23 @@
+FROM golang:1.16
+
+WORKDIR /src
+
+build:
+  COPY go.mod go.sum ./
+  RUN go mod download
+
+  COPY *.go ./
+  COPY internal ./internal
+
+  RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o auth-server
+
+  SAVE ARTIFACT auth-server
+
+docker:
+  FROM scratch
+
+  COPY +build/auth-server /go/bin/auth-server
+  ENTRYPOINT [ "/go/bin/auth-server" ]
+
+  ARG IMAGE_NAME=auth-server
+  SAVE IMAGE $IMAGE_NAME
