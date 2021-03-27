@@ -12,9 +12,6 @@ spec:
     metadata:
       labels:
         app: migrations
-      annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/migrations/base-config.configmap.yaml") . | sha256sum }}
-        linkerd.io/inject: disabled
     spec:
       initContainers:
       - name: setup

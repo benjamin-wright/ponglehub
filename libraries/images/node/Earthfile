@@ -1,0 +1,9 @@
+FROM node:10.15.3-alpine
+
+image:
+  WORKDIR /src
+  
+  RUN apk add jq
+
+  RUN --mount type=secret,target=/root/.npmrc.mount,id=+secrets/NPMRC_FILE cp /root/.npmrc.mount /root/.npmrc
+  COPY patch.sh /usr/local/bin/patch

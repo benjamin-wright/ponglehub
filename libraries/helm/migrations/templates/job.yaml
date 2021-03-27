@@ -1,0 +1,80 @@
+{{- $db := .Values.db -}}
+{{- $flywayImage := .Values.flywayImage -}}
+{{- $root := . -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: {{ .Values.name }}
+  name: {{ .Values.name }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      initContainers:
+      - name: setup
+        image: {{ required "must enter a base migration image property!" .Values.baseImage }}
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: config
+          mountPath: /config.yaml
+          subPath: config.yaml
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      {{- range .Values.sets }}
+      - name: {{ .database }}-clean
+        image: {{ $flywayImage }}
+        imagePullPolicy: Always
+        args:
+        - clean
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        volumeMounts:
+        - name: {{ .database }}-migration
+          mountPath: /flyway/conf/flyway.conf
+          subPath: flyway.conf
+      {{- end }}
+      containers:
+      {{- range .Values.sets }}
+      - name: {{ .database }}-migration
+        image: {{ .image }}
+        imagePullPolicy: Always
+        args:
+        - migrate
+        resources:
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        volumeMounts:
+        - name: {{ .database }}-migration
+          mountPath: /flyway/conf/flyway.conf
+          subPath: flyway.conf
+      {{- end }}
+      restartPolicy: Never
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Values.name }}-base-config
+      {{- range .Values.sets }}
+      - name: {{ .database }}-migration
+        configMap:
+          name: {{ $root.Values.name }}-{{ .database }}-config
+      {{- end }}

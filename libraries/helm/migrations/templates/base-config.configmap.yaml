@@ -1,0 +1,15 @@
+{{ $db := .Values.db }}
+{{ $sets := .Values.sets }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}-base-config
+data:
+  config.yaml: |
+    host: {{ $db.host }}
+    port: {{ $db.port }}
+    data:
+    {{- range $sets }}
+    - user: {{ .user }}
+      database: {{ .database }}
+    {{- end }}

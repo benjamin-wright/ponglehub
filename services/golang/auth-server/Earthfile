@@ -9,7 +9,7 @@ build:
   COPY *.go ./
   COPY internal ./internal
 
-  RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o auth-server
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o auth-server
 
   SAVE ARTIFACT auth-server
 
@@ -19,5 +19,4 @@ docker:
   COPY +build/auth-server /go/bin/auth-server
   ENTRYPOINT [ "/go/bin/auth-server" ]
 
-  ARG IMAGE_NAME=auth-server
-  SAVE IMAGE $IMAGE_NAME
+  SAVE IMAGE auth-server

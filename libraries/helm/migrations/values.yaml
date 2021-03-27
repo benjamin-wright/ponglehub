@@ -1,0 +1,12 @@
+  # name:
+  # baseImage:
+  flywayImage: docker.io/flyway/flyway:7
+
+  db:
+    # host:
+    port: 26257
+  
+  sets:
+  # - user: authserver
+  #   database: auth
+  #   image: auth-migrations

@@ -2,12 +2,13 @@ allow_k8s_contexts(['k3d-pongle'])
 default_registry('localhost:5000')
 load('ext://namespace', 'namespace_yaml')
 load('ext://helm_remote', 'helm_remote')
+load('../../../libraries/tilt/helm.Tiltfile', 'load_files_encoded')
 
 k8s_yaml(namespace_yaml('int-auth-server'))
 
 custom_build(
   'auth-server',
-  'earthly --build-arg IMAGE_NAME=$EXPECTED_REF +docker',
+  'earthly +docker && docker tag auth-server $EXPECTED_REF',
   ['.']
 )
 
@@ -16,27 +17,43 @@ def envvar(name):
 
 custom_build(
   'auth-server-tests',
-  'earthly --build-arg IMAGE_NAME=$EXPECTED_REF ./int-test+docker',
+  'earthly ./int-test+docker && docker tag auth-server-tests $EXPECTED_REF',
   ['./int-test']
+)
+
+custom_build(
+  'db-init',
+  'earthly ../db-init+docker && docker tag db-init $EXPECTED_REF',
+  ['../db-init']
 )
 
 def file(name):
   return str(local("cat %s | base64" % name)).rstrip('\n')
 
-k8s_yaml(helm_remote(
+migrationsData = load_files_encoded('migrations.sets[0].migrations', './migrations')
+
+helm_remote(
   'test-chart',
   repo_name='local',
   release_name='auth-server',
   namespace='int-auth-server',
+  allow_duplicates=True,
   set=[
     'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
     'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
     'app.name=auth-server',
     'app.image=auth-server',
-    'test.name=test',
-    'test.image=auth-server-tests'
+    'test.name=tests',
+    'test.image=auth-server-tests',
+    'cockroach.enabled=true',
+    'migrations.enabled=true',
+    'migrations.baseImage=db-init',
+    'migrations.db.host=auth-server-cockroach-public',
+    'migrations.sets[0].user=authserver',
+    'migrations.sets[0].database=authserver',
+    migrationsData
   ]
-))
+)
 
 k8s_resource(
   'auth-server',
@@ -45,7 +62,7 @@ k8s_resource(
 )
 
 k8s_resource(
-  'test',
+  'tests',
   auto_init=True,
   trigger_mode=TRIGGER_MODE_MANUAL
 )

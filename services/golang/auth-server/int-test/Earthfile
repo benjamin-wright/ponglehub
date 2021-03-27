@@ -1,11 +1,10 @@
-FROM node:10.15.3-alpine
+FROM ../../../../libraries/images/node+image
 WORKDIR /src
 
 deps:
-  DEPENDS ON ../../../../libraries/node/eslint-config-ponglehub+publish
-  DEPENDS ON ../../../../libraries/node/async+publish
+  COPY ../../../../libraries/node/eslint-config-ponglehub+publish/marker /markers/1
+  COPY ../../../../libraries/node/async+publish/marker /markers/2
 
-  RUN --secret NPMRC_FILE=+secrets/NPMRC_FILE printf "$NPMRC_FILE" > ~/.npmrc
   COPY package*.json ./
   RUN npm install
 
@@ -25,11 +24,9 @@ docker:
   ENTRYPOINT [ "npm" ]
   CMD [ "run", "int-test" ]
 
-  ARG IMAGE_NAME=auth-server
-  SAVE IMAGE $IMAGE_NAME
+  COPY ../../../test-chart+publish/marker /markers/3
 
-chart:
-  BUILD ../../../test-chart+publish
+  SAVE IMAGE auth-server-tests
 
 all:
   BUILD +lint

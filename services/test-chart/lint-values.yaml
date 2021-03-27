@@ -2,3 +2,15 @@ global:
   ssl:
     key: somekey
     crt: somevalue
+
+migrations:
+  baseImage: db-init
+
+  db:
+    host: host
+  
+  sets:
+  - user: user
+    database: db
+    migrations:
+      file1.sql: whatevs

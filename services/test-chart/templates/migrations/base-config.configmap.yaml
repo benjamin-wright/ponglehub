@@ -1,0 +1,17 @@
+{{- if .Values.migrations.enabled }}
+{{ $db := .Values.migrations.db }}
+{{ $sets := .Values.migrations.sets }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.migrations.name }}-base-config
+data:
+  config.yaml: |
+    host: {{ $db.host }}
+    port: {{ $db.port }}
+    data:
+    {{- range $sets }}
+    - user: {{ .user }}
+      database: {{ .database }}
+    {{- end }}
+{{- end }}

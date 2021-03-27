@@ -1,0 +1,15 @@
+{{- if .Values.migrations.enabled }}
+{{- $db := .Values.migrations.db -}}
+{{- $root := . -}}
+{{- range .Values.migrations.sets }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $root.Values.migrations.name }}-{{ .database }}-config
+data:
+  flyway.conf: |
+    flyway.url=jdbc:postgresql://{{ $db.host }}:{{ $db.port }}/{{ .database }}
+    flyway.user={{ .user }}
+{{- end }}
+{{- end }}

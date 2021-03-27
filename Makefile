@@ -1,6 +1,6 @@
 .PHONY: cluster repos clean deploy
 
-start: tf-cluster tf-infra trust
+start: tf-repos tf-cluster
 stop: untrust tf-infra-clean tf-cluster-rm
 restart: stop start
 
@@ -40,10 +40,6 @@ tf-infra-rm:
 tf-infra-clean:
 	cd infra/terraform/infra && rm -f terraform.tfstate && rm -f terraform.tfstate.backup
 
-config:
-	./infra/setup-npm.sh
-	helm repo add local http://localhost:5002
-
 trust: config
 	sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $(shell pwd)/infra/terraform/infra/.scratch/ingress-ca.crt
 
@@ -52,9 +48,6 @@ untrust:
 	./infra/restore-npm.sh
 	helm repo remove local || true
 
-geppetto:
-	cd tools/geppetto && make install
-
 deploy:
 	kubectl get ns | grep ponglehub || kubectl create ns ponglehub
 	kubectl annotate namespace ponglehub linkerd.io/inject=enabled --overwrite
@@ -62,3 +55,8 @@ deploy:
 	helm upgrade ponglehub deployment \
 		-i \
 		--namespace ponglehub
+
+nuke:
+	docker stop $(shell docker ps -q) || true
+	docker rm $(shell docker ps -aq) || true
+	docker system prune --all --volumes

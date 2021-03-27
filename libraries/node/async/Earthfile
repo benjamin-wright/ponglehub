@@ -1,10 +1,8 @@
-FROM node:10.15.3-alpine
-WORKDIR /src
+FROM ../../images/node+image
 
 deps:
-  DEPENDS ON ../eslint-config-ponglehub+publish
+  COPY ../eslint-config-ponglehub+publish/marker /markers/1
 
-  RUN --secret NPMRC_FILE=+secrets/NPMRC_FILE printf "$NPMRC_FILE" > ~/.npmrc
   COPY package*.json ./
   RUN npm install
 
@@ -24,9 +22,8 @@ unit:
 
 publish:
   FROM +deps
-
-  RUN npm run patch
-  RUN npm publish
+  RUN patch
+  SAVE ARTIFACT marker
 
 all:
   BUILD +lint

@@ -18,11 +18,12 @@ type AuthClientConfig struct {
 	Password string
 	Host     string
 	Port     int16
+	Database string
 }
 
 // New - Create a new AuthClient instance
 func New(ctx context.Context, config *AuthClientConfig) (*AuthClient, error) {
-	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://%s:%s@%s:%d", config.Username, config.Password, config.Host, config.Port))
+	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://%s:%s@%s:%d/%s", config.Username, config.Password, config.Host, config.Port, config.Database))
 	if err != nil {
 		return nil, err
 	}

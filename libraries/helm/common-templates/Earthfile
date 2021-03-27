@@ -13,4 +13,5 @@ deps:
 
 publish:
   FROM +deps
-  RUN helm push . local --force
+  RUN patch common-templates
+  SAVE ARTIFACT marker

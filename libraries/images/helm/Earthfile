@@ -2,6 +2,10 @@ FROM alpine/helm:3.4.2
 
 image:
   RUN apk add git && \
+    wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/v4.6.2/yq_linux_amd64" && \
+    chmod +x /usr/local/bin/yq && \
     helm plugin install https://github.com/chartmuseum/helm-push.git
-  
-  SAVE IMAGE localhost:5000/helm
+
+  COPY patch.sh /usr/local/bin/patch
+
+  SAVE IMAGE

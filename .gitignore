@@ -19,3 +19,5 @@ tilt_modules
 bin
 chart-cache
 target
+
+**.tmp-earthly-out

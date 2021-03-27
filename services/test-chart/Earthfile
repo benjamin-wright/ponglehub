@@ -5,14 +5,23 @@ WORKDIR /src
 deps:
   RUN helm repo add local http://helm.ponglehub.co.uk:5002
 
-  DEPENDS ON ../../libraries/helm/common-templates+publish
+  COPY ../../libraries/helm/common-templates+publish/marker /markers/1
 
   COPY Chart* ./
-  RUN helm dep update
+  RUN helm repo update && helm dep update
 
   COPY values.yaml values.yaml
-  COPY templates templates
+  COPY --dir templates templates
+
+lint:
+  FROM +deps
+
+  COPY lint-values.yaml lint-values.yaml
+  RUN helm lint --values lint-values.yaml
 
 publish:
   FROM +deps
-  RUN helm push . local --force
+  BUILD +lint  
+
+  RUN patch test-chart
+  SAVE ARTIFACT marker
