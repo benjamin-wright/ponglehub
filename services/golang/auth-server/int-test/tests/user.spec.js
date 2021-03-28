@@ -1,6 +1,30 @@
 const axios = require('axios');
 
+async function listUsers() {
+    const result = await axios.get('http://auth-server/user');
+
+    if (result.status !== 200) {
+        throw new Error(`Failed listing users: ${result.status}`);
+    }
+
+    return result.data;
+}
+
+async function deleteUser(username) {
+    console.log(`Deleting user: ${username}`);
+    const result = await axios.delete(`http://auth-server/user/${username}`);
+
+    if (result.status !== 202) {
+        throw new Error(`Failed deleting user: ${result.status}`);
+    }
+}
+
 describe('users route', () => {
+    beforeEach(async () => {
+        const users = await listUsers();
+        await Promise.all(users.map(user => deleteUser(user.name)));
+    });
+
     describe('get', () => {
         it('should return 404 if user doesn\'t exist', async () => {
             await expect(

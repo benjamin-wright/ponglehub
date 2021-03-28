@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
 )
 
 // User - a struct representing a user
@@ -18,8 +20,7 @@ type User struct {
 func (a *AuthClient) AddUser(ctx context.Context, user User) error {
 	_, err := a.conn.Exec(
 		ctx,
-		"INSERT INTO user (id, name, email, password, verified) VALUES ($1, $2, $3, $4, False)",
-		user.ID,
+		"INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, False)",
 		user.Name,
 		user.Email,
 		user.Password,
@@ -81,8 +82,18 @@ func (a *AuthClient) ListUsers(ctx context.Context) ([]*User, error) {
 }
 
 // DeleteUser - delete a user
-func (a *AuthClient) DeleteUser(ctx context.Context, id string) error {
-	_, err := a.conn.Exec(ctx, "DELETE FROM users WHERE id = $1", id)
+func (a *AuthClient) DeleteUser(ctx context.Context, name string) (bool, error) {
+	cmd, err := a.conn.Exec(ctx, "DELETE FROM users WHERE name = $1", name)
+	if err != nil {
+		return false, err
+	}
 
-	return err
+	numRows := cmd.RowsAffected()
+	if numRows == 0 {
+		return false, nil
+	}
+
+	logrus.Infof("Deleted %d users", numRows)
+
+	return true, nil
 }
