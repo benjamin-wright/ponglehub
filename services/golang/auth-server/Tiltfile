@@ -45,6 +45,7 @@ helm_remote(
     'app.image=auth-server',
     'test.name=tests',
     'test.image=auth-server-tests',
+    'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
     'cockroach.enabled=true',
     'migrations.enabled=true',
     'migrations.baseImage=db-init',

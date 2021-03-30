@@ -1,4 +1,5 @@
 {{- $job := .Values.test -}}
+{{- $root := . -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -22,7 +23,10 @@ spec:
         imagePullPolicy: {{ $job.pullPolicy | default "Always" }}
         {{- if $job.env }}
         env:
-          {{- tpl $job.env . | nindent 10 }}
+        {{- range $key, $value := $job.env }}
+        - name: {{ $key }}
+          value: {{ tpl $value $root }}
+        {{- end }}
         {{- end }}
         resources:
         {{- if $job.resources }}

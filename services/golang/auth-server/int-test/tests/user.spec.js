@@ -1,45 +1,15 @@
 const axios = require('axios');
-
-async function listUsers() {
-    const result = await axios.get('http://auth-server/user');
-
-    if (result.status !== 200) {
-        throw new Error(`Failed listing users: ${result.status}`);
-    }
-
-    return result.data;
-}
-
-async function deleteUser(username) {
-    const result = await axios.delete(`http://auth-server/user/${username}`);
-
-    if (result.status !== 202) {
-        throw new Error(`Failed deleting user: ${result.status}`);
-    }
-}
-
-async function expectUsers(users) {
-    await expect(
-        axios.get('http://auth-server/user').then(res => ({ status: res.status, data: res.data }))
-    ).resolves.toEqual({
-        status: 200,
-        data: users
-    });
-}
+const DB = require('../helpers/db');
+const db = new DB();
 
 describe('users route', () => {
     beforeEach(async () => {
-        const users = await listUsers();
-        await Promise.all(users.map(user => deleteUser(user.name)));
+        await db.clearUsers();
     });
 
     describe('get', () => {
         beforeEach(async () => {
-            await expect(
-                axios.post('http://auth-server/user', { name: 'test-user', password: 'pwd', email: 'user@notathing.com' }).then(res => ({ status: res.status }))
-            ).resolves.toEqual({
-                status: 202
-            });
+            await db.addUser({ name: 'test-user', password: 'pwd', email: 'user@notathing.com', verified: false });
         });
 
         it('should return 404 if user doesn\'t exist', async () => {
@@ -71,11 +41,12 @@ describe('users route', () => {
                 status: 202
             });
 
-            await expectUsers([
+            expect(db.getUsers()).resolves.toEqual([
                 {
                     id: expect.any(String),
                     name: 'random',
                     email: 'user@notathing.com',
+                    password: 'pwd',
                     verified: false
                 }
             ]);

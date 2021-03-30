@@ -12,7 +12,7 @@ deps:
   SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
   
   COPY ./.eslintrc ./.eslintrc
-  COPY ./tests ./tests
+  COPY --dir tests helpers .
 
 lint:
   FROM +deps
