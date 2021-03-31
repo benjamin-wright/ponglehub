@@ -98,18 +98,23 @@ func main() {
 
 		logrus.Infof("Adding user: %s %s %s", body.Email, body.Name, body.Password)
 
-		err = cli.AddUser(c.Request.Context(), client.User{
+		success, err := cli.AddUser(c.Request.Context(), client.User{
 			Name:     body.Name,
 			Email:    body.Email,
 			Password: body.Password,
 		})
+
 		if err != nil {
 			logrus.Errorf("Error adding user: %+v", err)
 			c.Status(500)
 			return
 		}
 
-		c.Status(202)
+		if success {
+			c.Status(202)
+		} else {
+			c.Status(400)
+		}
 	})
 
 	r.DELETE("/user/:name", func(c *gin.Context) {

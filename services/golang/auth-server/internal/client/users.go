@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,7 +19,7 @@ type User struct {
 }
 
 // AddUser - Add a user to the database
-func (a *AuthClient) AddUser(ctx context.Context, user User) error {
+func (a *AuthClient) AddUser(ctx context.Context, user User) (bool, error) {
 	_, err := a.conn.Exec(
 		ctx,
 		"INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, False)",
@@ -26,7 +28,18 @@ func (a *AuthClient) AddUser(ctx context.Context, user User) error {
 		user.Password,
 	)
 
-	return err
+	if err != nil {
+		if err, ok := err.(*pgconn.PgError); ok {
+			if err.Code == pgerrcode.UniqueViolation {
+				logrus.Warnf("Failed to create duplicate user: %s[%s]", user.Name, user.Email)
+				return false, nil
+			}
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
 
 // GetUser - retrieve a user from the database

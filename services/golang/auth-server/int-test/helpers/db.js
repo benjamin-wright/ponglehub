@@ -15,6 +15,10 @@ class DB {
         );
     }
 
+    async addUsers(users) {
+        await Promise.all(users.map(user => this.addUser(user)));
+    }
+
     async getUsers() {
         const result = await this.pool.query(
             'SELECT id, name, email, password, verified FROM users'
