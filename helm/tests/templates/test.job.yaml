@@ -1,0 +1,48 @@
+{{- $job := .Values.test -}}
+{{- $root := . -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: {{ required "must enter a name property!" $job.name }}
+  name: {{ required "must enter a name property!" $job.name }}
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        app: {{ required "must enter a name property!" $job.name }}
+      annotations:
+        linkerd.io/inject: disabled
+    spec:
+      containers:
+      - name: {{ $job.name | default "job" }}
+        image: {{ required "must enter an image property!" $job.image}}
+        imagePullPolicy: {{ $job.pullPolicy | default "Always" }}
+        {{- if $job.env }}
+        env:
+        {{- range $key, $value := $job.env }}
+        - name: {{ $key }}
+          value: {{ tpl $value $root }}
+        {{- end }}
+        {{- end }}
+        resources:
+        {{- if $job.resources }}
+          {{- toYaml $job.resources | nindent 10 }}
+        {{- else }}
+          requests:
+            memory: 256Mi
+            cpu: 1
+          limits:
+            memory: 256Mi
+            cpu: 1
+        {{- end }}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30

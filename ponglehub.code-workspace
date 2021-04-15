@@ -5,24 +5,12 @@
 			"path": "."
 		},
 		{
-			"name": "tools: Geppetto",
-			"path": "tools/geppetto"
+			"name": "db-init",
+			"path": "services/db-init"
 		},
 		{
-			"name": "lib: environment reader",
-			"path": "libraries/golang/envreader"
-		},
-		{
-			"name": "srv: db-init",
-			"path": "services/golang/db-init"
-		},
-		{
-			"name": "srv: auth-server",
-			"path": "services/golang/auth-server"
-		},
-		{
-			"name": "srv: game-state",
-			"path": "services/golang/game-state"
+			"name": "auth-server",
+			"path": "services/auth-server"
 		}
 	],
 	"settings": {}

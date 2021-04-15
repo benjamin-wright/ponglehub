@@ -1,1 +1,0 @@
-{{ include "ponglehub.server" (list .Values.app .) }}

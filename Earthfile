@@ -1,4 +1,9 @@
 FROM scratch
 
 init:
-  BUILD ./services/test-chart+publish
+  LOCALLY
+  RUN ./infra/start.sh
+
+clean:
+  LOCALLY
+  RUN ./infra/stop.sh

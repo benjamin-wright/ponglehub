@@ -1,0 +1,64 @@
+allow_k8s_contexts(['k3d-pongle'])
+load('../../libraries/tilt/helm.Tiltfile', ['load_files_encoded', 'file', 'namespace_yaml', 'envvar'])
+
+registry_name = envvar('REGISTRY_NAME')
+registry_port = envvar('REGISTRY_PORT')
+
+default_registry('localhost:5000', host_on_cluster='%s:%s' % (registry_name, registry_port))
+
+
+custom_build(
+  'auth-server',
+  'earthly +docker && docker tag auth-server $EXPECTED_REF',
+  ['.']
+)
+
+custom_build(
+  'auth-server-tests',
+  'earthly ./int-test+docker && docker tag auth-server-tests $EXPECTED_REF',
+  ['./int-test']
+)
+
+custom_build(
+  'db-init',
+  'earthly ../db-init+docker && docker tag db-init $EXPECTED_REF',
+  ['../db-init']
+)
+
+k8s_yaml(namespace_yaml('int-auth-server'))
+
+k8s_yaml(helm(
+  'test-chart',
+  repo_name='local',
+  release_name='auth-server',
+  namespace='int-auth-server',
+  allow_duplicates=True,
+  set=[
+    'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
+    'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
+    'app.name=auth-server',
+    'app.image=auth-server',
+    'test.name=tests',
+    'test.image=auth-server-tests',
+    'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
+    'cockroach.enabled=true',
+    'migrations.enabled=true',
+    'migrations.baseImage=db-init',
+    'migrations.db.host=auth-server-cockroach-public',
+    'migrations.sets[0].user=authserver',
+    'migrations.sets[0].database=authserver',
+    load_files_encoded('migrations.sets[0].migrations', './migrations')
+  ]
+))
+
+k8s_resource(
+  'auth-server',
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_resource(
+  'tests',
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
