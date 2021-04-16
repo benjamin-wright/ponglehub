@@ -23,9 +23,6 @@ version: 0.1.0
 appVersion: 1.16.0
 
 dependencies:
-- name: common-templates
-  repository: '@local'
-  version: '*'
 - condition: cockroach.enabled
   name: cockroachdb
   alias: cockroach

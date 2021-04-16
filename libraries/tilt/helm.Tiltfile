@@ -25,7 +25,7 @@ kind: Namespace
 metadata:
   name: %s
   labels:
-    istio-enabled: true
+    istio-enabled: \"true\"
 """ % name)
 
 def envvar(name):

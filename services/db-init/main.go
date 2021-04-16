@@ -38,10 +38,19 @@ func main() {
 		logrus.Fatalf("error configuring the database: %+v", err)
 	}
 
-	conn, err := pgx.ConnectConfig(context.Background(), config)
-	if err != nil {
-		logrus.Fatalf("error connecting to the database: %+v", err)
-	}
+	finished := make(chan *pgx.Conn, 1)
+
+	go func(finished chan<- *pgx.Conn) {
+
+		conn, err := pgx.ConnectConfig(context.Background(), config)
+		if err != nil {
+			logrus.Fatalf("error connecting to the database: %+v", err)
+		}
+
+		finished <- conn
+	}(finished)
+
+	conn := <-finished
 	defer conn.Close(context.Background())
 
 	for _, set := range c.Data {

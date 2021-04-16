@@ -19,5 +19,17 @@ function stop_cluster() {
   fi
 }
 
+function stop_npm_registry() {
+  if docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER; then
+    docker rm $(docker stop $NPM_CONTAINER)
+
+    cp ~/.npmrc.bak ~/.npmrc
+    rm ~/.npmrc.bak
+  else
+    echo "Skipping deleting npm registry, doesn't exist"
+  fi
+}
+
 stop_cluster
 stop_registry
+stop_npm_registry

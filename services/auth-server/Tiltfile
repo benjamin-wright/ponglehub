@@ -1,11 +1,13 @@
 allow_k8s_contexts(['k3d-pongle'])
-load('../../libraries/tilt/helm.Tiltfile', ['load_files_encoded', 'file', 'namespace_yaml', 'envvar'])
+load('../../libraries/tilt/helm.Tiltfile', 'load_files_encoded')
+load('../../libraries/tilt/helm.Tiltfile', 'file')
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+load('../../libraries/tilt/helm.Tiltfile', 'envvar')
 
 registry_name = envvar('REGISTRY_NAME')
 registry_port = envvar('REGISTRY_PORT')
 
-default_registry('localhost:5000', host_on_cluster='%s:%s' % (registry_name, registry_port))
-
+default_registry('localhost:5000', host_from_cluster='%s:%s' % (registry_name, registry_port))
 
 custom_build(
   'auth-server',
@@ -28,11 +30,9 @@ custom_build(
 k8s_yaml(namespace_yaml('int-auth-server'))
 
 k8s_yaml(helm(
-  'test-chart',
-  repo_name='local',
-  release_name='auth-server',
+  '../../helm/tests',
+  name='auth-server',
   namespace='int-auth-server',
-  allow_duplicates=True,
   set=[
     'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
     'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),

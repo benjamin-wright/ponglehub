@@ -1,5 +1,5 @@
 {{ $server := .Values.app }}
-{{ $top := (index . 1) }}
+{{ $top := . }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
