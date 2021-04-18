@@ -41,16 +41,26 @@ func main() {
 	finished := make(chan *pgx.Conn, 1)
 
 	go func(finished chan<- *pgx.Conn) {
-
-		conn, err := pgx.ConnectConfig(context.Background(), config)
-		if err != nil {
-			logrus.Fatalf("error connecting to the database: %+v", err)
+		attempts := 0
+		limit := 10
+		var connection *pgx.Conn
+		for attempts < limit {
+			connection, err = pgx.ConnectConfig(context.Background(), config)
+			if err != nil {
+				logrus.Warnf("error connecting to the database: %+v", err)
+			} else {
+				break
+			}
 		}
 
-		finished <- conn
+		finished <- connection
+		return
 	}(finished)
 
 	conn := <-finished
+	if conn == nil {
+		logrus.Fatalf("Failed to create connection, exiting.")
+	}
 	defer conn.Close(context.Background())
 
 	for _, set := range c.Data {

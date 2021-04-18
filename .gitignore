@@ -21,3 +21,4 @@ chart-cache
 target
 
 **.tmp-earthly-out
+.scratch
