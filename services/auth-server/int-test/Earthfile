@@ -1,0 +1,9 @@
+FROM ../../../libraries/images/node+image
+WORKDIR /src
+
+deps:
+  COPY ../../../libraries/node/eslint-config-ponglehub+publish/marker /markers/1
+  COPY ../../../libraries/node/async+publish/marker /markers/2
+
+  COPY package*.json ./
+  RUN npm install

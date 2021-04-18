@@ -1,3 +1,5 @@
+export LOCAL_NETWORK=en0
+
 export SCRATCH_DIR=$(pwd)/.scratch
 export KUBECONFIG=$(pwd)/.scratch/kubeconfig
 export EARTHLY_SECRET_FILES="NPMRC_FILE=/Users/$(whoami)/.npmrc"

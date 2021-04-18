@@ -50,13 +50,15 @@ function start_npm_registry() {
 
       success="1"
 
+      REGISTRY_IP=$(ifconfig $LOCAL_NETWORK | grep -i mask | awk '{print $2}' | tr -d '\n')
+
       while [[ "$success" != "0" ]]; do
-        npm ping --registry http://localhost:4873
+        npm ping --registry http://$REGISTRY_IP:4873
         success="$?"
       done
 
       /usr/bin/expect <<EOD
-spawn npm login --registry http://localhost:4873 --scope=pongle
+spawn npm login --registry http://$REGISTRY_IP:4873 --scope=pongle
 expect {
   "Username:" {send "$NPM_USERNAME\r"; exp_continue}
   "Password:" {send "$NPM_PASSWORD\r"; exp_continue}
@@ -64,7 +66,7 @@ expect {
 }
 EOD
 
-      npm config set registry $NPM_REGISTRY
+      npm config set registry http://$REGISTRY_IP:4873
     fi
   fi
 }
