@@ -45,7 +45,7 @@ func main() {
 		})
 	})
 
-	r.GET("/user", func(c *gin.Context) {
+	r.GET("/users", func(c *gin.Context) {
 		users, err := cli.ListUsers(c.Request.Context())
 		if err != nil {
 			logrus.Errorf("Error getting list of users: %+v", err)
@@ -66,8 +66,8 @@ func main() {
 		c.JSON(200, responses)
 	})
 
-	r.GET("/user/:name", func(c *gin.Context) {
-		user, err := cli.GetUser(c.Request.Context(), c.Param("name"))
+	r.GET("/users/:id", func(c *gin.Context) {
+		user, err := cli.GetUser(c.Request.Context(), c.Param("id"))
 		if err != nil {
 			logrus.Errorf("Error getting user: %+v", err)
 			c.Status(500)
@@ -75,20 +75,19 @@ func main() {
 		}
 
 		if user == nil {
-			logrus.Warnf("User \"%s\" not found", c.Param("name"))
+			logrus.Warnf("User \"%s\" not found", c.Param("id"))
 			c.Status(404)
 			return
 		}
 
 		c.JSON(200, gin.H{
-			"id":       user.ID,
 			"name":     user.Name,
 			"email":    user.Email,
 			"verified": user.Verified,
 		})
 	})
 
-	r.POST("/user", func(c *gin.Context) {
+	r.POST("/users", func(c *gin.Context) {
 		var body UserPost
 		if err := c.ShouldBindJSON(&body); err != nil {
 			logrus.Errorf("Error reading user data: %+v", err)
@@ -117,21 +116,21 @@ func main() {
 		}
 	})
 
-	r.DELETE("/user/:name", func(c *gin.Context) {
-		found, err := cli.DeleteUser(c.Request.Context(), c.Param("name"))
+	r.DELETE("/users/:id", func(c *gin.Context) {
+		found, err := cli.DeleteUser(c.Request.Context(), c.Param("id"))
 		if err != nil {
-			logrus.Errorf("Error deleting user \"%s\"", c.Param("name"))
+			logrus.Errorf("Error deleting user \"%s\": %+v", c.Param("id"), err)
 			c.Status(500)
 			return
 		}
 
 		if !found {
-			logrus.Warnf("Failed to delete user \"%s\": Not found", c.Param("name"))
+			logrus.Warnf("Failed to delete user \"%s\": Not found", c.Param("id"))
 			c.Status(404)
 			return
 		}
 
-		c.Status(202)
+		c.Status(204)
 	})
 
 	srv := &http.Server{

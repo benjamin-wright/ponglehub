@@ -43,8 +43,8 @@ func (a *AuthClient) AddUser(ctx context.Context, user User) (bool, error) {
 }
 
 // GetUser - retrieve a user from the database
-func (a *AuthClient) GetUser(ctx context.Context, name string) (*User, error) {
-	rows, err := a.conn.Query(ctx, "SELECT id, name, email, password, verified FROM users WHERE name = $1", name)
+func (a *AuthClient) GetUser(ctx context.Context, id string) (*User, error) {
+	rows, err := a.conn.Query(ctx, "SELECT name, email, password, verified FROM users WHERE id = $1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (a *AuthClient) GetUser(ctx context.Context, name string) (*User, error) {
 
 	for rows.Next() {
 		var user User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Verified); err != nil {
+		if err := rows.Scan(&user.Name, &user.Email, &user.Password, &user.Verified); err != nil {
 			return nil, err
 		}
 
@@ -66,7 +66,7 @@ func (a *AuthClient) GetUser(ctx context.Context, name string) (*User, error) {
 	}
 
 	if len(users) > 1 {
-		return nil, fmt.Errorf("Failed to find user %s: Expected 1 user, received %d", name, len(users))
+		return nil, fmt.Errorf("Failed to find user %s: Expected 1 user, received %d", id, len(users))
 	}
 
 	return &users[0], nil
@@ -95,8 +95,8 @@ func (a *AuthClient) ListUsers(ctx context.Context) ([]*User, error) {
 }
 
 // DeleteUser - delete a user
-func (a *AuthClient) DeleteUser(ctx context.Context, name string) (bool, error) {
-	cmd, err := a.conn.Exec(ctx, "DELETE FROM users WHERE name = $1", name)
+func (a *AuthClient) DeleteUser(ctx context.Context, id string) (bool, error) {
+	cmd, err := a.conn.Exec(ctx, "DELETE FROM users WHERE id = $1", id)
 	if err != nil {
 		return false, err
 	}
