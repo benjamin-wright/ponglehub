@@ -39,7 +39,7 @@ function start_npm_registry() {
   if docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER; then
     echo "Skipping installing npm registry, already installed"
   else
-    docker run -d --restart always -p 4873:4873 --name $NPM_CONTAINER verdaccio/verdaccio:4
+    docker run -d --restart always -p $NPM_PORT:4873 --name $NPM_CONTAINER verdaccio/verdaccio:4
   
     if [ ! -f ~/.npmrc ]; then
       touch ~/.npmrc
@@ -50,15 +50,13 @@ function start_npm_registry() {
 
       success="1"
 
-      REGISTRY_IP=$(ifconfig $LOCAL_NETWORK | grep -i mask | awk '{print $2}' | tr -d '\n')
-
       while [[ "$success" != "0" ]]; do
-        npm ping --registry http://$REGISTRY_IP:4873
+        npm ping --registry http://$NPM_HOST:$NPM_PORT
         success="$?"
       done
 
       /usr/bin/expect <<EOD
-spawn npm login --registry http://$REGISTRY_IP:4873 --scope=pongle
+spawn npm login --registry http://$NPM_HOST:$NPM_PORT --scope=pongle
 expect {
   "Username:" {send "$NPM_USERNAME\r"; exp_continue}
   "Password:" {send "$NPM_PASSWORD\r"; exp_continue}
@@ -66,7 +64,7 @@ expect {
 }
 EOD
 
-      npm config set registry http://$REGISTRY_IP:4873
+      npm config set registry http://$NPM_HOST:$NPM_PORT
     fi
   fi
 }
