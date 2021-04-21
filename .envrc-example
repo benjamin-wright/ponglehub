@@ -1,16 +1,8 @@
-export LOCAL_NETWORK=en0
-
 export SCRATCH_DIR=$(pwd)/.scratch
 export KUBECONFIG=$SCRATCH_DIR/kubeconfig
-export EARTHLY_SECRET_FILES="NPMRC_FILE=/Users/$(whoami)/.npmrc"
 
 export CLUSTER_NAME=pongle
 export REGISTRY_NAME=pongle-registry.localhost
 export REGISTRY_PORT=5000
 
-export NPM_NAME=host.k3d.internal
-export NPM_PORT=4873
 export NPM_CONTAINER=npm-registry
-export NPM_USERNAME=
-export NPM_PASSWORD=
-export NPM_EMAIL=
