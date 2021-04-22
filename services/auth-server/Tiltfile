@@ -7,6 +7,8 @@ load('../../libraries/tilt/helm.Tiltfile', 'envvar')
 registry_name = envvar('REGISTRY_NAME')
 registry_port = envvar('REGISTRY_PORT')
 
+k8s_kind('Service', api_version='serving.knative.dev/v1' ,image_json_path='{.spec.template.spec.containers[].image}')
+
 default_registry('localhost:5000', host_from_cluster='%s:%s' % (registry_name, registry_port))
 
 custom_build(
@@ -38,6 +40,8 @@ k8s_yaml(helm(
     'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
     'app.name=auth-server',
     'app.image=auth-server',
+    'function.name=auth-server-func',
+    'function.image=auth-server',
     'test.name=tests',
     'test.image=auth-server-tests',
     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
@@ -53,6 +57,12 @@ k8s_yaml(helm(
 
 k8s_resource(
   'auth-server',
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_resource(
+  'auth-server-func',
   auto_init=True,
   trigger_mode=TRIGGER_MODE_MANUAL
 )

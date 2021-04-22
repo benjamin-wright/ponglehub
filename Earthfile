@@ -1,5 +1,9 @@
 FROM scratch
 
+repos:
+  LOCALLY
+  RUN ./infra/repos.sh
+
 init:
   LOCALLY
   RUN ./infra/start.sh

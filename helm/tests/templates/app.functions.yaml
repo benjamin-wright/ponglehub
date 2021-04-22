@@ -1,0 +1,11 @@
+{{ $function := .Values.function }}
+{{ $top := . }}
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: {{ $function.name }}
+spec:
+  template:
+    spec:
+      containers:
+        - image: {{ $function.image }}

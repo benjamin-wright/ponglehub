@@ -10,3 +10,8 @@ expect {
   "Email: (this IS public)" {send "bot@example.com\r"; exp_continue}
 }
 EOD
+
+if [ ! -f ~/.npmrc ]; then
+  echo "didn't create npmrc file"
+  exit 1
+fi

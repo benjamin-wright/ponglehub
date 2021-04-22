@@ -2,6 +2,7 @@
 
 set -o errexit -o pipefail
 
+# Start the docker registry that will be visible across localhost and the kube cluster
 function start_registry() {
   if k3d registry list -o json | jq '.[].name' -r | grep -q $REGISTRY_NAME; then
     echo "Skipping creating registry, already exists"
@@ -10,10 +11,13 @@ function start_registry() {
   fi
 }
 
+# Start the k3d cluster
 function start_cluster() {
   if k3d cluster list -o json | jq '.[].name' | grep -q $CLUSTER_NAME; then
     echo "Skipping creating cluster, already exists"
   else
+    # Disable the automatic kubeconfig update so that we can write it to a specific file, to avoid
+    # contaminating the global kubeconfig with our development cluster
     k3d cluster create $CLUSTER_NAME \
       --registry-use $REGISTRY_NAME \
       --agents 3 \
@@ -27,49 +31,43 @@ function start_cluster() {
   fi
 }
 
-function start_istio() {
-  if kubectl get ns -o json | jq '.items[].metadata.name' -r | grep -q 'istio-system'; then
-    echo "Skipping installing istio, already installed"
-  else
-    istioctl install --set profile=demo -y
-  fi
+# Start the knative components
+function start_knative() {
+  kubectl apply --wait -f https://github.com/knative/serving/releases/download/v0.22.0/serving-crds.yaml
+  kubectl apply --wait -f https://github.com/knative/serving/releases/download/v0.22.0/serving-core.yaml
+  kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml \
+  || kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml
+  kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/net-istio.yaml
 }
 
-function start_npm_registry() {
-  if docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER; then
-    echo "Skipping installing npm registry, already installed"
+# Knative serving has some issues with the private docker registry, so patch the coredns config to
+# redirect calls to the private registry host to the docker host IP (i.e. localhost on host system)
+function update_coredns() {
+  local file_name=tmp_configmap.yaml
+  local backup_file_name=tmp_configmap.yaml.bak
+
+  kubectl get configmap -n kube-system coredns -o yaml > $file_name
+
+  if cat $file_name | grep k3d-$REGISTRY_NAME -q; then
+    echo "hosts entry for private registry already exists."
   else
-    docker run -d --restart always -p 4873:4873 --name $NPM_CONTAINER verdaccio/verdaccio:4
-  
-    if [ ! -f ~/.npmrc ]; then
-      touch ~/.npmrc
-    fi
+    local registry_ip=$(cat $file_name | grep host.k3d.internal | xargs | cut -d " " -f1)
+    local line_number=$(cat tmp_configmap.yaml | grep host.k3d.internal -n | cut -f1 -d: | tr -d '\n')
 
-    if [ ! -f ~/.npmrc.bak ]; then
-      cp ~/.npmrc ~/.npmrc.bak
+    sed -i.bak "${line_number}i\\
+    $registry_ip k3d-$REGISTRY_NAME
+" tmp_configmap.yaml
 
-      success="1"
+    kubectl replace -n kube-system -f $file_name --wait
 
-      while [[ "$success" != "0" ]]; do
-        npm ping --registry http://localhost:4873
-        success="$?"
-      done
-
-      /usr/bin/expect <<EOD
-spawn npm login --registry http://localhost:4873 --scope=pongle
-expect {
-  "Username:" {send "local\r"; exp_continue}
-  "Password:" {send "password\r"; exp_continue}
-  "Email: (this IS public)" {send "local@example.com\r"; exp_continue}
-}
-EOD
-
-      npm config set registry http://localhost:4873
-    fi
+    kubectl -n kube-system rollout restart deployment coredns
   fi
+
+  rm $file_name
+  rm $backup_file_name
 }
 
 start_registry
 start_cluster
-start_istio
-start_npm_registry
+start_knative
+update_coredns
