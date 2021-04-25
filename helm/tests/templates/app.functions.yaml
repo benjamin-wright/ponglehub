@@ -1,11 +1,16 @@
-{{ $function := .Values.function }}
+{{ $functions := .Values.functions }}
 {{ $top := . }}
+
+{{- range $name, $function := $functions }}
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: {{ $function.name }}
+  name: {{ $name }}
+  labels:
+    tier: {{ default "private" $function.tier }}
 spec:
   template:
     spec:
       containers:
         - image: {{ $function.image }}
+{{- end }}

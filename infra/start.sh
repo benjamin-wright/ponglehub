@@ -20,10 +20,9 @@ function start_cluster() {
     # contaminating the global kubeconfig with our development cluster
     k3d cluster create $CLUSTER_NAME \
       --registry-use $REGISTRY_NAME \
-      --agents 3 \
-      --servers 1 \
       --k3s-server-arg "--no-deploy=traefik" \
       --kubeconfig-update-default=false \
+      -p "80:80@loadbalancer" \
       --wait
     
     mkdir -p $SCRATCH_DIR
@@ -35,9 +34,22 @@ function start_cluster() {
 function start_knative() {
   kubectl apply --wait -f https://github.com/knative/serving/releases/download/v0.22.0/serving-crds.yaml
   kubectl apply --wait -f https://github.com/knative/serving/releases/download/v0.22.0/serving-core.yaml
-  kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml \
-  || kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml
-  kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/net-istio.yaml
+  # kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml \
+  # || kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml
+  # kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/net-istio.yaml
+
+  # kubectl apply --wait -f https://github.com/knative/net-contour/releases/download/v0.22.0/contour.yaml
+  # kubectl apply --wait -f https://github.com/knative/net-contour/releases/download/v0.22.0/net-contour.yaml
+  # kubectl patch configmap/config-network \
+  #   --namespace knative-serving \
+  #   --type merge \
+  #   --patch '{"data":{"ingress.class":"contour.ingress.networking.knative.dev"}}'
+
+  kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.22.0/kourier.yaml
+  kubectl patch configmap/config-network \
+    --namespace knative-serving \
+    --type merge \
+    --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
 }
 
 # Knative serving has some issues with the private docker registry, so patch the coredns config to
@@ -56,7 +68,7 @@ function update_coredns() {
 
     sed -i.bak "${line_number}i\\
     $registry_ip k3d-$REGISTRY_NAME
-" tmp_configmap.yaml
+" $file_name
 
     kubectl replace -n kube-system -f $file_name --wait
 
@@ -67,7 +79,30 @@ function update_coredns() {
   rm $backup_file_name
 }
 
+function update_config_domain() {
+  local file_name=tmp_configmap.yaml
+  local updated_file_name=tmp_configmap_updated.yaml
+
+  kubectl get configmap -n knative-serving config-domain -o yaml > $file_name
+
+  cat << EOF | sed '/^data:$/ r /dev/stdin' $file_name > ${updated_file_name}
+  $DOMAIN_NAME: |
+    selector:
+      tier: public
+
+  svc.cluster.local: |
+    selector:
+      tier: private
+EOF
+
+  kubectl replace -n knative-serving -f $updated_file_name --wait
+
+  rm $file_name
+  rm $updated_file_name
+}
+
 start_registry
 start_cluster
 start_knative
 update_coredns
+update_config_domain

@@ -12,8 +12,8 @@ k8s_kind('Service', api_version='serving.knative.dev/v1' ,image_json_path='{.spe
 default_registry('localhost:5000', host_from_cluster='%s:%s' % (registry_name, registry_port))
 
 custom_build(
-  'auth-server',
-  'earthly +docker && docker tag auth-server $EXPECTED_REF',
+  'userlist',
+  'earthly +docker-userlist && docker tag userlist $EXPECTED_REF',
   ['.']
 )
 
@@ -38,10 +38,7 @@ k8s_yaml(helm(
   set=[
     'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
     'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
-    'app.name=auth-server',
-    'app.image=auth-server',
-    'function.name=auth-server-func',
-    'function.image=auth-server',
+    'functions.userlist.image=userlist',
     'test.name=tests',
     'test.image=auth-server-tests',
     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
@@ -56,16 +53,16 @@ k8s_yaml(helm(
 ))
 
 k8s_resource(
-  'auth-server',
+  'userlist',
   auto_init=True,
   trigger_mode=TRIGGER_MODE_MANUAL
 )
 
-k8s_resource(
-  'auth-server-func',
-  auto_init=True,
-  trigger_mode=TRIGGER_MODE_MANUAL
-)
+# k8s_resource(
+#   'auth-server-func',
+#   auto_init=True,
+#   trigger_mode=TRIGGER_MODE_MANUAL
+# )
 
 k8s_resource(
   'tests',

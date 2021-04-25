@@ -1,5 +1,6 @@
 {{ $server := .Values.app }}
 {{ $top := . }}
+{{- if $server.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -109,9 +110,9 @@ metadata:
 spec:
   ports:
   - name: http
-    port: 80
+    port: 8080
     protocol: TCP
-    targetPort: {{ $server.port | default 80 }}
+    targetPort: {{ $server.port | default 8080 }}
   selector:
     app: {{ $server.name }}
   type: ClusterIP
@@ -136,7 +137,7 @@ spec:
       paths:
       - backend:
           serviceName: {{ $server.name }}
-          servicePort: 80
+          servicePort: 8080
         path: /
         pathType: ImplementationSpecific
   tls:
@@ -176,4 +177,5 @@ subjects:
 - kind: ServiceAccount
   name: {{ $server.name }}
   namespace: {{ $top.Release.Namespace }}
+{{- end }}
 {{- end }}

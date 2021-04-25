@@ -134,7 +134,7 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:    "0.0.0.0:80",
+		Addr:    "0.0.0.0:8080",
 		Handler: r,
 	}
 

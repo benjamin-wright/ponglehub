@@ -20,13 +20,13 @@ describe('users route', () => {
 
         it('should return 404 if user doesn\'t exist', async () => {
             await expect(
-                axios.get(`http://auth-server/users/${missingId}`)
+                axios.get(`http://auth-server:8080/users/${missingId}`)
             ).rejects.toMatchError('Request failed with status code 404');
         });
 
         it('should return the user if it does exist', async () => {
             await expect(
-                axios.get(`http://auth-server/users/${testUser}`).then(res => ({ status: res.status, data: res.data }))
+                axios.get(`http://auth-server:8080/users/${testUser}`).then(res => ({ status: res.status, data: res.data }))
             ).resolves.toEqual({
                 status: 200,
                 data: {
@@ -39,7 +39,7 @@ describe('users route', () => {
 
         it('should return a verified user if it does exist', async () => {
             await expect(
-                axios.get(`http://auth-server/users/${verifiedUser}`).then(res => ({ status: res.status, data: res.data }))
+                axios.get(`http://auth-server:8080/users/${verifiedUser}`).then(res => ({ status: res.status, data: res.data }))
             ).resolves.toEqual({
                 status: 200,
                 data: {
@@ -58,7 +58,7 @@ describe('users route', () => {
     describe('post', () => {
         it('should add the user to the database', async () => {
             await expect(
-                axios.post('http://auth-server/users', { name: 'user', password: 'pwd', email: 'user@notathing.com' }).then(res => ({ status: res.status }))
+                axios.post('http://auth-server:8080/users', { name: 'user', password: 'pwd', email: 'user@notathing.com' }).then(res => ({ status: res.status }))
             ).resolves.toEqual({
                 status: 202
             });
@@ -78,7 +78,7 @@ describe('users route', () => {
             await db.addUser({ name: 'duplicate', email: 'same@email.com', password: 'pwd', verified: false });
 
             await expect(
-                axios.post('http://auth-server/users', { name: 'duplicate', password: 'pwd', email: 'duplicate@notathing.com' })
+                axios.post('http://auth-server:8080/users', { name: 'duplicate', password: 'pwd', email: 'duplicate@notathing.com' })
             ).rejects.toMatchError('Request failed with status code 400');
         });
 
@@ -86,7 +86,7 @@ describe('users route', () => {
             await db.addUser({ name: 'duplicate', email: 'same@email.com', password: 'pwd', verified: false });
 
             await expect(
-                axios.post('http://auth-server/users', { name: 'different', password: 'pwd', email: 'same@email.com' })
+                axios.post('http://auth-server:8080/users', { name: 'different', password: 'pwd', email: 'same@email.com' })
             ).rejects.toMatchError('Request failed with status code 400');
         });
     });
@@ -94,7 +94,7 @@ describe('users route', () => {
     describe('delete', () => {
         it('should return a 404 if the user doesn\'t exist', async () => {
             await expect(
-                axios.delete(`htth://auth-server/users/${missingId}`)
+                axios.delete(`htth://auth-server:8080/users/${missingId}`)
             ).rejects.toMatchError('Request failed with status code 404');
         });
 
@@ -103,17 +103,17 @@ describe('users route', () => {
             const id = await db.addUser({ name: 'to-delete', email: 'do@email.com', password: 'pwd', verified: false });
 
             await expect(
-                axios.delete(`http://auth-server/users/${id}`).then(res => ({ status: res.status }))
+                axios.delete(`http://auth-server:8080/users/${id}`).then(res => ({ status: res.status }))
             ).resolves.toEqual({ status: 204 });
 
             expect((await db.getUsers()).map(x => x.name)).toEqual(['not-delete']);
         });
     });
 
-    describe('list', () => {
+    describe.only('list', () => {
         it('should return empty if no users', async () => {
             await expect(
-                axios.get('http://auth-server/users').then(res => ({ status: res.status, data: res.data }))
+                axios.get('http://userlist.int-auth-server.svc.cluster.local').then(res => ({ status: res.status, data: res.data }))
             ).resolves.toEqual({
                 status: 200,
                 data: []
@@ -126,7 +126,7 @@ describe('users route', () => {
             await db.addUsers(users.map(user => ({ name: user, email: `${user}@email.com`, password: 'pwd', verified: false })));
 
             await expect(
-                axios.get('http://auth-server/users').then(res => ({ status: res.status, data: res.data.sort((a, b) => compareStrings(a.name, b.name)) }))
+                axios.get('http://userlist.int-auth-server.svc.cluster.local').then(res => ({ status: res.status, data: res.data.sort((a, b) => compareStrings(a.name, b.name)) }))
             ).resolves.toEqual({
                 status: 200,
                 data: users.map(user => ({

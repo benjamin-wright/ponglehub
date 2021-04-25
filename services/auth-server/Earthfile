@@ -2,21 +2,25 @@ FROM golang:1.16
 
 WORKDIR /src
 
-build:
+deps:
   COPY go.mod go.sum ./
   RUN go mod download
 
   COPY *.go ./
   COPY internal ./internal
+  COPY cmd ./cmd
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o auth-server
+build-userlist:
+  FROM +deps
 
-  SAVE ARTIFACT auth-server
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o userlist  ./cmd/userlist
 
-docker:
+  SAVE ARTIFACT userlist
+
+docker-userlist:
   FROM scratch
 
-  COPY +build/auth-server /go/bin/auth-server
-  ENTRYPOINT [ "/go/bin/auth-server" ]
+  COPY +build-userlist/userlist /go/bin/userlist
+  ENTRYPOINT [ "/go/bin/userlist" ]
 
-  SAVE IMAGE auth-server
+  SAVE IMAGE userlist

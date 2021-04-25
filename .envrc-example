@@ -6,3 +6,4 @@ export REGISTRY_NAME=pongle-registry.localhost
 export REGISTRY_PORT=5000
 
 export NPM_CONTAINER=npm-registry
+export DOMAIN_NAME=
