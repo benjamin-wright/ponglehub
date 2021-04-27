@@ -6,21 +6,80 @@ deps:
   COPY go.mod go.sum ./
   RUN go mod download
 
-  COPY *.go ./
   COPY internal ./internal
   COPY cmd ./cmd
 
-build-userlist:
+build-users-list:
   FROM +deps
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o userlist  ./cmd/userlist
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-list  ./cmd/users-list
 
-  SAVE ARTIFACT userlist
+  SAVE ARTIFACT users-list
 
-docker-userlist:
+docker-users-list:
   FROM scratch
 
-  COPY +build-userlist/userlist /go/bin/userlist
-  ENTRYPOINT [ "/go/bin/userlist" ]
+  COPY +build-users-list/users-list /go/bin/users-list
+  ENTRYPOINT [ "/go/bin/users-list" ]
 
-  SAVE IMAGE userlist
+  SAVE IMAGE users-list
+
+build-users-get:
+  FROM +deps
+
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-get  ./cmd/users-get
+
+  SAVE ARTIFACT users-get
+
+docker-users-get:
+  FROM scratch
+
+  COPY +build-users-get/users-get /go/bin/users-get
+  ENTRYPOINT [ "/go/bin/users-get" ]
+
+  SAVE IMAGE users-get
+
+build-users-post:
+  FROM +deps
+
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-post  ./cmd/users-post
+
+  SAVE ARTIFACT users-post
+
+docker-users-post:
+  FROM scratch
+
+  COPY +build-users-post/users-post /go/bin/users-post
+  ENTRYPOINT [ "/go/bin/users-post" ]
+
+  SAVE IMAGE users-post
+
+build-users-delete:
+  FROM +deps
+
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-delete  ./cmd/users-delete
+
+  SAVE ARTIFACT users-delete
+
+docker-users-delete:
+  FROM scratch
+
+  COPY +build-users-delete/users-delete /go/bin/users-delete
+  ENTRYPOINT [ "/go/bin/users-delete" ]
+
+  SAVE IMAGE users-delete
+
+build-users-put:
+  FROM +deps
+
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-put  ./cmd/users-put
+
+  SAVE ARTIFACT users-put
+
+docker-users-put:
+  FROM scratch
+
+  COPY +build-users-put/users-put /go/bin/users-put
+  ENTRYPOINT [ "/go/bin/users-put" ]
+
+  SAVE IMAGE users-put

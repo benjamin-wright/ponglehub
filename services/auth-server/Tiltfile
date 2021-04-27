@@ -11,11 +11,24 @@ k8s_kind('Service', api_version='serving.knative.dev/v1' ,image_json_path='{.spe
 
 default_registry('localhost:5000', host_from_cluster='%s:%s' % (registry_name, registry_port))
 
-custom_build(
-  'userlist',
-  'earthly +docker-userlist && docker tag userlist $EXPECTED_REF',
-  ['.']
-)
+def function_def(func_name):
+  custom_build(
+    func_name,
+    'earthly +docker-%s && docker tag %s $EXPECTED_REF' % (func_name, func_name),
+    ['.']
+  )
+
+  k8s_resource(
+    func_name,
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL
+  )
+
+function_def('users-list')
+function_def('users-get')
+function_def('users-post')
+function_def('users-put')
+function_def('users-delete')
 
 custom_build(
   'auth-server-tests',
@@ -38,7 +51,11 @@ k8s_yaml(helm(
   set=[
     'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
     'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
-    'functions.userlist.image=userlist',
+    'functions.users-list.image=users-list',
+    'functions.users-get.image=users-get',
+    'functions.users-post.image=users-post',
+    'functions.users-put.image=users-put',
+    'functions.users-delete.image=users-delete',
     'test.name=tests',
     'test.image=auth-server-tests',
     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
@@ -52,12 +69,6 @@ k8s_yaml(helm(
   ]
 ))
 
-k8s_resource(
-  'userlist',
-  auto_init=True,
-  trigger_mode=TRIGGER_MODE_MANUAL
-)
-
 # k8s_resource(
 #   'auth-server-func',
 #   auto_init=True,
@@ -66,6 +77,6 @@ k8s_resource(
 
 k8s_resource(
   'tests',
-  auto_init=True,
+  auto_init=False,
   trigger_mode=TRIGGER_MODE_MANUAL
 )

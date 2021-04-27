@@ -2,6 +2,7 @@
 {{ $top := . }}
 
 {{- range $name, $function := $functions }}
+---
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:

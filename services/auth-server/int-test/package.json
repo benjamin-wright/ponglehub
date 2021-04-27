@@ -22,7 +22,8 @@
     "setupFilesAfterEnv": [
       "./helpers/matchers.support.js"
     ],
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testTimeout": 10000
   },
   "eslintConfig": {
     "extends": [

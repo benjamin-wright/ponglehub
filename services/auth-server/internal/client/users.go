@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
@@ -40,6 +41,53 @@ func (a *AuthClient) AddUser(ctx context.Context, user User) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// UpdateUser - Update an existing user
+func (a *AuthClient) UpdateUser(ctx context.Context, id string, user User, verified *bool) error {
+	queryParts := []string{}
+	queryArgs := []interface{}{}
+
+	term := 1
+
+	if user.Email != "" {
+		queryParts = append(queryParts, fmt.Sprintf("email = $%d", term))
+		queryArgs = append(queryArgs, user.Email)
+
+		term += 1
+	}
+
+	if user.Name != "" {
+		queryParts = append(queryParts, fmt.Sprintf("name = $%d", term))
+		queryArgs = append(queryArgs, user.Name)
+
+		term += 1
+	}
+
+	if user.Password != "" {
+		queryParts = append(queryParts, fmt.Sprintf("password = $%d", term))
+		queryArgs = append(queryArgs, user.Password)
+
+		term += 1
+	}
+
+	if verified != nil {
+		queryParts = append(queryParts, fmt.Sprintf("verified = $%d", term))
+		queryArgs = append(queryArgs, &verified)
+
+		term += 1
+	}
+
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(queryParts, ", "), term)
+	queryArgs = append(queryArgs, id)
+
+	_, err := a.conn.Exec(
+		ctx,
+		query,
+		queryArgs...,
+	)
+
+	return err
 }
 
 // GetUser - retrieve a user from the database
