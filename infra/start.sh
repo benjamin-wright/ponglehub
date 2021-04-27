@@ -36,7 +36,8 @@ function start_knative() {
   kubectl apply --wait -f https://github.com/knative/serving/releases/download/v0.22.0/serving-core.yaml
   # kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml \
   # || kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml
-  # kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/net-istio.yaml
+  istioctl install --set profile=demo -y
+  kubectl apply --wait -f https://github.com/knative/net-istio/releases/download/v0.22.0/net-istio.yaml
 
   # kubectl apply --wait -f https://github.com/knative/net-contour/releases/download/v0.22.0/contour.yaml
   # kubectl apply --wait -f https://github.com/knative/net-contour/releases/download/v0.22.0/net-contour.yaml
@@ -45,11 +46,11 @@ function start_knative() {
   #   --type merge \
   #   --patch '{"data":{"ingress.class":"contour.ingress.networking.knative.dev"}}'
 
-  kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.22.0/kourier.yaml
-  kubectl patch configmap/config-network \
-    --namespace knative-serving \
-    --type merge \
-    --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
+  # kubectl apply -f https://github.com/knative/net-kourier/releases/download/v0.22.0/kourier.yaml
+  # kubectl patch configmap/config-network \
+  #   --namespace knative-serving \
+  #   --type merge \
+  #   --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
 }
 
 # Knative serving has some issues with the private docker registry, so patch the coredns config to
@@ -58,20 +59,24 @@ function update_coredns() {
   local file_name=tmp_configmap.yaml
   local backup_file_name=tmp_configmap.yaml.bak
 
+  # grab the core-dns configuration from the cluster
   kubectl get configmap -n kube-system coredns -o yaml > $file_name
 
   if cat $file_name | grep k3d-$REGISTRY_NAME -q; then
     echo "hosts entry for private registry already exists."
   else
+    # Find the IP associated with host.k3d.internal, this will be the IP of your host machine on the docker network
     local registry_ip=$(cat $file_name | grep host.k3d.internal | xargs | cut -d " " -f1)
     local line_number=$(cat tmp_configmap.yaml | grep host.k3d.internal -n | cut -f1 -d: | tr -d '\n')
 
+    # Add the docker registry hostname with the host machine IP address to the core-dns config file
     sed -i.bak "${line_number}i\\
     $registry_ip k3d-$REGISTRY_NAME
 " $file_name
 
     kubectl replace -n kube-system -f $file_name --wait
 
+    # roll the core-dns pods to reload the config
     kubectl -n kube-system rollout restart deployment coredns
   fi
 
