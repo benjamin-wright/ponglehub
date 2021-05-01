@@ -84,30 +84,31 @@ function update_coredns() {
   rm $backup_file_name
 }
 
-function update_config_domain() {
-  local file_name=tmp_configmap.yaml
-  local updated_file_name=tmp_configmap_updated.yaml
+## Not needed if using istio virtualservices as an API gateway
+# function update_config_domain() {
+#   local file_name=tmp_configmap.yaml
+#   local updated_file_name=tmp_configmap_updated.yaml
 
-  kubectl get configmap -n knative-serving config-domain -o yaml > $file_name
+#   kubectl get configmap -n knative-serving config-domain -o yaml > $file_name
 
-  cat << EOF | sed '/^data:$/ r /dev/stdin' $file_name > ${updated_file_name}
-  $DOMAIN_NAME: |
-    selector:
-      tier: public
+#   cat << EOF | sed '/^data:$/ r /dev/stdin' $file_name > ${updated_file_name}
+#   $DOMAIN_NAME: |
+#     selector:
+#       tier: public
 
-  svc.cluster.local: |
-    selector:
-      tier: private
-EOF
+#   svc.cluster.local: |
+#     selector:
+#       tier: private
+# EOF
 
-  kubectl replace -n knative-serving -f $updated_file_name --wait
+#   kubectl replace -n knative-serving -f $updated_file_name --wait
 
-  rm $file_name
-  rm $updated_file_name
-}
+#   rm $file_name
+#   rm $updated_file_name
+# }
 
 start_registry
 start_cluster
 start_knative
 update_coredns
-update_config_domain
+# update_config_domain

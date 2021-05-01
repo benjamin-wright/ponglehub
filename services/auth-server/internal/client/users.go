@@ -120,6 +120,36 @@ func (a *AuthClient) GetUser(ctx context.Context, id string) (*User, error) {
 	return &users[0], nil
 }
 
+// GetUser - retrieve a user from the database
+func (a *AuthClient) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	rows, err := a.conn.Query(ctx, "SELECT id, name, password, verified FROM users WHERE email = $1", email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []User{}
+
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.Name, &user.Email, &user.Password, &user.Verified); err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if len(users) == 0 {
+		return nil, nil
+	}
+
+	if len(users) > 1 {
+		return nil, fmt.Errorf("Failed to find user from email \"%s\": Expected 1 user, received %d", email, len(users))
+	}
+
+	return &users[0], nil
+}
+
 // ListUsers - Returns a list of all the users in the system
 func (a *AuthClient) ListUsers(ctx context.Context) ([]*User, error) {
 	rows, err := a.conn.Query(ctx, "SELECT id, name, email, password, verified FROM users")

@@ -12,7 +12,7 @@ deps:
 build-users-list:
   FROM +deps
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-list  ./cmd/users-list
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-list  ./cmd/users-list.go
 
   SAVE ARTIFACT users-list
 
@@ -22,12 +22,12 @@ docker-users-list:
   COPY +build-users-list/users-list /go/bin/users-list
   ENTRYPOINT [ "/go/bin/users-list" ]
 
-  SAVE IMAGE users-list
+  SAVE IMAGE auth-server/users-list
 
 build-users-get:
   FROM +deps
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-get  ./cmd/users-get
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-get  ./cmd/users-get.go
 
   SAVE ARTIFACT users-get
 
@@ -37,12 +37,12 @@ docker-users-get:
   COPY +build-users-get/users-get /go/bin/users-get
   ENTRYPOINT [ "/go/bin/users-get" ]
 
-  SAVE IMAGE users-get
+  SAVE IMAGE auth-server/users-get
 
 build-users-post:
   FROM +deps
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-post  ./cmd/users-post
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-post  ./cmd/users-post.go
 
   SAVE ARTIFACT users-post
 
@@ -52,12 +52,12 @@ docker-users-post:
   COPY +build-users-post/users-post /go/bin/users-post
   ENTRYPOINT [ "/go/bin/users-post" ]
 
-  SAVE IMAGE users-post
+  SAVE IMAGE auth-server/users-post
 
 build-users-delete:
   FROM +deps
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-delete  ./cmd/users-delete
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-delete  ./cmd/users-delete.go
 
   SAVE ARTIFACT users-delete
 
@@ -67,12 +67,12 @@ docker-users-delete:
   COPY +build-users-delete/users-delete /go/bin/users-delete
   ENTRYPOINT [ "/go/bin/users-delete" ]
 
-  SAVE IMAGE users-delete
+  SAVE IMAGE auth-server/users-delete
 
 build-users-put:
   FROM +deps
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-put  ./cmd/users-put
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o users-put  ./cmd/users-put.go
 
   SAVE ARTIFACT users-put
 
@@ -82,4 +82,19 @@ docker-users-put:
   COPY +build-users-put/users-put /go/bin/users-put
   ENTRYPOINT [ "/go/bin/users-put" ]
 
-  SAVE IMAGE users-put
+  SAVE IMAGE auth-server/users-put
+
+build-login:
+  FROM +deps
+
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o login  ./cmd/login.go
+
+  SAVE ARTIFACT login
+
+docker-login:
+  FROM scratch
+
+  COPY +build-login/login /go/bin/login
+  ENTRYPOINT [ "/go/bin/login" ]
+
+  SAVE IMAGE auth-server/login

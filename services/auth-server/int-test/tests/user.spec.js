@@ -53,7 +53,7 @@ describe('users route', () => {
 
     describe('put', () => {
         it('should update the specified user', async () => {
-            const id = await db.addUser({ name: 'to-update', email: 'original@email.com', password: 'pwd', verified: false });
+            const id = await db.addUser({ name: 'to-update', email: 'original@email.com', password: 'hash', verified: false });
 
             await expect(
                 axios.put(`http://users-put.int-auth-server.svc.cluster.local/${id}`, { email: 'new@email.com' }).then(res => ({ status: res.status }))
@@ -63,13 +63,13 @@ describe('users route', () => {
                 id: expect.any(String),
                 name: 'to-update',
                 email: 'new@email.com',
-                password: 'pwd',
+                password: 'hash',
                 verified: false
             }]);
         });
 
         it('should not update verified if not provided', async () => {
-            const id = await db.addUser({ name: 'to-update', email: 'original@email.com', password: 'pwd', verified: true });
+            const id = await db.addUser({ name: 'to-update', email: 'original@email.com', password: 'hash', verified: true });
 
             await expect(
                 axios.put(`http://users-put.int-auth-server.svc.cluster.local/${id}`, { name: 'newname' }).then(res => ({ status: res.status }))
@@ -79,7 +79,7 @@ describe('users route', () => {
                 id: expect.any(String),
                 name: 'newname',
                 email: 'original@email.com',
-                password: 'pwd',
+                password: 'hash',
                 verified: true
             }]);
         });
@@ -101,7 +101,7 @@ describe('users route', () => {
                 id: expect.any(String),
                 name: 'new-name',
                 email: 'new@email.com',
-                password: 'newpwd',
+                password: expect.any(String),
                 verified: true
             }]);
         });
@@ -120,7 +120,7 @@ describe('users route', () => {
                     id: expect.any(String),
                     name: 'user',
                     email: 'user@notathing.com',
-                    password: 'pwd',
+                    password: expect.any(String),
                     verified: false
                 }
             ]);
@@ -188,6 +188,26 @@ describe('users route', () => {
                     verified: false
                 }))
             });
+        });
+    });
+
+    describe('login', () => {
+        it('should fail if the email is missing', async () => {
+            await expect(
+                axios.post('http://login.int-auth-server.svc.cluster.local', { password: 'pwd' }).then(res => ({ status: res.status }))
+            ).rejects.toMatchError('Request failed with status code 400');
+        });
+
+        it('should fail if the password is missing', async () => {
+            await expect(
+                axios.post('http://login.int-auth-server.svc.cluster.local', { email: 'whatevs' }).then(res => ({ status: res.status }))
+            ).rejects.toMatchError('Request failed with status code 400');
+        });
+
+        it('should fail if the user doesn\'t exist', async () => {
+            await expect(
+                axios.post('http://login.int-auth-server.svc.cluster.local', { password: 'pwd', email: 'user@notathing.com' }).then(res => ({ status: res.status }))
+            ).rejects.toMatchError('Request failed with status code 401');
         });
     });
 });

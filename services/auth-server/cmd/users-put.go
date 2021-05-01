@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 	"ponglehub.co.uk/auth/auth-server/internal/client"
 	"ponglehub.co.uk/auth/auth-server/internal/server"
 )
@@ -24,12 +25,24 @@ func main() {
 				return
 			}
 
-			logrus.Infof("Updating user %s: \"%s\" \"%s\" \"%s\"", c.Param("id"), body.Email, body.Name, body.Password)
+			logrus.Infof("Updating user %s: \"%s\" \"%s\" \"%t\"", c.Param("id"), body.Email, body.Name, body.Password != "")
+
+			hashedPassword := ""
+			if body.Password != "" {
+				hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+				if err != nil {
+					logrus.Errorf("Error hashing user password: %+v", err)
+					c.Status(500)
+					return
+				}
+
+				hashedPassword = string(hash)
+			}
 
 			err := cli.UpdateUser(c.Request.Context(), c.Param("id"), client.User{
 				Name:     body.Name,
 				Email:    body.Email,
-				Password: body.Password,
+				Password: hashedPassword,
 			}, body.Verified)
 
 			if err != nil {

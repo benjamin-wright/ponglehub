@@ -14,8 +14,9 @@ default_registry('localhost:5000', host_from_cluster='%s:%s' % (registry_name, r
 def function(func_name, path, method):
   custom_build(
     func_name,
-    'earthly +docker-%s && docker tag %s $EXPECTED_REF' % (func_name, func_name),
-    ['.']
+    'earthly +docker-%s && docker tag auth-server/%s $EXPECTED_REF' % (func_name, func_name),
+    ['.'],
+    ignore=['.tmp-earthly-out']
   )
 
   k8s_resource(
@@ -36,6 +37,7 @@ args += function('users-get', '/users/', 'GET')
 args += function('users-post', '/users/', 'POST')
 args += function('users-put', '/users/', 'PUT')
 args += function('users-delete', '/users/', 'DELETE')
+args += function('login', '/login', 'POST')
 
 custom_build(
   'auth-server-tests',
@@ -56,8 +58,6 @@ k8s_yaml(helm(
   name='auth-server',
   namespace='int-auth-server',
   set=[
-    'global.ssl.key='+file('../../../infra/terraform/infra/.scratch/ingress.key'),
-    'global.ssl.crt='+file('../../../infra/terraform/infra/.scratch/ingress.crt'),
     'test.name=tests',
     'test.image=auth-server-tests',
     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',

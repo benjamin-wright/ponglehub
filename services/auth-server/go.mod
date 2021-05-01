@@ -8,4 +8,5 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jackc/pgx/v4 v4.11.0
 	github.com/sirupsen/logrus v1.8.1
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
 )
