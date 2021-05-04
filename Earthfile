@@ -4,11 +4,27 @@ repos:
   LOCALLY
   RUN ./infra/repos.sh
 
-init:
+repos-stop:
+  LOCALLY
+  RUN ./infra/repos-stop.sh
+
+infra:
   LOCALLY
   RUN ./infra/start.sh
   RUN helm dep update helm/tests
 
-clean:
+infra-stop:
   LOCALLY
   RUN ./infra/stop.sh
+
+start:
+  BUILD +repos
+  BUILD +infra
+
+stop:
+  BUILD +infra-stop
+
+clean:
+  BUILD +infra-stop
+  BUILD +repos-stop
+

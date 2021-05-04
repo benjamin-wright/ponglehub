@@ -52,9 +52,8 @@ func main() {
 			}
 
 			c.JSON(200, gin.H{
-				"name":     user.Name,
-				"email":    user.Email,
-				"verified": user.Verified,
+				"id":   user.ID,
+				"name": user.Name,
 			})
 		})
 	})

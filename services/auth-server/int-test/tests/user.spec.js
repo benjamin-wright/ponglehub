@@ -4,7 +4,7 @@ const db = new DB();
 const { compareStrings } = require('../helpers/strings');
 const missingId = '00000000-0000-0000-0000-000000000000';
 
-describe('users route', () => {
+describe('users routes', () => {
     beforeEach(async () => {
         await db.clearUsers();
     });
@@ -188,26 +188,6 @@ describe('users route', () => {
                     verified: false
                 }))
             });
-        });
-    });
-
-    describe('login', () => {
-        it('should fail if the email is missing', async () => {
-            await expect(
-                axios.post('http://login.int-auth-server.svc.cluster.local', { password: 'pwd' }).then(res => ({ status: res.status }))
-            ).rejects.toMatchError('Request failed with status code 400');
-        });
-
-        it('should fail if the password is missing', async () => {
-            await expect(
-                axios.post('http://login.int-auth-server.svc.cluster.local', { email: 'whatevs' }).then(res => ({ status: res.status }))
-            ).rejects.toMatchError('Request failed with status code 400');
-        });
-
-        it('should fail if the user doesn\'t exist', async () => {
-            await expect(
-                axios.post('http://login.int-auth-server.svc.cluster.local', { password: 'pwd', email: 'user@notathing.com' }).then(res => ({ status: res.status }))
-            ).rejects.toMatchError('Request failed with status code 401');
         });
     });
 });

@@ -132,9 +132,11 @@ func (a *AuthClient) GetUserByEmail(ctx context.Context, email string) (*User, e
 
 	for rows.Next() {
 		var user User
-		if err := rows.Scan(&user.Name, &user.Email, &user.Password, &user.Verified); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.Verified); err != nil {
 			return nil, err
 		}
+
+		user.Email = email
 
 		users = append(users, user)
 	}

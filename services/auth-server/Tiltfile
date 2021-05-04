@@ -16,7 +16,7 @@ def function(func_name, path, method):
     func_name,
     'earthly +docker-%s && docker tag auth-server/%s $EXPECTED_REF' % (func_name, func_name),
     ['.'],
-    ignore=['.tmp-earthly-out']
+    ignore=['.tmp-earthly-out', 'int-test']
   )
 
   k8s_resource(
