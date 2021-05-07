@@ -9,6 +9,25 @@ deps:
   COPY internal ./internal
   COPY cmd ./cmd
 
+build:
+  FROM +deps
+
+  ARG APPLICATION_NAME
+
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${APPLICATION_NAME} ./cmd/${APPLICATION_NAME}.go
+
+  SAVE ARTIFACT ${APPLICATION_NAME}
+
+docker:
+  FROM scratch
+
+  ARG APPLICATION_NAME
+
+  COPY --build-arg APPLICATION_NAME="$APPLICATION_NAME" +build/${APPLICATION_NAME} /go/bin/app
+  ENTRYPOINT [ "/go/bin/app" ]
+
+  SAVE IMAGE auth-server/${APPLICATION_NAME}
+
 build-users-list:
   FROM +deps
 

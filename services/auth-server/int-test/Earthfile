@@ -7,7 +7,7 @@ deps:
 
   COPY package*.json ./
   RUN npm install
-  
+
   COPY --dir tests helpers .
 
 lint:
@@ -18,7 +18,7 @@ docker:
   FROM +deps
 
   ENTRYPOINT [ "npm" ]
-  CMD [ "run", "int-test" ]
+  CMD [ "run", "int-test-watch" ]
 
   SAVE IMAGE auth-server-tests
 
