@@ -98,3 +98,36 @@ docker-login:
   ENTRYPOINT [ "/go/bin/login" ]
 
   SAVE IMAGE auth-server/login
+
+all:
+  BUILD +docker-login
+  BUILD +docker-users-put
+  BUILD +docker-users-post
+  BUILD +docker-users-get
+  BUILD +docker-users-list
+  BUILD +docker-users-delete
+
+  BUILD ./int-test+docker
+  BUILD ../db-init+docker
+
+test:
+  FROM earthly/dind:alpine
+
+  COPY docker-compose.yaml ./
+  COPY --dir migrations ./
+  WITH DOCKER --compose docker-compose.yaml \
+      --load auth-server/login=+docker-login \
+      --load auth-server/users-put=+docker-users-put \
+      --load auth-server/users-post=+docker-users-post \
+      --load auth-server/users-get=+docker-users-get \
+      --load auth-server/users-list=+docker-users-list \
+      --load auth-server/users-delete=+docker-users-delete \
+      --load auth-server/tests=./int-test+docker \
+      --load db-init=../db-init+docker \
+      --pull cockroachdb/cockroach:v20.2.8
+    RUN sleep 5 && \
+        docker run \
+          --network default_default \
+          -e DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver \
+          auth-server/tests
+  END

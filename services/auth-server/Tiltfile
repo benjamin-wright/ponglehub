@@ -21,8 +21,11 @@ def function(func_name, path, method):
 
   k8s_resource(
     func_name,
-    auto_init=False,
-    trigger_mode=TRIGGER_MODE_MANUAL
+    auto_init=True,
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=[
+      'tests-migrations'
+    ]
   )
 
   return [
@@ -42,7 +45,11 @@ args += function('login', '/login', 'POST')
 custom_build(
   'auth-server-tests',
   'earthly ./int-test+docker && docker tag auth-server-tests $EXPECTED_REF',
-  ['./int-test']
+  ['./int-test'],
+  live_update=[
+    sync('./int-test/tests', '/src/tests'),
+    sync('./int-test/helpers', '/src/helpers'),
+  ]
 )
 
 custom_build(
@@ -67,12 +74,11 @@ k8s_yaml(helm(
     'migrations.db.host=auth-server-cockroach-public',
     'migrations.sets[0].user=authserver',
     'migrations.sets[0].database=authserver',
-    load_files_encoded('migrations.sets[0].migrations', './migrations')
+    load_files_encoded('migrations.sets[0].migrations', './migrations/sql')
   ] + args
 ))
 
 k8s_resource(
-  'tests',
-  auto_init=False,
-  trigger_mode=TRIGGER_MODE_MANUAL
+  'tests-migrations',
+  resource_deps=['auth-server-cockroach']
 )

@@ -1,0 +1,5 @@
+host: auth-server-cockroach-public
+port: 26257
+data:
+- user: authserver
+  database: authserver

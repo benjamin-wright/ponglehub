@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,11 @@ import (
 )
 
 func Run(builder func(cli *client.AuthClient, r *gin.Engine)) {
+	port, ok := os.LookupEnv("PONGLE_SERVER_PORT")
+	if !ok {
+		logrus.Fatal("Environment Variable PONGLE_SERVER_PORT not found")
+	}
+
 	cli, err := client.New(context.Background(), &client.AuthClientConfig{
 		Username: "authserver",
 		Host:     "auth-server-cockroach-public",
@@ -30,7 +36,7 @@ func Run(builder func(cli *client.AuthClient, r *gin.Engine)) {
 	builder(cli, r)
 
 	srv := &http.Server{
-		Addr:    "0.0.0.0:8080",
+		Addr:    fmt.Sprintf("0.0.0.0:%s", port),
 		Handler: r,
 	}
 

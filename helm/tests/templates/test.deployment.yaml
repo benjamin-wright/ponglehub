@@ -1,0 +1,42 @@
+{{- $test := .Values.test -}}
+{{- $root := . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ required "must enter a name property!" $test.name }}
+  name: {{ required "must enter a name property!" $test.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $test.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ required "must enter a name property!" $test.name }}
+      annotations:
+        linkerd.io/inject: disabled
+    spec:
+      containers:
+      - name: {{ $test.name | default "job" }}
+        image: {{ required "must enter an image property!" $test.image}}
+        imagePullPolicy: {{ $test.pullPolicy | default "Always" }}
+        {{- if $test.env }}
+        env:
+        {{- range $key, $value := $test.env }}
+        - name: {{ $key }}
+          value: {{ tpl $value $root }}
+        {{- end }}
+        {{- end }}
+        resources:
+        {{- if $test.resources }}
+          {{- toYaml $test.resources | nindent 10 }}
+        {{- else }}
+          requests:
+            memory: 512Mi
+            cpu: 1
+          limits:
+            memory: 512Mi
+            cpu: 1
+        {{- end }}

@@ -2,11 +2,11 @@
   "name": "@pongle/auth-server-tests",
   "description": "",
   "license": "ISC",
-  "author": "",
+  "author": "ben",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "int-test": "jest . --runInBand",
+    "int-test": "jest . --runInBand --verbose",
     "lint": "eslint .",
     "test": "echo \"NA\""
   },
