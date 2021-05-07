@@ -22,6 +22,14 @@ docker:
 
   SAVE IMAGE auth-server-tests
 
+docker-ci:
+  FROM +deps
+
+  ENTRYPOINT [ "npm" ]
+  CMD [ "run", "int-test" ]
+
+  SAVE IMAGE auth-server-tests-ci
+
 all:
   BUILD +lint
   BUILD +docker
