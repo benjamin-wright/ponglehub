@@ -14,19 +14,13 @@ import (
 const TEST_DB = "test_users_delete"
 
 func TestDeleteRoute(t *testing.T) {
-	if err := testutils.Migrate(TEST_DB); err != nil {
-		fmt.Printf("Failed to set up database: %+v\n", err)
-		t.Fail()
-	}
-
-	fmt.Println("Ran migration")
-	fmt.Println("************************************************")
-
-	_, err := testutils.NewClient(TEST_DB)
+	cli, err := testutils.NewClient(TEST_DB)
 	if err != nil {
 		fmt.Printf("Failed to create test client: %+v\n", err)
 		t.Fail()
+		return
 	}
+	defer cli.Drop()
 
 	for _, test := range []struct {
 		name string

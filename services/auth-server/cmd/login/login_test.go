@@ -15,10 +15,13 @@ import (
 const TEST_DB = "test_login"
 
 func TestLoginRoute(t *testing.T) {
-	if err := testutils.Migrate(TEST_DB); err != nil {
-		fmt.Printf("Failed to set up database: %+v\n", err)
+	cli, err := testutils.NewClient(TEST_DB)
+	if err != nil {
+		fmt.Printf("Failed to create test client: %+v\n", err)
 		t.Fail()
+		return
 	}
+	defer cli.Drop()
 
 	r := server.GetRouter(TEST_DB, routeBuilder)
 

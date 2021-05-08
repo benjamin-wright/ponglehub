@@ -7,16 +7,19 @@ import (
 	"os"
 
 	pgx "github.com/jackc/pgx/v4"
-	"github.com/sirupsen/logrus"
 )
 
 type TestClient struct {
-	conn  *pgx.Conn
-	table string
+	conn     *pgx.Conn
+	database string
 }
 
 // New - Create a new AuthClient instance
 func NewClient(database string) (*TestClient, error) {
+	if err := migrate(database); err != nil {
+		return nil, fmt.Errorf("Failed to migrate database: %+v", err)
+	}
+
 	host, ok := os.LookupEnv("DB_HOST")
 	if !ok {
 		return nil, errors.New("DB_HOST env var must be provided")
@@ -32,10 +35,37 @@ func NewClient(database string) (*TestClient, error) {
 		return nil, err
 	}
 
-	return &TestClient{conn: conn}, nil
+	return &TestClient{conn: conn, database: database}, nil
 }
 
-func Migrate(database string) error {
+func (c *TestClient) Drop() error {
+	c.conn.Close(context.Background())
+
+	host, ok := os.LookupEnv("DB_HOST")
+	if !ok {
+		return errors.New("DB_HOST env var must be provided")
+	}
+
+	config, err := pgx.ParseConfig(fmt.Sprintf("postgres://root@%s:26257", host))
+	if err != nil {
+		return err
+	}
+
+	conn, err := pgx.ConnectConfig(context.Background(), config)
+	if err != nil {
+		return fmt.Errorf("error connecting to the database: %+v", err)
+	}
+	defer conn.Close(context.Background())
+
+	_, err = conn.Exec(
+		context.TODO(),
+		fmt.Sprintf("DROP DATABASE %s;", c.database),
+	)
+
+	return err
+}
+
+func migrate(database string) error {
 	host, ok := os.LookupEnv("DB_HOST")
 	if !ok {
 		return errors.New("DB_HOST env var must be provided")
@@ -55,7 +85,7 @@ func Migrate(database string) error {
 		for attempts < limit {
 			connection, err = pgx.ConnectConfig(context.Background(), config)
 			if err != nil {
-				logrus.Warnf("error connecting to the database: %+v", err)
+				fmt.Printf("error connecting to the database: %+v\n", err)
 			} else {
 				break
 			}
@@ -67,27 +97,18 @@ func Migrate(database string) error {
 
 	conn := <-finished
 	if conn == nil {
-		logrus.Fatalf("Failed to create connection, exiting.")
+		return errors.New("Failed to create connection, exiting.")
 	}
 	defer conn.Close(context.Background())
-
-	conn.Exec(
-		context.TODO(),
-		fmt.Sprintf(`
-			CREATE DATABASE %s;
-		`, database),
-	)
-
-	fmt.Println("Created database (or not)")
 
 	_, err = conn.Exec(
 		context.TODO(),
 		fmt.Sprintf(`
+			CREATE DATABASE %s;
+
 			BEGIN;
 
 			SAVEPOINT migration_1_restart;
-
-			DROP TABLE IF EXISTS %s.users;
 
 			CREATE TABLE %s.users (
 					id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
