@@ -1,0 +1,2 @@
+test:
+  BUILD --build-arg APPLICATION_NAME=users-delete ../../+test

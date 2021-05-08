@@ -8,28 +8,11 @@ deps:
   COPY package*.json ./
   RUN npm install
 
-  COPY --dir tests helpers .
-
-lint:
-  FROM +deps
-  RUN npm run lint
-
-docker:
-  FROM +deps
-
-  ENTRYPOINT [ "npm" ]
-  CMD [ "run", "int-test-watch" ]
-
-  SAVE IMAGE auth-server-tests
-
-docker-ci:
-  FROM +deps
+  COPY --dir helpers .
 
   ENTRYPOINT [ "npm" ]
   CMD [ "run", "int-test" ]
 
-  SAVE IMAGE auth-server-tests-ci
-
-all:
-  BUILD +lint
-  BUILD +docker
+lint:
+  FROM +deps
+  RUN npm run lint

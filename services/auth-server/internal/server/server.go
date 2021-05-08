@@ -14,15 +14,15 @@ import (
 	"ponglehub.co.uk/auth/auth-server/internal/client"
 )
 
-func Run(builder func(cli *client.AuthClient, r *gin.Engine)) {
-	port, ok := os.LookupEnv("PONGLE_SERVER_PORT")
+func GetRouter(builder func(cli *client.AuthClient, r *gin.Engine)) *gin.Engine {
+	host, ok := os.LookupEnv("DB_HOST")
 	if !ok {
-		logrus.Fatal("Environment Variable PONGLE_SERVER_PORT not found")
+		logrus.Fatal("Environment Variable DB_HOST not found")
 	}
 
 	cli, err := client.New(context.Background(), &client.AuthClientConfig{
 		Username: "authserver",
-		Host:     "auth-server-cockroach-public",
+		Host:     host,
 		Port:     26257,
 		Database: "authserver",
 	})
@@ -34,6 +34,17 @@ func Run(builder func(cli *client.AuthClient, r *gin.Engine)) {
 	r := gin.Default()
 
 	builder(cli, r)
+
+	return r
+}
+
+func Run(builder func(cli *client.AuthClient, r *gin.Engine)) {
+	port, ok := os.LookupEnv("PONGLE_SERVER_PORT")
+	if !ok {
+		logrus.Fatal("Environment Variable PONGLE_SERVER_PORT not found")
+	}
+
+	r := GetRouter(builder)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%s", port),

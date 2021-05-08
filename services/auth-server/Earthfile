@@ -14,7 +14,7 @@ build:
 
   ARG APPLICATION_NAME
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${APPLICATION_NAME} ./cmd/${APPLICATION_NAME}.go
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${APPLICATION_NAME} ./cmd/${APPLICATION_NAME}/${APPLICATION_NAME}.go
 
   SAVE ARTIFACT ${APPLICATION_NAME}
 
@@ -27,3 +27,24 @@ docker:
   ENTRYPOINT [ "/go/bin/app" ]
 
   SAVE IMAGE auth-server/${APPLICATION_NAME}
+
+test:
+  FROM +deps
+
+  ARG APPLICATION_NAME
+
+  RUN --no-cache --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 DB_HOST=172.17.0.1 go test ./cmd/${APPLICATION_NAME}
+
+test-all:
+  BUILD ./cmd/login+test
+  BUILD ./cmd/users-delete+test
+
+database:
+  BUILD ../db-init+docker
+
+  LOCALLY
+    RUN docker-compose up -d
+
+clean:
+  LOCALLY
+    RUN docker-compose down
