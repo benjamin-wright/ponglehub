@@ -9,10 +9,18 @@ import (
 	"testing"
 
 	"ponglehub.co.uk/auth/auth-server/internal/server"
+	"ponglehub.co.uk/auth/auth-server/internal/testutils"
 )
 
+const TEST_DB = "test_login"
+
 func TestLoginRoute(t *testing.T) {
-	r := server.GetRouter(routeBuilder)
+	if err := testutils.Migrate(TEST_DB); err != nil {
+		fmt.Printf("Failed to set up database: %+v\n", err)
+		t.Fail()
+	}
+
+	r := server.GetRouter(TEST_DB, routeBuilder)
 
 	payload := struct {
 		Username string `json:"username"`
