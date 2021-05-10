@@ -2,6 +2,8 @@
 
 ## Todo:
 
+- Golang test utils by building a libs image and COPYing it into go builds
+
 ## Dependencies:
 
 - brew install coreutils

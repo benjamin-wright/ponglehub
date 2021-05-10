@@ -126,3 +126,48 @@ func migrate(database string) error {
 
 	return err
 }
+
+func (a *TestClient) Reset() error {
+	_, err := a.conn.Exec(context.Background(), "DELETE FROM users")
+	return err
+}
+
+func (a *TestClient) AddUser(id string, name string, email string, password string, verified bool) error {
+	_, err := a.conn.Exec(
+		context.Background(),
+		"INSERT INTO users (id, name, email, password, verified) VALUES ($1, $2, $3, $4, $5)",
+		id,
+		name,
+		email,
+		password,
+		verified,
+	)
+
+	return err
+}
+
+func (a *TestClient) ListUserIds() ([]string, error) {
+	res, err := a.conn.Query(
+		context.Background(),
+		"SELECT id FROM users",
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	ids := []string{}
+
+	for res.Next() {
+		var id string
+		err = res.Scan(&id)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}

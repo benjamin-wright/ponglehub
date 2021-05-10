@@ -29,11 +29,8 @@ docker:
   SAVE IMAGE auth-server/${APPLICATION_NAME}
 
 test:
-  FROM +deps
-
-  ARG APPLICATION_NAME
-
-  RUN --no-cache --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 DB_HOST=172.17.0.1 go test ./cmd/${APPLICATION_NAME}
+  BUILD +database
+  BUILD +test-all
 
 test-all:
   FROM +deps
@@ -44,40 +41,6 @@ test-all:
     DB_HOST=172.17.0.1 \
     DB_USER=root \
     go test ./cmd/...
-
-test-build:
-  FROM +deps
-
-  ENTRYPOINT [ "go" ]
-  CMD [ "test", "./cmd/..." ]
-
-  ENV CGO_ENABLED=0
-  ENV GOOS=linux
-  ENV GOARCH=amd64
-  ENV DB_USER=root
-
-  SAVE IMAGE auth-server/tests
-
-test-docker:
-  FROM scratch
-
-  COPY +test-build /go/bin/tests
-  ENTRYPOINT [ "/go/bin/tests" ]
-
-  SAVE IMAGE auth-server/tests
-
-test-run:
-  FROM earthly/dind:alpine
-
-  COPY docker-compose.yaml ./
-  WITH DOCKER --compose docker-compose.yaml \
-      --load auth-server/tests=+test-build \
-      --pull cockroachdb/cockroach:v20.2.8
-    RUN docker run \
-          --network default_default \
-          -e DB_HOST=cockroachdb \
-          auth-server/tests
-  END 
 
 database:
   LOCALLY
