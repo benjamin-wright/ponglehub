@@ -23,32 +23,52 @@ func TestLoginRoute(t *testing.T) {
 	}
 	defer cli.Drop()
 
-	err = cli.AddUser("123e4567-e89b-12d3-a456-426614174002", "johnny", "johnny@place.com", "some-pass", true)
-	if err != nil {
-		fmt.Printf("Failed to add user: %+v\n", err)
-		t.Fail()
-		return
-	}
-
-	r := server.GetRouter(TEST_DB, routeBuilder)
-
-	payload := struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+	for _, test := range []struct {
+		name     string
+		email    string
+		password string
+		code     int
 	}{
-		Email:    "johnny@place.com",
-		Password: "some-pass",
-	}
+		{name: "success", email: "johnny@place.com", password: "some-pass", code: http.StatusOK},
+		{name: "no user", email: "wrong@place.com", password: "some-pass", code: http.StatusUnauthorized},
+		{name: "wrong password", email: "johhny@place.com", password: "wrong-pass", code: http.StatusUnauthorized},
+		{name: "no password", email: "johhny@place.com", code: http.StatusBadRequest},
+		{name: "no user", password: "some-pass", code: http.StatusBadRequest},
+		{name: "empty request", code: http.StatusBadRequest},
+	} {
+		t.Run(test.name, func(u *testing.T) {
+			if err := cli.Reset(); err != nil {
+				u.Fatalf("Error clearing database: %+v", err)
+			}
 
-	data, _ := json.Marshal(payload)
+			err = cli.AddUser("123e4567-e89b-12d3-a456-426614174002", "johnny", "johnny@place.com", "some-pass", true)
+			if err != nil {
+				fmt.Printf("Failed to add user: %+v\n", err)
+				u.Fail()
+				return
+			}
 
-	req, _ := http.NewRequest("POST", "/", bytes.NewBuffer(data))
-	w := httptest.NewRecorder()
+			r := server.GetRouter(TEST_DB, routeBuilder)
 
-	r.ServeHTTP(w, req)
+			payload := struct {
+				Email    string `json:"email"`
+				Password string `json:"password"`
+			}{
+				Email:    test.email,
+				Password: test.password,
+			}
 
-	if w.Code != http.StatusOK {
-		fmt.Printf("Expected %d: Recieved %d\n", http.StatusOK, w.Code)
-		t.Fail()
+			data, _ := json.Marshal(payload)
+
+			req, _ := http.NewRequest("POST", "/", bytes.NewBuffer(data))
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			if w.Code != test.code {
+				fmt.Printf("Expected %d: Recieved %d\n", test.code, w.Code)
+				u.Fail()
+			}
+		})
 	}
 }
