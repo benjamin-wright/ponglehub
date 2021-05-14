@@ -7,6 +7,7 @@ import (
 	"os"
 
 	pgx "github.com/jackc/pgx/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type TestClient struct {
@@ -86,6 +87,7 @@ func migrate(database string) error {
 			connection, err = pgx.ConnectConfig(context.Background(), config)
 			if err != nil {
 				fmt.Printf("error connecting to the database: %+v\n", err)
+				attempts += 1
 			} else {
 				break
 			}
@@ -133,13 +135,18 @@ func (a *TestClient) Reset() error {
 }
 
 func (a *TestClient) AddUser(id string, name string, email string, password string, verified bool) error {
-	_, err := a.conn.Exec(
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.conn.Exec(
 		context.Background(),
 		"INSERT INTO users (id, name, email, password, verified) VALUES ($1, $2, $3, $4, $5)",
 		id,
 		name,
 		email,
-		password,
+		hashed,
 		verified,
 	)
 

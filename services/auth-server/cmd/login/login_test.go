@@ -23,16 +23,21 @@ func TestLoginRoute(t *testing.T) {
 	}
 	defer cli.Drop()
 
+	err = cli.AddUser("123e4567-e89b-12d3-a456-426614174002", "johnny", "johnny@place.com", "some-pass", true)
+	if err != nil {
+		fmt.Printf("Failed to add user: %+v\n", err)
+		t.Fail()
+		return
+	}
+
 	r := server.GetRouter(TEST_DB, routeBuilder)
 
 	payload := struct {
-		Username string `json:"username"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}{
-		Username: "bobby",
-		Email:    "bob@by.com",
-		Password: "pwd",
+		Email:    "johnny@place.com",
+		Password: "some-pass",
 	}
 
 	data, _ := json.Marshal(payload)
@@ -42,9 +47,8 @@ func TestLoginRoute(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	fmt.Printf("Returned status: %d\n", w.Code)
-
-	if w.Code != http.StatusUnauthorized {
+	if w.Code != http.StatusOK {
+		fmt.Printf("Expected %d: Recieved %d\n", http.StatusOK, w.Code)
 		t.Fail()
 	}
 }
