@@ -58,7 +58,7 @@ func (a *AuthClient) AddUser(ctx context.Context, user User) (string, error) {
 }
 
 // UpdateUser - Update an existing user
-func (a *AuthClient) UpdateUser(ctx context.Context, id string, user User, verified *bool) error {
+func (a *AuthClient) UpdateUser(ctx context.Context, id string, user User, verified *bool) (bool, error) {
 	queryParts := []string{}
 	queryArgs := []interface{}{}
 
@@ -95,13 +95,20 @@ func (a *AuthClient) UpdateUser(ctx context.Context, id string, user User, verif
 	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(queryParts, ", "), term)
 	queryArgs = append(queryArgs, id)
 
-	_, err := a.conn.Exec(
+	res, err := a.conn.Exec(
 		ctx,
 		query,
 		queryArgs...,
 	)
+	if err != nil {
+		return false, err
+	}
 
-	return err
+	if res.RowsAffected() != 1 {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // GetUser - retrieve a user from the database
