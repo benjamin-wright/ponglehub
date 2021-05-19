@@ -8,6 +8,7 @@ import (
 
 	pgx "github.com/jackc/pgx/v4"
 	"golang.org/x/crypto/bcrypt"
+	"ponglehub.co.uk/auth/auth-server/internal/client"
 )
 
 type TestClient struct {
@@ -153,8 +154,32 @@ func (a *TestClient) AddUser(id string, name string, email string, password stri
 	return err
 }
 
+func (a *TestClient) GetUser(id string) (*client.User, error) {
+	var user client.User
+
+	rows, err := a.conn.Query(
+		context.Background(),
+		"SELECT name, email, password, verified FROM users WHERE id = $1",
+		id,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	if hasResult := rows.Next(); !hasResult {
+		return nil, errors.New("Failed to fetch user, returned less than one row")
+	}
+
+	rows.Scan(&user.Name, &user.Email, &user.Password, &user.Verified)
+
+	return &user, nil
+}
+
 func (a *TestClient) ListUserIds() ([]string, error) {
-	res, err := a.conn.Query(
+	rows, err := a.conn.Query(
 		context.Background(),
 		"SELECT id FROM users",
 	)
@@ -162,12 +187,13 @@ func (a *TestClient) ListUserIds() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	ids := []string{}
 
-	for res.Next() {
+	for rows.Next() {
 		var id string
-		err = res.Scan(&id)
+		err = rows.Scan(&id)
 
 		if err != nil {
 			return nil, err

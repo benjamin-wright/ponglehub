@@ -14,42 +14,47 @@ type UserPost struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func main() {
-	server.Run(func(cli *client.AuthClient, r *gin.Engine) {
-		r.POST("/", func(c *gin.Context) {
-			var body UserPost
-			if err := c.ShouldBindJSON(&body); err != nil {
-				logrus.Errorf("Error reading user data: %+v", err)
-				c.Status(400)
-				return
-			}
+func RouteBuilder(cli *client.AuthClient, r *gin.Engine) {
+	r.POST("/", func(c *gin.Context) {
+		var body UserPost
+		if err := c.ShouldBindJSON(&body); err != nil {
+			logrus.Errorf("Error reading user data: %+v", err)
+			c.Status(400)
+			return
+		}
 
-			logrus.Infof("Adding user: %s %s", body.Email, body.Name)
+		logrus.Infof("Adding user: %s %s", body.Email, body.Name)
 
-			hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-			if err != nil {
-				logrus.Errorf("Error hashing user password: %+v", err)
-				c.Status(500)
-				return
-			}
+		hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+		if err != nil {
+			logrus.Errorf("Error hashing user password: %+v", err)
+			c.Status(500)
+			return
+		}
 
-			success, err := cli.AddUser(c.Request.Context(), client.User{
-				Name:     body.Name,
-				Email:    body.Email,
-				Password: string(hashed),
-			})
-
-			if err != nil {
-				logrus.Errorf("Error adding user: %+v", err)
-				c.Status(500)
-				return
-			}
-
-			if success {
-				c.Status(202)
-			} else {
-				c.Status(400)
-			}
+		userId, err := cli.AddUser(c.Request.Context(), client.User{
+			Name:     body.Name,
+			Email:    body.Email,
+			Password: string(hashed),
 		})
+
+		if err != nil {
+			logrus.Errorf("Error adding user: %+v", err)
+			c.Status(500)
+			return
+		}
+
+		if userId != "" {
+			c.Status(202)
+			c.JSON(202, gin.H{
+				"id": userId,
+			})
+		} else {
+			c.Status(400)
+		}
 	})
+}
+
+func main() {
+	server.Run(RouteBuilder)
 }

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,7 +21,7 @@ type User struct {
 }
 
 // AddUser - Add a user to the database
-func (a *AuthClient) AddUser(ctx context.Context, user User) (bool, error) {
+func (a *AuthClient) AddUser(ctx context.Context, user User) (string, error) {
 	_, err := a.conn.Exec(
 		ctx,
 		"INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, False)",
@@ -33,14 +34,27 @@ func (a *AuthClient) AddUser(ctx context.Context, user User) (bool, error) {
 		if err, ok := err.(*pgconn.PgError); ok {
 			if err.Code == pgerrcode.UniqueViolation {
 				logrus.Warnf("Failed to create duplicate user: %s[%s]", user.Name, user.Email)
-				return false, nil
+				return "", nil
 			}
 		}
 
-		return false, err
+		return "", err
 	}
 
-	return true, nil
+	rows, err := a.conn.Query(ctx, "SELECT id from users WHERE name = $1", user.Name)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+
+	id := ""
+	if hasNext := rows.Next(); !hasNext {
+		return "", errors.New("Failed to create user: no id response")
+	}
+
+	rows.Scan(&id)
+
+	return id, nil
 }
 
 // UpdateUser - Update an existing user
