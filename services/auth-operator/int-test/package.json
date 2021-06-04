@@ -9,8 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@pongle/async": "^1.0.1",
-    "@pongle/eslint-config-ponglehub": "^1.0.1",
+    "@pongle/async": "^1.0.0",
+    "@pongle/eslint-config-ponglehub": "^1.0.0",
     "eslint": "^7.27.0",
     "jest": "^27.0.4"
   }
