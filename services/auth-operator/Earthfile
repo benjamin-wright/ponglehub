@@ -28,12 +28,12 @@ cluster:
       -p "80:80@loadbalancer" \
       --wait
 
-    RUN mkdir -p scratch \
-        && k3d kubeconfig get auth-operator > scratch/kubeconfig \
-        && KUBECONFIG=scratch/kubeconfig kubectl config use-context k3d-auth-operator
+    RUN mkdir -p .scratch \
+        && k3d kubeconfig get auth-operator > .scratch/kubeconfig \
+        && KUBECONFIG=.scratch/kubeconfig kubectl config use-context k3d-auth-operator
 
 stop:
     LOCALLY
 
     RUN k3d cluster delete auth-operator \
-        && rm scratch/kubeconfig
+        && rm -rf .scratch
