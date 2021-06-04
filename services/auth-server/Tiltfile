@@ -1,89 +1,89 @@
-allow_k8s_contexts(['k3d-pongle'])
-load('../../libraries/tilt/helm.Tiltfile', 'load_files_encoded')
-load('../../libraries/tilt/helm.Tiltfile', 'file')
-load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
-load('../../libraries/tilt/helm.Tiltfile', 'envvar')
+# allow_k8s_contexts(['k3d-pongle'])
+# load('../../libraries/tilt/helm.Tiltfile', 'load_files_encoded')
+# load('../../libraries/tilt/helm.Tiltfile', 'file')
+# load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+# load('../../libraries/tilt/helm.Tiltfile', 'envvar')
 
-registry_name = envvar('REGISTRY_NAME')
-registry_port = envvar('REGISTRY_PORT')
+# registry_name = envvar('REGISTRY_NAME')
+# registry_port = envvar('REGISTRY_PORT')
 
-k8s_kind('Service', api_version='serving.knative.dev/v1' ,image_json_path='{.spec.template.spec.containers[].image}')
+# k8s_kind('Service', api_version='serving.knative.dev/v1' ,image_json_path='{.spec.template.spec.containers[].image}')
 
-default_registry('localhost:5000', host_from_cluster='%s:%s' % (registry_name, registry_port))
+# default_registry('localhost:5000', host_from_cluster='%s:%s' % (registry_name, registry_port))
 
-def function(func_name, path, method):
-  custom_build(
-    func_name,
-    'earthly --build-arg APPLICATION_NAME=%s +docker && docker tag auth-server/%s $EXPECTED_REF' % (func_name, func_name),
-    ['.'],
-    ignore=['.tmp-earthly-out', 'int-test']
-  )
+# def function(func_name, path, method):
+#   custom_build(
+#     func_name,
+#     'earthly --build-arg APPLICATION_NAME=%s +docker && docker tag auth-server/%s $EXPECTED_REF' % (func_name, func_name),
+#     ['.'],
+#     ignore=['.tmp-earthly-out', 'int-test']
+#   )
 
-  k8s_resource(
-    func_name,
-    auto_init=True,
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    resource_deps=[
-      'tests-migrations'
-    ]
-  )
+#   k8s_resource(
+#     func_name,
+#     auto_init=True,
+#     trigger_mode=TRIGGER_MODE_MANUAL,
+#     resource_deps=[
+#       'tests-migrations'
+#     ]
+#   )
 
-  return [
-    'functions.%s.image=%s' % (func_name, func_name),
-    'functions.%s.path=%s' % (func_name, path),
-    'functions.%s.method=%s' % (func_name, method),
-  ]
+#   return [
+#     'functions.%s.image=%s' % (func_name, func_name),
+#     'functions.%s.path=%s' % (func_name, path),
+#     'functions.%s.method=%s' % (func_name, method),
+#   ]
 
-args = []
-args += function('users-list', '/users', 'GET')
-args += function('users-get', '/users/', 'GET')
-args += function('users-post', '/users/', 'POST')
-args += function('users-put', '/users/', 'PUT')
-args += function('users-delete', '/users/', 'DELETE')
-args += function('login', '/login', 'POST')
+# args = []
+# args += function('users-list', '/users', 'GET')
+# args += function('users-get', '/users/', 'GET')
+# args += function('users-post', '/users/', 'POST')
+# args += function('users-put', '/users/', 'PUT')
+# args += function('users-delete', '/users/', 'DELETE')
+# args += function('login', '/login', 'POST')
 
-custom_build(
-  'auth-server-tests',
-  'earthly ./int-test+docker && docker tag auth-server-tests $EXPECTED_REF',
-  ['./int-test'],
-  live_update=[
-    sync('./int-test/tests', '/src/tests'),
-    sync('./int-test/helpers', '/src/helpers'),
-  ]
-)
+# custom_build(
+#   'auth-server-tests',
+#   'earthly ./int-test+docker && docker tag auth-server-tests $EXPECTED_REF',
+#   ['./int-test'],
+#   live_update=[
+#     sync('./int-test/tests', '/src/tests'),
+#     sync('./int-test/helpers', '/src/helpers'),
+#   ]
+# )
 
-custom_build(
-  'db-init',
-  'earthly ../db-init+docker && docker tag db-init $EXPECTED_REF',
-  ['../db-init']
-)
+# custom_build(
+#   'db-init',
+#   'earthly ../db-init+docker && docker tag db-init $EXPECTED_REF',
+#   ['../db-init']
+# )
 
-k8s_yaml(namespace_yaml('int-auth-server'))
+# k8s_yaml(namespace_yaml('int-auth-server'))
 
-k8s_yaml(helm(
-  '../../helm/tests',
-  name='auth-server',
-  namespace='int-auth-server',
-  set=[
-    'test.name=tests',
-    'test.image=auth-server-tests',
-    'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
-    'cockroach.enabled=true',
-    'migrations.enabled=true',
-    'migrations.baseImage=db-init',
-    'migrations.db.host=auth-server-cockroach-public',
-    'migrations.sets[0].user=authserver',
-    'migrations.sets[0].database=authserver',
-    load_files_encoded('migrations.sets[0].migrations', './migrations/sql')
-  ] + args
-))
+# k8s_yaml(helm(
+#   '../../helm/tests',
+#   name='auth-server',
+#   namespace='int-auth-server',
+#   set=[
+#     'test.name=tests',
+#     'test.image=auth-server-tests',
+#     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
+#     'cockroach.enabled=true',
+#     'migrations.enabled=true',
+#     'migrations.baseImage=db-init',
+#     'migrations.db.host=auth-server-cockroach-public',
+#     'migrations.sets[0].user=authserver',
+#     'migrations.sets[0].database=authserver',
+#     load_files_encoded('migrations.sets[0].migrations', './migrations/sql')
+#   ] + args
+# ))
 
-k8s_resource(
-  'tests-migrations',
-  resource_deps=['auth-server-cockroach']
-)
+# k8s_resource(
+#   'tests-migrations',
+#   resource_deps=['auth-server-cockroach']
+# )
 
-k8s_resource(
-  'tests',
-  resource_deps=['tests-migrations']
-)
+# k8s_resource(
+#   'tests',
+#   resource_deps=['tests-migrations']
+# )

@@ -8,6 +8,7 @@
 
 - brew install coreutils
 - brew install k3d
+- brew install operator-sdk
 - setup your .envrc (copy .envrc-example and fill in the blanks)
 
 ## Architecture

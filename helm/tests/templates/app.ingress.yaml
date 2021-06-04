@@ -1,5 +1,7 @@
-{{ $functions := .Values.functions }}
+{{ $functions := default (list) .Values.functions }}
 {{ $top := . }}
+
+{{- if gt (len $functions) 0 }}
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
@@ -34,4 +36,5 @@ spec:
           port:
             number: 80
         weight: 100
+{{- end }}
 {{- end }}

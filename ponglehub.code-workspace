@@ -11,6 +11,10 @@
 		{
 			"name": "auth-server",
 			"path": "services/auth-server"
+		},
+		{
+			"name": "auth-operator",
+			"path": "services/auth-operator"
 		}
 	],
 	"settings": {}
