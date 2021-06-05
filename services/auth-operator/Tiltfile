@@ -15,9 +15,9 @@ custom_build(
 
 custom_build(
   'auth-operator',
-  'earthly +docker && docker tag auth-operator $EXPECTED_REF',
+  'docker rmi auth-operator && earthly +docker && docker tag auth-operator $EXPECTED_REF',
   ['./'],
-  ignore=["./int-tests", "./.tmp-earthly-out"]
+  ignore=["./int-tests", "./.tmp-earthly-out", "./target"]
 )
 
 k8s_yaml(namespace_yaml('int-auth-operator'))
@@ -31,6 +31,19 @@ k8s_yaml(helm(
     'test.image=auth-operator-tests',
     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
     'app.enabled=true',
-    'app.image=auth-operator'
+    'app.image=auth-operator',
+    'app.env.RUST_LOG=debug'
   ]
 ))
+
+k8s_resource(
+  'app',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+)
+
+k8s_resource(
+  'tests',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+)
