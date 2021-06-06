@@ -8,8 +8,10 @@ docker:
   COPY package*.json ./
   RUN npm install
 
+  COPY . .
+
   ENTRYPOINT [ "npm" ]
-  CMD [ "run", "int-test" ]
+  CMD [ "run", "int-test-watch" ]
 
   SAVE IMAGE auth-operator-tests
 
