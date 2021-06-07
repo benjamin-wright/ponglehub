@@ -15,7 +15,7 @@ custom_build(
 
 custom_build(
   'auth-operator',
-  'docker rmi auth-operator && earthly +docker && docker tag auth-operator $EXPECTED_REF',
+  'earthly +docker && docker tag auth-operator $EXPECTED_REF',
   ['./'],
   ignore=["./int-test", "./.tmp-earthly-out", "./target"]
 )

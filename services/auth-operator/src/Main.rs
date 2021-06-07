@@ -7,10 +7,10 @@ use anyhow::anyhow;
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
     info!("Starting...");
-    
+
     loop {
-        info!("yofo!");
-        sleep(Duration::from_secs(2)).await
+        info!("hey ho!");
+        sleep(Duration::from_secs(10)).await
     }
 
     Err(anyhow!("them"))
