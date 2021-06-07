@@ -20,6 +20,8 @@ custom_build(
   ignore=["./int-test", "./.tmp-earthly-out", "./target"]
 )
 
+k8s_yaml('crds/user.crd.yaml')
+
 k8s_yaml(namespace_yaml('int-auth-operator'))
 
 k8s_yaml(helm(
