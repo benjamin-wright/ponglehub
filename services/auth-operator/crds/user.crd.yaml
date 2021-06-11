@@ -27,7 +27,7 @@ spec:
               properties:
                 verified:
                   type: boolean
-  scope: Cluster
+  scope: Namespaced
   names:
     plural: auth-users
     singular: auth-user
