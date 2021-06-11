@@ -1,28 +1,49 @@
-build:
-    FROM ekidd/rust-musl-builder
+FROM ekidd/rust-musl-builder
+WORKDIR /home/rust/src
 
-    WORKDIR /home/rust/src
+install-chef:
+    RUN cargo install --debug cargo-chef
 
-    COPY . .
+planner:
+    FROM +install-chef
+    COPY --dir bin lib Cargo.lock Cargo.toml .
+    RUN cargo chef prepare
+    SAVE ARTIFACT recipe.json
 
-    RUN --mount=type=cache,target=/home/rust/.cargo/git \
-        --mount=type=cache,target=/home/rust/.cargo/registry \
-        --mount=type=cache,target=/home/rust/src/target \
-        sudo chown -R rust:rust /home/rust/.cargo/git /home/rust/.cargo/registry /home/rust/src/target && \
-        rm -rf ./target/x86_64-unknown-linux-musl/debug/deps/auth_operator* && \
-        cargo build && \
-        cp ./target/x86_64-unknown-linux-musl/debug/auth-operator auth-operator
+cacher:
+    FROM +install-chef
+    COPY +planner/recipe.json recipe.json
+    RUN cargo chef cook --target x86_64-unknown-linux-musl
 
-    SAVE ARTIFACT auth-operator 
+    SAVE ARTIFACT target
+    SAVE ARTIFACT /home/rust/.cargo cargo_home
+
+builder:
+    COPY --dir bin lib Cargo.lock Cargo.toml .
+    COPY +cacher/cargo_home /home/rust/.cargo
+    COPY +cacher/target ./target
+    RUN cargo build
+
+    SAVE ARTIFACT target/x86_64-unknown-linux-musl/debug/auth-operator auth-operator
+    SAVE ARTIFACT target/x86_64-unknown-linux-musl/debug/mock mock
 
 docker:
     FROM scratch
 
-    COPY +build/auth-operator /bin/auth-operator
+    COPY +builder/auth-operator /bin/auth-operator
 
     ENTRYPOINT [ "/bin/auth-operator" ]
 
     SAVE IMAGE auth-operator
+
+mock:
+    FROM scratch
+
+    COPY +builder/mock /bin/mock
+
+    ENTRYPOINT [ "/bin/mock" ]
+
+    SAVE IMAGE mock
 
 cluster:
     LOCALLY

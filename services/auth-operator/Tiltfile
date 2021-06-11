@@ -20,6 +20,13 @@ custom_build(
   ignore=["./int-test", "./.tmp-earthly-out", "./target"]
 )
 
+custom_build(
+  'mock',
+  'earthly +mock && docker tag mock $EXPECTED_REF',
+  ['./'],
+  ignore=["./int-test", "./.tmp-earthly-out", "./target"]
+)
+
 k8s_yaml('crds/user.crd.yaml')
 
 k8s_yaml(namespace_yaml('int-auth-operator'))
@@ -32,10 +39,12 @@ k8s_yaml(helm(
     'test.name=tests',
     'test.image=auth-operator-tests',
     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
+    'mock.image=mock',
     'app.enabled=true',
     'app.image=auth-operator',
-    'app.env.RUST_LOG=debug',
+    'app.env.RUST_LOG="info\\,auth_operator=debug"',
     'app.env.NAMESPACE="{{ .Release.Namespace }}"',
+    'app.env.AUTH_ENDPOINT="http://mock/users"',
     'app.rbac.apiGroups={auth.ponglehub.co.uk}',
     'app.rbac.resources={auth-users}',
     'app.rbac.verbs={get,list,watch}'
@@ -46,6 +55,13 @@ k8s_resource(
   'app',
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
+)
+
+k8s_resource(
+  'mock',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  port_forwards=[ "9000:8000" ]
 )
 
 k8s_resource(
