@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use reflector::store::Writer;
 use log::{info, warn};
-use futures::{StreamExt, TryStreamExt};
+use futures::{Future, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 use kube::{
@@ -46,7 +46,10 @@ impl AuthUserWatcher {
         })
     }
 
-    pub async fn start(self, update: fn(User), refresh: fn(Vec<User>) ) -> anyhow::Result<()> {
+    pub async fn start<T, U, Fut>(self, update: T, refresh: U) -> anyhow::Result<()> where
+        T: Fn(User),
+        U: Fn(Vec<User>)->Fut + Send + 'static,
+        Fut: Future<Output = anyhow::Result<()>> + Send {
         let store = Writer::<AuthUser>::default();
         let reader = store.as_reader();
         let users: Api<AuthUser> = Api::namespaced(self.client, &self.namespace);
@@ -59,8 +62,11 @@ impl AuthUserWatcher {
                 info!("Refreshing state...");
                 // Periodically read our state
                 let users = reader.state().iter().map(|user| from_crd(user)).collect::<Vec<_>>();
-                refresh(users);
-                info!("Done");
+                let users_result = refresh(users);
+                match users_result.await {
+                    Ok(()) => info!("Done"),
+                    Err(err) => warn!("Failed to refresh state: {:?}", err)
+                };
 
                 tokio::time::sleep(std::time::Duration::from_secs(60)).await;
             }

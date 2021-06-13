@@ -1,5 +1,8 @@
-FROM ekidd/rust-musl-builder
+FROM rust:slim
 WORKDIR /home/rust/src
+
+RUN apt update && apt install libssl-dev pkgconf -y \
+    && rm -rf /var/lib/apt/lists/*
 
 install-chef:
     RUN cargo install --debug cargo-chef
@@ -13,22 +16,28 @@ planner:
 cacher:
     FROM +install-chef
     COPY +planner/recipe.json recipe.json
-    RUN cargo chef cook --target x86_64-unknown-linux-musl
+    RUN cargo chef cook
 
     SAVE ARTIFACT target
-    SAVE ARTIFACT /home/rust/.cargo cargo_home
+    SAVE ARTIFACT /usr/local/cargo cargo_home
 
 builder:
     COPY --dir bin lib Cargo.lock Cargo.toml .
-    COPY +cacher/cargo_home /home/rust/.cargo
+    COPY +cacher/cargo_home /usr/local/cargo
     COPY +cacher/target ./target
     RUN cargo build
 
-    SAVE ARTIFACT target/x86_64-unknown-linux-musl/debug/auth-operator auth-operator
-    SAVE ARTIFACT target/x86_64-unknown-linux-musl/debug/mock mock
+    SAVE ARTIFACT target/debug/auth-operator auth-operator
+    SAVE ARTIFACT target/debug/mock mock
+
+runtime:
+    FROM debian:buster-slim
+
+    RUN apt update && apt install libssl-dev pkgconf -y \
+        && rm -rf /var/lib/apt/lists/*
 
 docker:
-    FROM scratch
+    FROM +runtime
 
     COPY +builder/auth-operator /bin/auth-operator
 
@@ -37,7 +46,7 @@ docker:
     SAVE IMAGE auth-operator
 
 mock:
-    FROM scratch
+    FROM +runtime
 
     COPY +builder/mock /bin/mock
 

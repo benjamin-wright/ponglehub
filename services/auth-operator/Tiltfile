@@ -39,12 +39,16 @@ k8s_yaml(helm(
     'test.name=tests',
     'test.image=auth-operator-tests',
     'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
+
     'mock.image=mock',
+    'mock.env.ROCKET_PORT="8080"',
+    'mock.env.ROCKET_ADDRESS="0.0.0.0"',
+
     'app.enabled=true',
     'app.image=auth-operator',
     'app.env.RUST_LOG="info\\,auth_operator=debug"',
     'app.env.NAMESPACE="{{ .Release.Namespace }}"',
-    'app.env.AUTH_ENDPOINT="http://mock/users"',
+    'app.env.AUTH_ENDPOINT="http://mock"',
     'app.rbac.apiGroups={auth.ponglehub.co.uk}',
     'app.rbac.resources={auth-users}',
     'app.rbac.verbs={get,list,watch}'

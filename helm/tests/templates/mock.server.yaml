@@ -69,7 +69,7 @@ metadata:
 spec:
   ports:
   - name: http
-    port: 8080
+    port: 80
     protocol: TCP
     targetPort: {{ $mock.port | default 8080 }}
   selector:
