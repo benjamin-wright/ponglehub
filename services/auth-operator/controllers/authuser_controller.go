@@ -63,7 +63,7 @@ func (r *AuthUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	log.Info(fmt.Sprintf("Got user face \"%s\" (email: %s) (password: %s)", user.Spec.Name, user.Spec.Email, user.Spec.Password))
+	log.Info(fmt.Sprintf("Got user \"%s\" (email: %s) (password: %s)", user.Spec.Name, user.Spec.Email, user.Spec.Password))
 
 	return ctrl.Result{}, nil
 }
