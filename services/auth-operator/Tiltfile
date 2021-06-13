@@ -15,16 +15,9 @@ custom_build(
 
 custom_build(
   'auth-operator',
-  'earthly +manager && docker tag auth-operator $EXPECTED_REF',
+  'earthly ./operator+image && docker tag auth-operator $EXPECTED_REF',
   ['./'],
   ignore=["./int-test", "./.tmp-earthly-out", "./target"]
-)
-
-local_resource(
-  'generated',
-  'make manifests generate',
-  deps=['./api'],
-  ignore=['./api/**/*generated*']
 )
 
 # custom_build(
@@ -34,7 +27,7 @@ local_resource(
 #   ignore=["./int-test", "./.tmp-earthly-out", "./target"]
 # )
 
-k8s_yaml(kustomize('config/crd'))
+k8s_yaml('crds/user.crd.yaml')
 
 k8s_yaml(namespace_yaml('int-auth-operator'))
 
@@ -56,7 +49,7 @@ k8s_yaml(helm(
     'app.env.RUST_LOG="info\\,auth_operator=debug"',
     'app.env.NAMESPACE="{{ .Release.Namespace }}"',
     'app.env.AUTH_ENDPOINT="http://mock"',
-    'app.rbac.apiGroups={auth.ponglehub.co.uk}',
+    'app.rbac.apiGroups={ponglehub.co.uk}',
     'app.rbac.resources={authusers}',
     'app.rbac.verbs={get,list,watch}',
     'app.rbac.clusterWide=true',

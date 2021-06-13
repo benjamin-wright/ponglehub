@@ -1,0 +1,3 @@
+{
+    "extends": [ "@pongle/eslint-config-ponglehub" ]
+}

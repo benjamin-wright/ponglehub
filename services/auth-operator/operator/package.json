@@ -1,0 +1,16 @@
+{
+  "name": "operator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "lint": "eslint ."
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@kubernetes/client-node": "^0.14.3",
+    "@pongle/eslint-config-ponglehub": "^1.0.1"
+  }
+}

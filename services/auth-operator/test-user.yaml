@@ -1,4 +1,4 @@
-apiVersion: auth.ponglehub.co.uk/v1alpha1
+apiVersion: ponglehub.co.uk/v1alpha1
 kind: AuthUser
 metadata:
   name: my-user

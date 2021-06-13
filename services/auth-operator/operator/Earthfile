@@ -1,0 +1,21 @@
+FROM ../../../libraries/images/node+image
+
+deps:
+    COPY ../../../libraries/node/eslint-config-ponglehub+publish/marker /markers/1
+
+    COPY package*.json ./
+    RUN npm install
+
+    SAVE ARTIFACT package.json AS LOCAL ./package.json
+    SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
+
+    COPY ./.eslintrc ./.eslintrc
+    COPY ./src ./src
+
+image:
+    FROM +deps
+
+    ENTRYPOINT [ "npm" ]
+    CMD [ "start" ]
+
+    SAVE IMAGE auth-operator
