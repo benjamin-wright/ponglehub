@@ -1,58 +1,31 @@
-FROM rust:slim
-WORKDIR /home/rust/src
-
-RUN apt update && apt install libssl-dev pkgconf -y \
-    && rm -rf /var/lib/apt/lists/*
-
-install-chef:
-    RUN cargo install --debug cargo-chef
-
-planner:
-    FROM +install-chef
-    COPY --dir bin lib Cargo.lock Cargo.toml .
-    RUN cargo chef prepare
-    SAVE ARTIFACT recipe.json
-
-cacher:
-    FROM +install-chef
-    COPY +planner/recipe.json recipe.json
-    RUN cargo chef cook
-
-    SAVE ARTIFACT target
-    SAVE ARTIFACT /usr/local/cargo cargo_home
+FROM golang:1.16
+WORKDIR /workspace
 
 builder:
-    COPY --dir bin lib Cargo.lock Cargo.toml .
-    COPY +cacher/cargo_home /usr/local/cargo
-    COPY +cacher/target ./target
-    RUN cargo build
+    COPY go.mod go.mod
+    COPY go.sum go.sum
 
-    SAVE ARTIFACT target/debug/auth-operator auth-operator
-    SAVE ARTIFACT target/debug/mock mock
+    RUN go mod download
 
-runtime:
-    FROM debian:buster-slim
+    COPY main.go main.go
+    COPY api/ api/
+    COPY controllers/ controllers/
 
-    RUN apt update && apt install libssl-dev pkgconf -y \
-        && rm -rf /var/lib/apt/lists/*
+    RUN --mount=type=cache,target=/root/.cache/go-build \
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o manager main.go
 
-docker:
-    FROM +runtime
+    SAVE ARTIFACT manager
 
-    COPY +builder/auth-operator /bin/auth-operator
+manager:
+    FROM gcr.io/distroless/static:nonroot
 
-    ENTRYPOINT [ "/bin/auth-operator" ]
+    WORKDIR /
+    COPY +builder/manager manager
+    USER 65532:65532
+
+    ENTRYPOINT ["/manager"]
 
     SAVE IMAGE auth-operator
-
-mock:
-    FROM +runtime
-
-    COPY +builder/mock /bin/mock
-
-    ENTRYPOINT [ "/bin/mock" ]
-
-    SAVE IMAGE mock
 
 cluster:
     LOCALLY

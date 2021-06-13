@@ -1,2 +1,4 @@
-target
-int-test/
+.scratch
+bin
+config
+hack
