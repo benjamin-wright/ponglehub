@@ -28,6 +28,9 @@ docker:
 
 test:
   FROM +deps
+
+  COPY main_test.go main_test.go
+
   RUN --no-cache --mount=type=cache,target=/root/.cache \
     CGO_ENABLED=0 \
     GOOS=linux \
