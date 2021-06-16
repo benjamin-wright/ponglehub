@@ -1,17 +1,18 @@
 {
-  "name": "operator",
+  "name": "mock",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon src/index.js",
-    "lint": "eslint ."
+    "start": "nodemon src/server.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@kubernetes/client-node": "^0.14.3",
+    "@koa/router": "^10.0.0",
+    "@pongle/async": "^1.0.1",
     "@pongle/eslint-config-ponglehub": "^1.0.1",
+    "koa": "^2.13.1",
     "nodemon": "^2.0.7"
   }
 }

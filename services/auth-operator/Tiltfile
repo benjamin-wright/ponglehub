@@ -5,19 +5,26 @@ default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry
 
 custom_build(
   'auth-operator-tests',
-  'earthly ./int-test+docker && docker tag auth-operator-tests $EXPECTED_REF',
+  'earthly ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
   ['./int-test'],
   live_update=[
     sync('./int-test/tests', '/src/tests'),
-    sync('./int-test/helpers', '/src/helpers'),
   ]
 )
 
 custom_build(
   'auth-operator',
   'earthly ./operator+image && docker tag auth-operator $EXPECTED_REF',
-  ['./'],
-  ignore=["./int-test", "./.tmp-earthly-out", "./target"]
+  ['./operator'],
+  live_update=[
+    sync('./operator/src', '/src/src'),
+  ]
+)
+
+custom_build(
+  'mock',
+  'earthly ./mock+image && docker tag mock $EXPECTED_REF',
+  ['./mock']
 )
 
 # custom_build(
@@ -38,11 +45,8 @@ k8s_yaml(helm(
   set=[
     'test.name=tests',
     'test.image=auth-operator-tests',
-    'test.env.DB_URL=postgresql://authserver:@auth-server-cockroach-public:26257/authserver',
 
-    # 'mock.image=mock',
-    # 'mock.env.ROCKET_PORT="8080"',
-    # 'mock.env.ROCKET_ADDRESS="0.0.0.0"',
+    'mock.image=mock',
 
     'app.enabled=true',
     'app.image=auth-operator',
@@ -55,22 +59,3 @@ k8s_yaml(helm(
     'app.rbac.clusterWide=true',
   ]
 ))
-
-k8s_resource(
-  'app',
-  trigger_mode=TRIGGER_MODE_MANUAL,
-  auto_init=False,
-)
-
-# k8s_resource(
-#   'mock',
-#   trigger_mode=TRIGGER_MODE_MANUAL,
-#   auto_init=False,
-#   port_forwards=[ "9000:8000" ]
-# )
-
-k8s_resource(
-  'tests',
-  trigger_mode=TRIGGER_MODE_MANUAL,
-  auto_init=False,
-)

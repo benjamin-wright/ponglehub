@@ -15,13 +15,6 @@ import (
 )
 
 func GetRouter(database string, builder func(cli client.AuthClient, r *gin.Engine)) *gin.Engine {
-	if _, use_mock := os.LookupEnv("DB_MOCK"); use_mock {
-		cli := client.NewMockClient([]client.User{})
-		r := gin.Default()
-		builder(cli, r)
-		return r
-	}
-
 	host, ok := os.LookupEnv("DB_HOST")
 	if !ok {
 		logrus.Fatal("Environment Variable DB_HOST not found")

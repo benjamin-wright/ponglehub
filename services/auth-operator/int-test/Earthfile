@@ -2,17 +2,18 @@ FROM ../../../libraries/images/node+image
 
 deps:
     COPY ../../../libraries/node/eslint-config-ponglehub+publish/marker /markers/1
+    COPY ../../../libraries/node/async+publish/marker /markers/2
 
     COPY package*.json ./
     RUN npm ci
 
     COPY ./.eslintrc ./.eslintrc
-    COPY ./src ./src
+    COPY ./tests ./tests
 
 image:
     FROM +deps
 
     ENTRYPOINT [ "npm" ]
-    CMD [ "start" ]
+    CMD [ "test" ]
 
-    SAVE IMAGE auth-operator
+    SAVE IMAGE auth-operator-tests

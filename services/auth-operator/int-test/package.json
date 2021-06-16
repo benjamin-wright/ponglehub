@@ -1,17 +1,17 @@
 {
-  "name": "operator",
+  "name": "int-tests",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon src/index.js",
-    "lint": "eslint ."
+    "test": "jest . --watch"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@kubernetes/client-node": "^0.14.3",
+    "@pongle/async": "^1.0.1",
     "@pongle/eslint-config-ponglehub": "^1.0.1",
-    "nodemon": "^2.0.7"
+    "jest": "^27.0.4"
   }
 }
