@@ -8,21 +8,48 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	pgx "github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
 )
 
-// User - a struct representing a user
-type User struct {
-	ID       string
-	Email    string
-	Name     string
+type PostgresClient struct {
+	conn *pgx.Conn
+}
+
+// AuthClientConfig - creds and config for creating a database connection
+type PostgresClientConfig struct {
+	Username string
 	Password string
-	Verified bool
+	Host     string
+	Port     int16
+	Database string
+}
+
+// New - Create a new AuthClient instance
+func NewPostgresClient(ctx context.Context, config *PostgresClientConfig) (*PostgresClient, error) {
+	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://%s:%s@%s:%d/%s", config.Username, config.Password, config.Host, config.Port, config.Database))
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := pgx.ConnectConfig(ctx, pgxConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PostgresClient{
+		conn: conn,
+	}, nil
+}
+
+// Close - Remember to call this when you're done with the client
+func (p *PostgresClient) Close(ctx context.Context) error {
+	return p.conn.Close(ctx)
 }
 
 // AddUser - Add a user to the database
-func (a *AuthClient) AddUser(ctx context.Context, user User) (string, error) {
-	_, err := a.conn.Exec(
+func (p *PostgresClient) AddUser(ctx context.Context, user User) (string, error) {
+	_, err := p.conn.Exec(
 		ctx,
 		"INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, False)",
 		user.Name,
@@ -41,7 +68,7 @@ func (a *AuthClient) AddUser(ctx context.Context, user User) (string, error) {
 		return "", err
 	}
 
-	rows, err := a.conn.Query(ctx, "SELECT id from users WHERE name = $1", user.Name)
+	rows, err := p.conn.Query(ctx, "SELECT id from users WHERE name = $1", user.Name)
 	if err != nil {
 		return "", err
 	}
@@ -58,7 +85,7 @@ func (a *AuthClient) AddUser(ctx context.Context, user User) (string, error) {
 }
 
 // UpdateUser - Update an existing user
-func (a *AuthClient) UpdateUser(ctx context.Context, id string, user User, verified *bool) (bool, error) {
+func (p *PostgresClient) UpdateUser(ctx context.Context, id string, user User, verified *bool) (bool, error) {
 	queryParts := []string{}
 	queryArgs := []interface{}{}
 
@@ -95,7 +122,7 @@ func (a *AuthClient) UpdateUser(ctx context.Context, id string, user User, verif
 	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(queryParts, ", "), term)
 	queryArgs = append(queryArgs, id)
 
-	res, err := a.conn.Exec(
+	res, err := p.conn.Exec(
 		ctx,
 		query,
 		queryArgs...,
@@ -112,8 +139,8 @@ func (a *AuthClient) UpdateUser(ctx context.Context, id string, user User, verif
 }
 
 // GetUser - retrieve a user from the database
-func (a *AuthClient) GetUser(ctx context.Context, id string) (*User, error) {
-	rows, err := a.conn.Query(ctx, "SELECT name, email, password, verified FROM users WHERE id = $1", id)
+func (p *PostgresClient) GetUser(ctx context.Context, id string) (*User, error) {
+	rows, err := p.conn.Query(ctx, "SELECT name, email, password, verified FROM users WHERE id = $1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -142,8 +169,8 @@ func (a *AuthClient) GetUser(ctx context.Context, id string) (*User, error) {
 }
 
 // GetUser - retrieve a user from the database
-func (a *AuthClient) GetUserByEmail(ctx context.Context, email string) (*User, error) {
-	rows, err := a.conn.Query(ctx, "SELECT id, name, password, verified FROM users WHERE email = $1", email)
+func (p *PostgresClient) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	rows, err := p.conn.Query(ctx, "SELECT id, name, password, verified FROM users WHERE email = $1", email)
 	if err != nil {
 		return nil, err
 	}
@@ -174,8 +201,8 @@ func (a *AuthClient) GetUserByEmail(ctx context.Context, email string) (*User, e
 }
 
 // ListUsers - Returns a list of all the users in the system
-func (a *AuthClient) ListUsers(ctx context.Context) ([]*User, error) {
-	rows, err := a.conn.Query(ctx, "SELECT id, name, email, password, verified FROM users")
+func (p *PostgresClient) ListUsers(ctx context.Context) ([]*User, error) {
+	rows, err := p.conn.Query(ctx, "SELECT id, name, email, password, verified FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -196,8 +223,8 @@ func (a *AuthClient) ListUsers(ctx context.Context) ([]*User, error) {
 }
 
 // DeleteUser - delete a user
-func (a *AuthClient) DeleteUser(ctx context.Context, id string) (bool, error) {
-	cmd, err := a.conn.Exec(ctx, "DELETE FROM users WHERE id = $1", id)
+func (p *PostgresClient) DeleteUser(ctx context.Context, id string) (bool, error) {
+	cmd, err := p.conn.Exec(ctx, "DELETE FROM users WHERE id = $1", id)
 	if err != nil {
 		return false, err
 	}

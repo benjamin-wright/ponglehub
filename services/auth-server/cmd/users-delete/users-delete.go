@@ -8,7 +8,7 @@ import (
 	"ponglehub.co.uk/auth/auth-server/internal/server"
 )
 
-func RouteBuilder(cli *client.AuthClient, r *gin.Engine) {
+func RouteBuilder(cli client.AuthClient, r *gin.Engine) {
 	r.DELETE("/:id", func(c *gin.Context) {
 		id := c.Param("id")
 		if _, err := uuid.Parse(id); err != nil {

@@ -13,7 +13,7 @@ type LoginPost struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func routeBuilder(cli *client.AuthClient, r *gin.Engine) {
+func routeBuilder(cli client.AuthClient, r *gin.Engine) {
 	r.POST("/", func(c *gin.Context) {
 		var body LoginPost
 		if err := c.ShouldBindJSON(&body); err != nil {

@@ -14,7 +14,14 @@ import (
 	"ponglehub.co.uk/auth/auth-server/internal/client"
 )
 
-func GetRouter(database string, builder func(cli *client.AuthClient, r *gin.Engine)) *gin.Engine {
+func GetRouter(database string, builder func(cli client.AuthClient, r *gin.Engine)) *gin.Engine {
+	if _, use_mock := os.LookupEnv("DB_MOCK"); use_mock {
+		cli := client.NewMockClient([]client.User{})
+		r := gin.Default()
+		builder(cli, r)
+		return r
+	}
+
 	host, ok := os.LookupEnv("DB_HOST")
 	if !ok {
 		logrus.Fatal("Environment Variable DB_HOST not found")
@@ -25,7 +32,7 @@ func GetRouter(database string, builder func(cli *client.AuthClient, r *gin.Engi
 		username = "authserver"
 	}
 
-	cli, err := client.New(context.Background(), &client.AuthClientConfig{
+	cli, err := client.NewPostgresClient(context.Background(), &client.PostgresClientConfig{
 		Username: username,
 		Host:     host,
 		Port:     26257,
@@ -43,7 +50,7 @@ func GetRouter(database string, builder func(cli *client.AuthClient, r *gin.Engi
 	return r
 }
 
-func Run(builder func(cli *client.AuthClient, r *gin.Engine)) {
+func Run(builder func(cli client.AuthClient, r *gin.Engine)) {
 	port, ok := os.LookupEnv("PONGLE_SERVER_PORT")
 	if !ok {
 		logrus.Fatal("Environment Variable PONGLE_SERVER_PORT not found")

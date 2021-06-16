@@ -13,10 +13,6 @@
 			"path": "services/auth-server"
 		},
 		{
-			"name": "auth-server-mock",
-			"path": "services/auth-server-mock"
-		},
-		{
 			"name": "auth-operator",
 			"path": "services/auth-operator"
 		}

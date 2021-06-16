@@ -14,7 +14,7 @@ type UserPost struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func RouteBuilder(cli *client.AuthClient, r *gin.Engine) {
+func RouteBuilder(cli client.AuthClient, r *gin.Engine) {
 	r.POST("/", func(c *gin.Context) {
 		var body UserPost
 		if err := c.ShouldBindJSON(&body); err != nil {

@@ -14,7 +14,7 @@ type UserResponse struct {
 	Verified bool   `json:"verified"`
 }
 
-func RouteBuilder(cli *client.AuthClient, r *gin.Engine) {
+func RouteBuilder(cli client.AuthClient, r *gin.Engine) {
 	r.GET("/", func(c *gin.Context) {
 		users, err := cli.ListUsers(c.Request.Context())
 		if err != nil {
