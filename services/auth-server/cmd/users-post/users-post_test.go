@@ -70,19 +70,19 @@ func TestPostRoute(t *testing.T) {
 		{
 			name:   "already exists",
 			args:   map[string]string{"name": "username", "email": "user@email.com", "password": "user-password"},
-			code:   http.StatusBadRequest,
+			code:   http.StatusConflict,
 			exists: true,
 		},
 		{
 			name:   "same username",
 			args:   map[string]string{"name": "username", "email": "different@email.com", "password": "user-password"},
-			code:   http.StatusBadRequest,
+			code:   http.StatusConflict,
 			exists: true,
 		},
 		{
 			name:   "same email",
 			args:   map[string]string{"name": "different", "email": "user@email.com", "password": "user-password"},
-			code:   http.StatusBadRequest,
+			code:   http.StatusConflict,
 			exists: true,
 		},
 		{

@@ -50,7 +50,7 @@ func RouteBuilder(cli *client.AuthClient, r *gin.Engine) {
 				"id": userId,
 			})
 		} else {
-			c.Status(400)
+			c.Status(409)
 		}
 	})
 }

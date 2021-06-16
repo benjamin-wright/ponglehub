@@ -1,6 +1,4 @@
-FROM golang:1.16
-
-WORKDIR /src
+FROM ../../libraries/images/golang+image
 
 deps:
   COPY go.mod go.sum ./
@@ -29,23 +27,14 @@ docker:
   SAVE IMAGE auth-server/${APPLICATION_NAME}
 
 test:
-  BUILD +database
-  BUILD +test-all
-
-test-all:
   FROM +deps
-  RUN --no-cache --mount=type=cache,target=/root/.cache \
-    CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64 \
-    DB_HOST=172.17.0.1 \
-    DB_USER=root \
-    go test ./cmd/...
+  COPY docker-compose.yaml docker-compose.yaml
 
-database:
-  LOCALLY
-    RUN docker-compose up -d
-
-clean:
-  LOCALLY
-    RUN docker-compose down
+  WITH DOCKER --compose docker-compose.yaml
+    RUN CGO_ENABLED=0 \
+      GOOS=linux \
+      GOARCH=amd64 \
+      DB_HOST=localhost \
+      DB_USER=root \
+      go test ./cmd/...
+  END

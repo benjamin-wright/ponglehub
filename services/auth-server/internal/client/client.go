@@ -12,6 +12,9 @@ type AuthClient struct {
 	conn *pgx.Conn
 }
 
+// type AuthClient interface {
+// }
+
 // AuthClientConfig - creds and config for creating a database connection
 type AuthClientConfig struct {
 	Username string
