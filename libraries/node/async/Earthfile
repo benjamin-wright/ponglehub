@@ -4,11 +4,8 @@ deps:
   COPY ../eslint-config-ponglehub+publish/marker /markers/1
 
   COPY package*.json ./
-  RUN npm install
+  RUN npm ci
 
-  SAVE ARTIFACT package.json AS LOCAL ./package.json
-  SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
-  
   COPY ./.eslintrc ./.eslintrc
   COPY ./lib ./lib
 

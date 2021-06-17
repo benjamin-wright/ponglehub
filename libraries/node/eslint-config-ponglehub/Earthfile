@@ -2,11 +2,8 @@ FROM ../../images/node+image
 
 deps:
   COPY package*.json ./
-  RUN npm install
+  RUN npm ci
 
-  SAVE ARTIFACT package.json AS LOCAL ./package.json
-  SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
-  
   COPY ./lib ./lib
 
 publish:

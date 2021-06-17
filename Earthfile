@@ -4,6 +4,10 @@ repos:
   LOCALLY
   RUN ./infra/repos.sh
 
+libs:
+  BUILD ./libraries/node/eslint-config-ponglehub+publish
+  BUILD ./libraries/node/async+publish
+
 repos-stop:
   LOCALLY
   RUN ./infra/repos-stop.sh
