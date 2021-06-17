@@ -40,7 +40,7 @@ func checkExpected(t *testing.T, cli *testutils.TestClient, expected []string) {
 		t.Fatalf("Expected %v to equal %v", ids, expected)
 	}
 
-	for idx, _ := range ids {
+	for idx := range ids {
 		if ids[idx] != expected[idx] {
 			t.Fatalf("Expected %v to equal %v", ids, expected)
 		}
