@@ -17,3 +17,15 @@ stop:
 
     RUN k3d cluster delete auth-operator \
         && rm -rf .scratch
+
+run:
+  FROM ../../libraries/images/kube+image
+
+  COPY ../../helm/tests+chart/chart ./test-chart
+
+  COPY docker-compose.yaml docker-compose.yaml
+  ENV KUBECONFIG ./kubeconfig.yaml
+
+  WITH DOCKER --compose docker-compose.yaml
+    RUN wait-for-cluster && kubectl get ns
+  END
