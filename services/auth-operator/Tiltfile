@@ -1,7 +1,7 @@
-allow_k8s_contexts(['default'])
+allow_k8s_contexts(['auth-operator'])
 load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
-default_registry('localhost:5000')
+default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry:5000')
 
 custom_build(
   'auth-operator-tests',

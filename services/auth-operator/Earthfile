@@ -1,23 +1,16 @@
 cluster:
     LOCALLY
-
-    RUN docker-compose \
-      -f ../../libraries/images/kube/cluster-compose.yaml \
-      up -d
-
+    RUN k3d cluster create auth-operator \
+      --registry-create \
+      --k3s-server-arg "--no-deploy=traefik" \
+      --kubeconfig-update-default=false \
+      -p "80:80@loadbalancer" \
+      --wait
+    RUN mkdir -p .scratch \
+        && k3d kubeconfig get auth-operator > .scratch/kubeconfig \
+        && KUBECONFIG=.scratch/kubeconfig kubectl config use-context k3d-auth-operator
 stop:
     LOCALLY
 
-    RUN docker-compose \
-      -f ../../libraries/images/kube/cluster-compose.yaml \
-      down \
-      && rm -rf .scratch
-
-test:
-  FROM ../../libraries/images/kube+image
-
-  COPY ../../helm/tests+chart/chart ./test-chart
-
-  WITH DOCKER --compose /k3s/cluster-compose.yaml
-    RUN wait-for-cluster && kubectl get pods -A
-  END
+    RUN k3d cluster delete auth-operator \
+        && rm -rf .scratch
