@@ -6,7 +6,6 @@ services:
     tmpfs:
     - /run
     - /var/run
-    privileged: true
     environment:
     - K3S_TOKEN=83jd2938dj2389d
     - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
@@ -26,7 +25,7 @@ services:
   #   environment:
   #   - K3S_URL=https://server:6443
   #   - K3S_TOKEN=83jd2938dj2389d
-  
+
   registry:
     image: registry:2
     ports:

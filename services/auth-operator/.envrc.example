@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source_env ../../.envrc
+
+export OUTPUT_DIR=$(pwd)/.scratch
+export KUBECONFIG=.scratch/kubeconfig.yaml
+export EARTHLY_ALLOW_PRIVILEGED=true

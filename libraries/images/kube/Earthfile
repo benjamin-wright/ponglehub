@@ -10,5 +10,8 @@ image:
         && chmod +x ./kubectl \
         && mv ./kubectl /usr/local/bin \
         && chmod +x /usr/local/bin/wait-for-cluster
-    
-    ENV KUBECONFIG=./.scratch/kubeconfig.yaml
+
+    WORKDIR /src
+
+    ENV OUTPUT_DIR=/scratch
+    ENV KUBECONFIG=/scratch/kubeconfig.yaml
