@@ -71,7 +71,7 @@ spec:
   - name: http
     port: 80
     protocol: TCP
-    targetPort: {{ $mock.port | default 8080 }}
+    targetPort: {{ $mock.port | default 80 }}
   selector:
     app: {{ default "mock" $mock.name }}
   type: ClusterIP

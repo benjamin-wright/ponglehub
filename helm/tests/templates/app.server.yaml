@@ -1,5 +1,5 @@
 {{ $server := .Values.app }}
-{{ $top := . }}
+{{ $root := . }}
 {{- if $server.enabled }}
 apiVersion: v1
 kind: ServiceAccount
@@ -40,7 +40,7 @@ spec:
         env:
         {{- range $name, $value := $container.env }}
         - name: {{ $name }}
-          value: {{ tpl $value $top }}
+          value: {{ tpl $value $root }}
         {{- end }}
         {{- end }}
         resources:
@@ -78,7 +78,7 @@ spec:
         env:
         {{- range $key, $value := $server.env }}
         - name: {{ $key }}
-          value: {{ tpl $value $top }}
+          value: {{ tpl $value $root }}
         {{- end }}
         {{- end }}
         resources:
@@ -110,9 +110,9 @@ metadata:
 spec:
   ports:
   - name: http
-    port: 8080
+    port: 80
     protocol: TCP
-    targetPort: {{ $server.port | default 8080 }}
+    targetPort: {{ $server.port | default 80 }}
   selector:
     app: {{ $server.name }}
   type: ClusterIP
@@ -137,7 +137,7 @@ spec:
       paths:
       - backend:
           serviceName: {{ $server.name }}
-          servicePort: 8080
+          servicePort: 80
         path: /
         pathType: ImplementationSpecific
   tls:
@@ -177,7 +177,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: {{ $server.name }}
-  namespace: {{ $top.Release.Namespace }}
+  namespace: {{ $root.Release.Namespace }}
 {{- else }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -209,7 +209,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: {{ $server.name }}
-  namespace: {{ $top.Release.Namespace }}
+  namespace: {{ $root.Release.Namespace }}
 {{- end }}
 {{- end }}
 {{- end }}

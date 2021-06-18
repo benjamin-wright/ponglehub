@@ -4,6 +4,8 @@ metadata:
   name: authusers.ponglehub.co.uk
 spec:
   group: ponglehub.co.uk
+  subresources:
+    status: {}
   versions:
     - name: v1alpha1
       served: true
@@ -25,8 +27,28 @@ spec:
             status:
               type: object
               properties:
+                id:
+                  type: string
+                  default: whatever
                 verified:
                   type: boolean
+                  default: false
+      additionalPrinterColumns:
+      - name: Display
+        type: string
+        description: The user display name
+        jsonPath: .spec.name
+      - name: Email
+        type: string
+        description: The user email
+        jsonPath: .spec.email
+      - name: ID
+        type: string
+        description: The generated ID
+        jsonPath: .status.id
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
   scope: Namespaced
   names:
     plural: authusers

@@ -1,4 +1,4 @@
-cluster:
+dev:
     LOCALLY
     RUN k3d cluster create auth-operator \
       --registry-create \

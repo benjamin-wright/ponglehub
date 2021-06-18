@@ -24,15 +24,11 @@ custom_build(
 custom_build(
   'mock',
   'earthly ./mock+image && docker tag mock $EXPECTED_REF',
-  ['./mock']
+  ['./mock'],
+  live_update=[
+    sync('./mock/src', '/src/src'),
+  ]
 )
-
-# custom_build(
-#   'mock',
-#   'earthly +mock && docker tag mock $EXPECTED_REF',
-#   ['./'],
-#   ignore=["./int-test", "./.tmp-earthly-out", "./target"]
-# )
 
 k8s_yaml('crds/user.crd.yaml')
 
@@ -43,19 +39,24 @@ k8s_yaml(helm(
   name='auth-operator',
   namespace='int-auth-operator',
   set=[
-    'test.name=tests',
     'test.image=auth-operator-tests',
+    'test.env.NAMESPACE="{{ .Release.Namespace }}"',
+    'test.rbac.apiGroups={ponglehub.co.uk}',
+    'test.rbac.resources={authusers}',
+    'test.rbac.verbs={create,get,list,delete,deletecollection}',
+    'test.rbac.clusterWide=true',
 
     'mock.image=mock',
 
     'app.enabled=true',
     'app.image=auth-operator',
-    'app.env.RUST_LOG="info\\,auth_operator=debug"',
     'app.env.NAMESPACE="{{ .Release.Namespace }}"',
     'app.env.AUTH_ENDPOINT="http://mock"',
     'app.rbac.apiGroups={ponglehub.co.uk}',
-    'app.rbac.resources={authusers}',
-    'app.rbac.verbs={get,list,watch}',
+    'app.rbac.resources={authusers,authusers/status}',
+    'app.rbac.verbs={get,list,watch,patch,update}',
     'app.rbac.clusterWide=true',
   ]
 ))
+
+k8s_resource('test', resource_deps=['app'])

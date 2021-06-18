@@ -1,5 +1,11 @@
 {{- $test := .Values.test -}}
 {{- $root := . -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $test.name }}
+automountServiceAccountToken: true
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,6 +24,7 @@ spec:
       annotations:
         linkerd.io/inject: disabled
     spec:
+      serviceAccountName: {{ $test.name }}
       containers:
       - name: {{ $test.name | default "job" }}
         image: {{ required "must enter an image property!" $test.image}}
@@ -40,3 +47,70 @@ spec:
             memory: 512Mi
             cpu: 1
         {{- end }}
+{{- if not (empty $test.rbac) }}
+{{- if $test.rbac.clusterWide }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $test.name }}
+rules:
+- apiGroups:
+  {{- range $test.rbac.apiGroups }}
+  - {{ . }}
+  {{- end }}
+  resources:
+  {{- range $test.rbac.resources }}
+  - {{ . }}
+  {{- end }}
+  verbs:
+  {{- range $test.rbac.verbs }}
+  - {{ . }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $test.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $test.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ $test.name }}
+  namespace: {{ $root.Release.Namespace }}
+{{- else }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $test.name }}
+rules:
+- apiGroups:
+  {{- range $test.rbac.apiGroups }}
+  - {{ . }}
+  {{- end }}
+  resources:
+  {{- range $test.rbac.resources }}
+  - {{ . }}
+  {{- end }}
+  verbs:
+  {{- range $test.rbac.verbs }}
+  - {{ . }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $test.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $test.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ $test.name }}
+  namespace: {{ $root.Release.Namespace }}
+{{- end }}
+{{- end }}

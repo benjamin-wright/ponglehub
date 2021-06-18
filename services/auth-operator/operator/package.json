@@ -12,6 +12,7 @@
   "dependencies": {
     "@kubernetes/client-node": "^0.14.3",
     "@pongle/eslint-config-ponglehub": "^1.0.1",
+    "axios": "^0.21.1",
     "nodemon": "^2.0.7"
   }
 }
