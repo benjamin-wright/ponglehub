@@ -19,5 +19,5 @@ test:
   COPY ../../helm/tests+chart/chart ./test-chart
 
   WITH DOCKER --compose /k3s/cluster-compose.yaml
-    RUN wait-for-cluster && kubectl get ns
+    RUN wait-for-cluster && kubectl get pods -A
   END
