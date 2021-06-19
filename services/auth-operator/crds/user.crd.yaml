@@ -29,7 +29,6 @@ spec:
               properties:
                 id:
                   type: string
-                  default: whatever
                 verified:
                   type: boolean
                   default: false

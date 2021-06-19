@@ -22,9 +22,6 @@ async function addUser({ name, username, email, password }) {
             name: username,
             email,
             password
-        },
-        status: {
-            id: 'something'
         }
     }).catch(err => {
         throw new Error(`Failed to get user: ${err.statusCode}\n${JSON.stringify(err.body, null, 2)}`);

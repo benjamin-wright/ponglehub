@@ -59,4 +59,5 @@ k8s_yaml(helm(
   ]
 ))
 
-k8s_resource('test', resource_deps=['app'])
+k8s_resource('test', resource_deps=['app', 'mock'])
+k8s_resource('mock', port_forwards=["3001:80"])

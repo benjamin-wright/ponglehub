@@ -1,36 +1,26 @@
-const Listener = require('./listener');
+const k8s = require('./k8s');
 const Client = require('./client');
-const k8s = require('@kubernetes/client-node');
 
 const client = new Client();
-const listener = new Listener();
-const namespace = process.env.NAMESPACE;
+const listener = new k8s.Listener();
+const api = new k8s.Api();
 
 listener.reconcile(
     event => {
-        client.addUser(event.spec).then(id => {
-            console.info('Got user id: ' + id);
-            const options = { headers: { 'Content-type': k8s.PatchUtils.PATCH_FORMAT_JSON_PATCH } };
-            const patch = [
-                {
-                    op: 'replace',
-                    path: '/status/id',
-                    value: id
-                }
-            ];
+        if (event.status && event.status.id) {
+            console.debug(`User ${event.metadata.name} already has an id: ${event.status.id}`);
+            return;
+        }
 
-            return listener.k8sApi.patchNamespacedCustomObject(
-                'ponglehub.co.uk',
-                'v1alpha1',
-                namespace,
-                'authusers',
-                event.metadata.name,
-                patch,
-                undefined, undefined, undefined, options
-            );
+        console.info(`Adding new user: "${event.spec.name}"`);
+        client.addUser(event.spec).then(id => {
+            if (id) {
+                console.info(`Got new id for user "${event.spec.name}": "${id}"`);
+                return api.setUserId(event, id);
+            }
         }).catch(err => {
             if (err.body) {
-                console.error(`Failed with status: ${err.statusCode}: ${JSON.stringify(err.body.message)}`);
+                console.error(`Failed with status [${err.statusCode}]: ${JSON.stringify(err.body.message)}`);
             } else {
                 console.error(err);
             }

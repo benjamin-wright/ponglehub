@@ -2,7 +2,7 @@
 
 ## Todo:
 
-- Golang test utils by building a libs image and COPYing it into go builds
+- Make auth-operator client a dumb client, and add a manager to dedupe noisy kube-events and prevent bombarding auth api with requests
 
 ## Dependencies:
 

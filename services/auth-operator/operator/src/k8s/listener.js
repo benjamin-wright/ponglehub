@@ -5,7 +5,6 @@ module.exports = class Listener {
     constructor() {
         const kc = new k8s.KubeConfig();
         kc.loadFromCluster();
-
         this.k8sApi = kc.makeApiClient(k8s.CustomObjectsApi);
 
         const listFn = () => this.k8sApi.listNamespacedCustomObject('ponglehub.co.uk', 'v1alpha1', namespace, 'authusers');
@@ -13,11 +12,11 @@ module.exports = class Listener {
     }
 
     reconcile(upsertCallback, deleteCallback, errorCallback) {
-        this.informer.on(k8s.ADD, upsertCallback);
-        this.informer.on(k8s.UPDATE, () => {});
-        this.informer.on(k8s.CHANGE, () => {});
-        this.informer.on(k8s.DELETE, deleteCallback);
-        this.informer.on(k8s.ERROR, errorCallback);
+        this.informer.on(k8s.ADD, event => { console.debug('USERWATCH ADD EVENT'); upsertCallback(event); });
+        this.informer.on(k8s.UPDATE, event => { console.debug('USERWATCH UPDATE EVENT'); upsertCallback(event); });
+        this.informer.on(k8s.CHANGE, event => { console.debug('USERWATCH CHANGE EVENT'); upsertCallback(event); });
+        this.informer.on(k8s.DELETE, event => { console.debug('USERWATCH DELETE EVENT'); deleteCallback(event); });
+        this.informer.on(k8s.ERROR, err => { console.debug('USERWATCH ERROR'); errorCallback(err); });
     }
 
     start() {
@@ -29,7 +28,7 @@ module.exports = class Listener {
                 console.error(`Something went wrong: ${err.message}`);
                 console.info('Waiting 5 seconds and restarting');
 
-                setTimeout(this.start, 5000);
+                setTimeout(this.start.bind(this), 5000);
             });
     }
 
