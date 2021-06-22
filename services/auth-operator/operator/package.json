@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon src/index.js",
-    "lint": "eslint ."
+    "start": "nodemon --inspect src/index.js",
+    "lint": "eslint .",
+    "unit": "jest ."
   },
   "author": "",
   "license": "ISC",
@@ -14,5 +15,9 @@
     "@pongle/eslint-config-ponglehub": "^1.0.1",
     "axios": "^0.21.1",
     "nodemon": "^2.0.7"
+  },
+  "devDependencies": {
+    "@pongle/async": "^1.0.2",
+    "jest": "^27.0.4"
   }
 }

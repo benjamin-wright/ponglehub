@@ -4,7 +4,7 @@ deps:
     COPY ../../../libraries/node/eslint-config-ponglehub+publish/marker /markers/1
 
     COPY package*.json ./
-    RUN npm ci
+    RUN npm ci --production
 
     COPY ./.eslintrc ./.eslintrc
     COPY ./src ./src

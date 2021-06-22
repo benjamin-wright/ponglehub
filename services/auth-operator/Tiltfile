@@ -3,6 +3,12 @@ load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
 default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry:5000')
 
+local_resource(
+  'unit tests',
+  'cd operator && npm run unit',
+  ['./operator/src']
+)
+
 custom_build(
   'auth-operator-tests',
   'earthly ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
@@ -42,8 +48,8 @@ k8s_yaml(helm(
     'test.image=auth-operator-tests',
     'test.env.NAMESPACE="{{ .Release.Namespace }}"',
     'test.rbac.apiGroups={ponglehub.co.uk}',
-    'test.rbac.resources={authusers}',
-    'test.rbac.verbs={create,get,list,delete,deletecollection}',
+    'test.rbac.resources={authusers,authusers/status}',
+    'test.rbac.verbs={create,get,update,list,delete,deletecollection}',
     'test.rbac.clusterWide=true',
 
     'mock.image=mock',
@@ -60,4 +66,5 @@ k8s_yaml(helm(
 ))
 
 k8s_resource('test', resource_deps=['app', 'mock'])
+k8s_resource('app', port_forwards=["9229:9229"])
 k8s_resource('mock', port_forwards=["3001:80"])

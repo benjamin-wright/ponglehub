@@ -12,10 +12,16 @@ module.exports = class Listener {
     }
 
     reconcile(upsertCallback, deleteCallback, errorCallback) {
-        this.informer.on(k8s.ADD, event => { console.debug('USERWATCH ADD EVENT'); upsertCallback(event); });
-        this.informer.on(k8s.UPDATE, event => { console.debug('USERWATCH UPDATE EVENT'); upsertCallback(event); });
-        this.informer.on(k8s.CHANGE, event => { console.debug('USERWATCH CHANGE EVENT'); upsertCallback(event); });
-        this.informer.on(k8s.DELETE, event => { console.debug('USERWATCH DELETE EVENT'); deleteCallback(event); });
+        this.informer.on(k8s.ADD, event => { console.debug(`ADD - ${event.metadata.name}`); upsertCallback(event); });
+        this.informer.on(k8s.UPDATE, event => {
+            console.debug(`UPDATE - ${event.metadata.name}`);
+            upsertCallback(event);
+        });
+        this.informer.on(k8s.CHANGE, event => {
+            console.debug(`CHANGE - ${event.metadata.name}`);
+            upsertCallback(event);
+        });
+        this.informer.on(k8s.DELETE, event => { console.debug(`DELETE - ${event.metadata.name}`); deleteCallback(event); });
         this.informer.on(k8s.ERROR, err => { console.debug('USERWATCH ERROR'); errorCallback(err); });
     }
 

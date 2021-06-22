@@ -15,9 +15,10 @@ async function getUsers() {
         .catch(err => { throw new Error(`Failed to list mock users: ${err}`); });
 }
 
-async function waitForUser(username) {
+async function waitForUser(name) {
     let waiting = true;
     let waitedFor = 0;
+    let mockUser;
     const timeout = 3000;
 
     while (waiting) {
@@ -27,15 +28,18 @@ async function waitForUser(username) {
         const users = await getUsers();
 
         users.forEach(user => {
-            if (user.name === username) {
+            if (user.name === name) {
                 waiting = false;
+                mockUser = user;
             }
         });
 
         if (waiting && waitedFor > timeout) {
-            throw new Error(`Timed out waiting for user ${username}: have ${JSON.stringify(users.map(u => u.name))}`);
+            throw new Error(`Timed out waiting for user ${name}: have ${JSON.stringify(users.map(u => u.name))}`);
         }
     };
+
+    return mockUser;
 }
 
 async function reset() {

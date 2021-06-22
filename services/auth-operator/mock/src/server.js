@@ -13,15 +13,69 @@ router.get('/users', (ctx, next) => {
     ctx.body = users;
 });
 
+router.get('/users/:id', (ctx, next) => {
+    const id = ctx.params.id;
+    const user = users.find(user => user.id === id);
+
+    if (user) {
+        ctx.status = 200;
+        ctx.body = {
+            name: user.name,
+            email: user.email,
+            verified: user.verified
+        };
+    } else {
+        ctx.status = 404;
+    }
+});
+
+router.put('/users/:id', (ctx, next) => {
+    const id = ctx.params.id;
+    const user = users.find(user => user.id === id);
+    const body = ctx.request.body;
+
+    if (user) {
+        if (body.name) {
+            console.info(`${id}: name ${user.name} => ${body.name}`);
+            user.name = body.name;
+        }
+
+        if (body.email) {
+            console.info(`${id}: email ${user.email} => ${body.email}`);
+            user.email = body.email;
+        }
+
+        if (body.password) {
+            console.info(`${id}: password ${user.password} => ${body.password}`);
+            user.password = body.password;
+        }
+
+        if (body.verified) {
+            console.info(`${id}: verified ${user.verified} => ${body.verified}`);
+            user.verified = body.verified;
+        }
+
+        ctx.status = 202;
+        ctx.body = {
+            name: user.name,
+            email: user.email,
+            verified: user.verified
+        };
+    } else {
+        ctx.status = 404;
+    }
+});
+
 router.post('/users', (ctx, next) => {
     const id = uuid.v4();
-    const { name, email, password } = ctx.request.body;
+    const { name, email, password, verified } = ctx.request.body;
 
     users.push({
         id,
         name,
         email,
-        password
+        password,
+        verified: !!verified
     });
 
     ctx.body = { id };

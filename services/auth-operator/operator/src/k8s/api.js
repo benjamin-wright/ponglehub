@@ -40,6 +40,8 @@ module.exports = class Api {
             user.metadata.name,
             patch,
             undefined, undefined, undefined, options
-        );
+        ).then(err => {
+            return new Error(`Failed to update user CRD ID [${err.statusCode}]: ${err.message}`);
+        });
     }
 };
