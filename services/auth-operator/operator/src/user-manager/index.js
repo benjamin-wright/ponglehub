@@ -1,5 +1,11 @@
+const {
+    UserState,
+    States
+} = require('./state');
 const Manager = require('./manager');
 
 module.exports = {
-    Manager
+    Manager,
+    UserState,
+    States
 };

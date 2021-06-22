@@ -3,12 +3,10 @@ const crds = require('./crds');
 const faker = require('faker');
 const async = require('@pongle/async');
 
-let counter = 0;
-
 function makeUser() {
     return {
         meta: {
-            name: `user-${counter++}`
+            name: `user-${faker.unique(() => faker.random.alphaNumeric(10))}`
         },
         spec: {
             name: faker.unique(faker.internet.userName),

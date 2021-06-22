@@ -8,7 +8,7 @@ module.exports = class Api {
         this.k8sApi = kc.makeApiClient(k8s.CustomObjectsApi);
     }
 
-    async setUserId(user, id) {
+    setUserId(user, id) {
         const patch = [];
         const options = { headers: { 'Content-type': k8s.PatchUtils.PATCH_FORMAT_JSON_PATCH } };
 
@@ -32,7 +32,7 @@ module.exports = class Api {
             });
         }
 
-        return await this.k8sApi.patchNamespacedCustomObject(
+        return this.k8sApi.patchNamespacedCustomObject(
             'ponglehub.co.uk',
             'v1alpha1',
             namespace,
@@ -40,8 +40,8 @@ module.exports = class Api {
             user.metadata.name,
             patch,
             undefined, undefined, undefined, options
-        ).then(err => {
-            return new Error(`Failed to update user CRD ID [${err.statusCode}]: ${err.message}`);
+        ).catch(err => {
+            throw new Error(`Failed to update user CRD ID for ${user.metadata.name} [${err.statusCode}]: ${err.message}`);
         });
     }
 };
