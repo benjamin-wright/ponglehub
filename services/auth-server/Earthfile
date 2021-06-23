@@ -26,6 +26,14 @@ docker:
 
   SAVE IMAGE auth-server/${APPLICATION_NAME}
 
+all:
+  BUILD --build-arg APPLICATION_NAME=login +docker
+  BUILD --build-arg APPLICATION_NAME=users-delete +docker
+  BUILD --build-arg APPLICATION_NAME=users-get +docker
+  BUILD --build-arg APPLICATION_NAME=users-list +docker
+  BUILD --build-arg APPLICATION_NAME=users-post +docker
+  BUILD --build-arg APPLICATION_NAME=users-put +docker
+
 test:
   FROM +deps
   COPY docker-compose.yaml docker-compose.yaml

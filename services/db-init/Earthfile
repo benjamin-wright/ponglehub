@@ -12,7 +12,7 @@ build:
 
   SAVE ARTIFACT db-init
 
-docker:
+image:
   FROM scratch
 
   COPY +build/db-init /go/bin/db-init
