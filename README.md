@@ -11,6 +11,12 @@
 - brew install operator-sdk
 - setup your .envrc (copy .envrc-example and fill in the blanks)
 
+## Build:
+
+- `earthly +generate` to create deployment manifests
+- `earthly +repos` to start local private npm repo
+- `earthly +infra` to launch the local application cluster
+
 ## Architecture
 
 ### Application
