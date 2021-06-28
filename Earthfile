@@ -5,18 +5,17 @@ all:
   BUILD ./services/auth-server+all
   BUILD ./services/db-init+image
 
-repos:
+repos-start:
   LOCALLY
-  RUN ./infra/repos.sh
-  RUN helm dep update helm/tests
+  RUN ./infra/repos.sh start
+
+repos-stop:
+  LOCALLY
+  RUN ./infra/repos.sh stop
 
 libs:
   BUILD ./libraries/node/eslint-config-ponglehub+publish
   BUILD ./libraries/node/async+publish
-
-repos-stop:
-  LOCALLY
-  RUN ./infra/repos-stop.sh
 
 generate:
   LOCALLY
@@ -34,11 +33,15 @@ generate:
         '. |= (select(.kind=="Service" and .metadata.name=="knative-local-gateway") | .metadata.labels["experimental.istio.io/disable-gateway-port-translation"]="true")' \
         infra/manifests/generated/knative-net-istio.yaml
 
-infra:
+
+start:
+  ARG REGISTRY_NAME=pongle-registry.localhost
+  ARG REGISTRY_PORT=5000
+  
   LOCALLY
-  RUN k3d registry create pongle_registry --port 5000
+  RUN k3d registry create $REGISTRY_NAME --port $REGISTRY_PORT
   RUN k3d cluster create pongle \
-        --registry-use pongle_registry \
+        --registry-use $REGISTRY_NAME \
         --k3s-server-arg "--no-deploy=traefik" \
         --kubeconfig-update-default=false \
         --volume $(pwd)/infra/manifests:/var/lib/rancher/k3s/server/manifests/preload \
@@ -47,18 +50,14 @@ infra:
   RUN mkdir -p .scratch
   RUN k3d kubeconfig get pongle > .scratch/kubeconfig
 
-infra-stop:
-  LOCALLY
-  RUN ./infra/stop.sh
-
-start:
-  BUILD +repos
-  BUILD +infra
-
 stop:
-  BUILD +infra-stop
+  ARG REGISTRY_NAME=pongle-registry.localhost
+
+  LOCALLY
+  RUN k3d cluster delete $CLUSTER_NAME || true
+  RUN k3d registry delete $REGISTRY_NAME || true
 
 clean:
-  BUILD +infra-stop
+  BUILD +stop
   BUILD +repos-stop
 

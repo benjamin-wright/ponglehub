@@ -36,4 +36,32 @@ EOD
   fi
 }
 
-start_npm_registry
+function stop_npm_registry() {
+  if docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER; then
+    docker stop $NPM_CONTAINER
+    docker rm $NPM_CONTAINER
+
+    if [ -f ~/.npmrc.bak ]; then
+      mv ~/.npmrc.bak ~/.npmrc
+    fi
+
+    npm config delete registry
+  else
+    echo "npm registry already down"
+  fi
+}
+
+cmd=$1
+
+case "$cmd" in
+  start)
+    start_npm_registry
+  ;;
+  stop)
+    stop_npm_registry
+  ;;
+  *)
+    echo "Command \"$cmd\" not recognised"
+    exit 1
+  ;;
+esac

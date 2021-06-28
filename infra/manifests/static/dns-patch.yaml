@@ -1,1 +1,114 @@
-do stuff
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: kube-system
+  name: coredns-override-script
+data:
+  patch.sh: |-
+    #!/bin/bash
+
+    set -o errexit -o pipefail
+
+    cd /home/scratch
+
+    file_name=tmp_configmap.yaml
+    backup_file_name=tmp_configmap.yaml.bak
+    REGISTRY_NAME="pongle-registry.localhost"
+
+    echo "waiting for coredns internal patch..."
+    while ! kubectl get configmap -n kube-system coredns -o yaml | grep -q host.k3d.internal; do
+      sleep 5
+    done
+
+    # grab the core-dns configuration from the cluster
+    kubectl get configmap -n kube-system coredns -o yaml > $file_name
+
+    if cat $file_name | grep k3d-$REGISTRY_NAME -q; then
+      echo "hosts entry for private registry already exists."
+    else
+      # Find the IP associated with host.k3d.internal, this will be the IP of your host machine on the docker network
+      registry_ip=$(cat $file_name | grep host.k3d.internal | xargs | cut -d " " -f1)
+      line_number=$(cat tmp_configmap.yaml | grep host.k3d.internal -n | cut -f1 -d: | tr -d '\n')
+
+      # Add the docker registry hostname with the host machine IP address to the core-dns config file
+      sed -i.bak "${line_number}i\\
+        $registry_ip k3d-$REGISTRY_NAME
+    " $file_name
+
+      kubectl replace -n kube-system -f $file_name --wait
+
+      # roll the core-dns pods to reload the config
+      kubectl -n kube-system rollout restart deployment coredns
+    fi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: kube-system
+  name: coredns-patch
+spec:
+  template:
+    spec:
+      serviceAccount: coredns-patch
+      containers:
+      - name: patch
+        image: bitnami/kubectl:1.21.2-debian-10-r8
+        command:
+        - /usr/local/bin/patch.sh
+        volumeMounts:
+        - name: script
+          mountPath: /usr/local/bin/patch.sh
+          subPath: patch.sh
+        - name: scratch
+          mountPath: /home/scratch
+      restartPolicy: Never
+      volumes:
+      - name: script
+        configMap:
+          name: coredns-override-script
+          defaultMode: 0777
+      - name: scratch
+        emptyDir: {}
+        defaultMode: 0777
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: coredns-patch
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  verbs:
+  - get
+  - patch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: coredns-patch
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: coredns-patch
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: coredns-patch
+subjects:
+- kind: ServiceAccount
+  name: coredns-patch
+  namespace: kube-system
