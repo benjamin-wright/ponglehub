@@ -1,27 +1,27 @@
-{{ $server := .Values.app }}
+{{- range $name, $server := .Values.servers }}
 {{ $root := . }}
 {{- if $server.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ $server.name }}
+  name: {{ $name }}
 automountServiceAccountToken: true
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: {{ required "must enter a name property!" $server.name }}
-  name: {{ required "must enter a name property!" $server.name }}
+    app: {{ required "must enter a name property!" $name }}
+  name: {{ required "must enter a name property!" $name }}
 spec:
   replicas: {{ $server.replicas | default 1 }}
   selector:
     matchLabels:
-      app: {{ $server.name }}
+      app: {{ $name }}
   template:
     metadata:
       labels:
-        app: {{ required "must enter a name property!" $server.name }}
+        app: {{ required "must enter a name property!" $name }}
       {{- if $server.annotations }}
       annotations:
       {{- range $key, $value := $server.annotations }}
@@ -29,7 +29,7 @@ spec:
       {{- end }}
       {{- end }}
     spec:
-      serviceAccountName: {{ $server.name }}
+      serviceAccountName: {{ $name }}
       {{- if $server.initContainers }}
       initContainers:
       {{- range $key, $container := $server.initContainers }}
@@ -105,8 +105,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: {{ $server.name }}
-  name: {{ $server.name }}
+    app: {{ $name }}
+  name: {{ $name }}
 spec:
   ports:
   - name: http
@@ -114,7 +114,7 @@ spec:
     protocol: TCP
     targetPort: {{ $server.port | default 80 }}
   selector:
-    app: {{ $server.name }}
+    app: {{ $name }}
   type: ClusterIP
 {{- if not (empty $server.host) }}
 ---
@@ -128,15 +128,15 @@ metadata:
     ingress.kubernetes.io/auth-type: forward
 {{- end }}
   labels:
-    app: {{ $server.name }}
-  name: {{ $server.name }}
+    app: {{ $name }}
+  name: {{ $name }}
 spec:
   rules:
   - host: {{ required "must provide a host!" $server.host }}
     http:
       paths:
       - backend:
-          serviceName: {{ $server.name }}
+          serviceName: {{ $name }}
           servicePort: 80
         path: /
         pathType: ImplementationSpecific
@@ -151,7 +151,7 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ $server.name }}
+  name: {{ $name }}
 rules:
 - apiGroups:
   {{- range $server.rbac.apiGroups }}
@@ -169,21 +169,21 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ $server.name }}
+  name: {{ $name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ $server.name }}
+  name: {{ $name }}
 subjects:
 - kind: ServiceAccount
-  name: {{ $server.name }}
+  name: {{ $name }}
   namespace: {{ $root.Release.Namespace }}
 {{- else }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ $server.name }}
+  name: {{ $name }}
 rules:
 - apiGroups:
   {{- range $server.rbac.apiGroups }}
@@ -201,14 +201,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ $server.name }}
+  name: {{ $name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ $server.name }}
+  name: {{ $name }}
 subjects:
 - kind: ServiceAccount
-  name: {{ $server.name }}
+  name: {{ $name }}
   namespace: {{ $root.Release.Namespace }}
 {{- end }}
 {{- end }}

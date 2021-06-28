@@ -41,7 +41,7 @@ k8s_yaml('crds/user.crd.yaml')
 k8s_yaml(namespace_yaml('int-auth-operator'))
 
 k8s_yaml(helm(
-  '../../helm/tests',
+  '../../helm',
   name='auth-operator',
   namespace='int-auth-operator',
   set=[
@@ -54,14 +54,14 @@ k8s_yaml(helm(
 
     'mock.image=mock',
 
-    'app.enabled=true',
-    'app.image=auth-operator',
-    'app.env.NAMESPACE="{{ .Release.Namespace }}"',
-    'app.env.AUTH_ENDPOINT="http://mock"',
-    'app.rbac.apiGroups={ponglehub.co.uk}',
-    'app.rbac.resources={authusers,authusers/status}',
-    'app.rbac.verbs={get,list,watch,patch,update}',
-    'app.rbac.clusterWide=true',
+    'servers.app.enabled=true',
+    'servers.app.image=auth-operator',
+    'servers.app.env.NAMESPACE="{{ .Release.Namespace }}"',
+    'servers.app.env.AUTH_ENDPOINT="http://mock"',
+    'servers.app.rbac.apiGroups={ponglehub.co.uk}',
+    'servers.app.rbac.resources={authusers,authusers/status}',
+    'servers.app.rbac.verbs={get,list,watch,patch,update}',
+    'servers.app.rbac.clusterWide=true',
   ]
 ))
 

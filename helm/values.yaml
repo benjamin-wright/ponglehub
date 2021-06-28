@@ -1,7 +1,12 @@
-app:
-  enabled: false
-  name: app
-#   image:
+servers:
+  app:
+    enabled: false
+    # image:
+
+functions: {}
+# functions:
+#   app:
+#     enabled: false
 
 test:
   name: test
