@@ -2,6 +2,8 @@ FROM ../../libraries/images/golang+image
 
 deps:
   COPY go.mod go.sum ./
+  COPY ../db-init+module/ ../db-init
+
   RUN go mod download
 
   COPY internal ./internal
@@ -26,6 +28,15 @@ docker:
 
   SAVE IMAGE auth-server/${APPLICATION_NAME}
 
+migrations:
+  FROM scratch
+
+  COPY --dir migrations /migrations
+  COPY --build-arg APPLICATION_NAME="migrations" +build/migrations /go/bin/app
+  ENTRYPOINT [ "/go/bin/app" ]
+
+  SAVE IMAGE auth-server/migrations
+
 all:
   BUILD --build-arg APPLICATION_NAME=login +docker
   BUILD --build-arg APPLICATION_NAME=users-delete +docker
@@ -33,10 +44,12 @@ all:
   BUILD --build-arg APPLICATION_NAME=users-list +docker
   BUILD --build-arg APPLICATION_NAME=users-post +docker
   BUILD --build-arg APPLICATION_NAME=users-put +docker
+  BUILD +migrations
 
 test:
   FROM +deps
   COPY docker-compose.yaml docker-compose.yaml
+  COPY migrations migrations
 
   WITH DOCKER --compose docker-compose.yaml
     RUN CGO_ENABLED=0 \

@@ -1,14 +1,15 @@
-FROM golang:1.16
+FROM ../../libraries/images/golang+image
 
-WORKDIR /src
-
-build:
+deps:
   COPY go.mod go.sum ./
   RUN go mod download
 
-  COPY *.go ./
+  COPY --dir internal pkg .
 
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o db-init
+build:
+  FROM +deps
+
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o db-init ./cmd/db-init/main.go
 
   SAVE ARTIFACT db-init
 
@@ -19,3 +20,22 @@ image:
   ENTRYPOINT [ "/go/bin/db-init" ]
 
   SAVE IMAGE db-init
+
+test:
+  FROM +deps
+
+  COPY docker-compose.yaml docker-compose.yaml
+
+  WITH DOCKER --compose docker-compose.yaml
+    RUN CGO_ENABLED=0 \
+      GOOS=linux \
+      GOARCH=amd64 \
+      DB_HOST=localhost \
+      DB_USER=root \
+      go test ./cmd/...
+  END
+
+module:
+  FROM +deps
+
+  SAVE ARTIFACT ./*
