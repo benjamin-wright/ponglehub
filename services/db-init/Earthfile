@@ -6,21 +6,6 @@ deps:
 
   COPY --dir internal pkg .
 
-build:
-  FROM +deps
-
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o db-init ./cmd/db-init/main.go
-
-  SAVE ARTIFACT db-init
-
-image:
-  FROM scratch
-
-  COPY +build/db-init /go/bin/db-init
-  ENTRYPOINT [ "/go/bin/db-init" ]
-
-  SAVE IMAGE db-init
-
 test:
   FROM +deps
 

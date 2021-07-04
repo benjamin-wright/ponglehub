@@ -3,7 +3,6 @@ FROM scratch
 all:
   BUILD ./services/auth-operator/operator+image
   BUILD ./services/auth-server+all
-  BUILD ./services/db-init+image
 
 repos-start:
   LOCALLY
