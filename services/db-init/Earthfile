@@ -8,28 +8,26 @@ deps:
 
 test:
   FROM +deps
+  BUILD +db
 
-  COPY docker-compose.yaml docker-compose.yaml
-
-  WITH DOCKER --compose docker-compose.yaml
-    RUN CGO_ENABLED=0 \
+  ARG DB_HOST
+  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 \
       GOOS=linux \
       GOARCH=amd64 \
-      DB_HOST=localhost \
+      DB_HOST=$DB_HOST \
       DB_USER=root \
       go test -v ./pkg/...
-  END
-
-db-test:
-  RUN --no-cache cat /etc/resolv.conf
 
 db:
   LOCALLY
+  RUN if ! docker ps | grep -q cockroachdb; then \
+        docker run --rm -d --name cockroachdb cockroachdb/cockroach:v20.2.8 start-single-node --insecure; \
+        direnv reload; \
+      fi
 
-  RUN docker network create db-net 
-  RUN docker run --rm -d --name cockroachdb cockroachdb/cockroach:v20.2.8 start-single-node --insecure
-  RUN docker network connect db-net cockroachdb
-  RUN docker network connect db-net earthly-buildkitd
+db-stop:
+  LOCALLY
+  RUN docker stop cockroachdb || true
 
 module:
   FROM +deps

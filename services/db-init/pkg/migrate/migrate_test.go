@@ -4,6 +4,6 @@ import "testing"
 
 func TestMigrations(t *testing.T) {
 	t.Run("TestCase", func(u *testing.T) {
-		u.Log("some logging")
+		u.Log("some logly")
 	})
 }
