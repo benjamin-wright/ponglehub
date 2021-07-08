@@ -17,8 +17,19 @@ test:
       GOARCH=amd64 \
       DB_HOST=localhost \
       DB_USER=root \
-      go test ./cmd/...
+      go test -v ./pkg/...
   END
+
+db-test:
+  RUN --no-cache cat /etc/resolv.conf
+
+db:
+  LOCALLY
+
+  RUN docker network create db-net 
+  RUN docker run --rm -d --name cockroachdb cockroachdb/cockroach:v20.2.8 start-single-node --insecure
+  RUN docker network connect db-net cockroachdb
+  RUN docker network connect db-net earthly-buildkitd
 
 module:
   FROM +deps

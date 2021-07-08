@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source_env ../../.envrc
+
+export EARTHLY_ALLOW_PRIVILEGED=true
