@@ -1,0 +1,78 @@
+{{ $mock := default (dict) .Values.mock }}
+{{ $top := . }}
+{{- if $mock }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ default "mock" $mock.name }}
+  name: {{ default "mock" $mock.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ default "mock" $mock.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ default "mock" $mock.name }}
+    spec:
+      containers:
+      - name: server
+        image: {{ required "must enter an image property!" $mock.image}}
+        imagePullPolicy: {{ $mock.pullPolicy | default "Always" }}
+        {{- if $mock.command }}
+        command:
+          {{- range $mock.command }}
+        - {{ . }}
+          {{- end }}
+        {{- end }}
+        {{- if $mock.args }}
+        args:
+          {{- range $mock.args }}
+        - {{ . | quote }}
+          {{- end }}
+        {{- end }}
+        {{- if $mock.env }}
+        env:
+        {{- range $key, $value := $mock.env }}
+        - name: {{ $key }}
+          value: {{ tpl $value $top }}
+        {{- end }}
+        {{- end }}
+        resources:
+        {{- if $mock.resources }}
+          {{- toYaml $mock.resources | nindent 10 }}
+        {{- else }}
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        {{- end }}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ default "mock" $mock.name }}
+  name: {{ default "mock" $mock.name }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: {{ $mock.port | default 80 }}
+  selector:
+    app: {{ default "mock" $mock.name }}
+  type: ClusterIP
+{{- end }}

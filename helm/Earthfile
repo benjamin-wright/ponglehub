@@ -1,0 +1,8 @@
+FROM ../../libraries/images/helm+image
+WORKDIR /src
+
+chart:
+    COPY . /src
+    RUN helm dep update
+
+    SAVE ARTIFACT /src chart

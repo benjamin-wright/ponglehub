@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "services/db-init",
+			"name": "db-init"
+		},
+		{
+			"path": "services/auth-server",
+			"name": "auth-server"
+		}
+	],
+	"settings": {}
+}

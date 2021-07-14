@@ -1,0 +1,70 @@
+allow_k8s_contexts(['auth-operator'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+
+default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry:5000')
+
+local_resource(
+  'unit tests',
+  'cd operator && npm run unit',
+  ['./operator/src']
+)
+
+custom_build(
+  'auth-operator-tests',
+  'earthly ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
+  ['./int-test'],
+  live_update=[
+    sync('./int-test/tests', '/src/tests'),
+  ]
+)
+
+custom_build(
+  'auth-operator',
+  'earthly ./operator+image && docker tag auth-operator $EXPECTED_REF',
+  ['./operator'],
+  live_update=[
+    sync('./operator/src', '/src/src'),
+  ]
+)
+
+custom_build(
+  'mock',
+  'earthly ./mock+image && docker tag mock $EXPECTED_REF',
+  ['./mock'],
+  live_update=[
+    sync('./mock/src', '/src/src'),
+  ]
+)
+
+k8s_yaml('crds/user.crd.yaml')
+
+k8s_yaml(namespace_yaml('int-auth-operator'))
+
+k8s_yaml(helm(
+  '../../helm',
+  name='auth-operator',
+  namespace='int-auth-operator',
+  set=[
+    'test.image=auth-operator-tests',
+    'test.env.NAMESPACE="{{ .Release.Namespace }}"',
+    'test.rbac.apiGroups={ponglehub.co.uk}',
+    'test.rbac.resources={authusers,authusers/status}',
+    'test.rbac.verbs={create,get,update,list,delete,deletecollection}',
+    'test.rbac.clusterWide=true',
+
+    'mock.image=mock',
+
+    'servers.app.enabled=true',
+    'servers.app.image=auth-operator',
+    'servers.app.env.NAMESPACE="{{ .Release.Namespace }}"',
+    'servers.app.env.AUTH_ENDPOINT="http://mock"',
+    'servers.app.rbac.apiGroups={ponglehub.co.uk}',
+    'servers.app.rbac.resources={authusers,authusers/status}',
+    'servers.app.rbac.verbs={get,list,watch,patch,update}',
+    'servers.app.rbac.clusterWide=true',
+  ]
+))
+
+k8s_resource('test', resource_deps=['app', 'mock'])
+k8s_resource('app', port_forwards=["9229:9229"])
+k8s_resource('mock', port_forwards=["3001:80"])

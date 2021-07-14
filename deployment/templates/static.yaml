@@ -1,4 +1,0 @@
-{{- range $key, $static := .Values.static }}
----
-{{ include "ponglehub.static" $static }}
-{{- end }}

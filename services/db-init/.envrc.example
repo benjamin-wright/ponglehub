@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source_env ../../.envrc
+
+export EARTHLY_ALLOW_PRIVILEGED=true
+export EARTHLY_BUILD_ARGS="DB_HOST=$(docker inspect cockroachdb --format '{{json .}}' | jq '.NetworkSettings.Networks.bridge.IPAddress' -r)"

@@ -1,9 +1,14 @@
-FROM node:10.15.3-alpine
+FROM node:14.17.1-alpine
+WORKDIR /src
+
+npmrc:
+  RUN apk add expect
+  COPY login.sh login.sh
+  RUN ./login.sh
+  SAVE ARTIFACT /root/.npmrc npmrc
 
 image:
-  WORKDIR /src
-  
   RUN apk add jq
 
-  RUN --mount type=secret,target=/root/.npmrc.mount,id=+secrets/NPMRC_FILE cp /root/.npmrc.mount /root/.npmrc
+  COPY +npmrc/npmrc /root/.npmrc
   COPY patch.sh /usr/local/bin/patch

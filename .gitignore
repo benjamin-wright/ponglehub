@@ -16,8 +16,10 @@ dashboards/
 node_modules
 build
 tilt_modules
-bin
 chart-cache
 target
 
 **.tmp-earthly-out
+.scratch
+.terraform
+infra/manifests/generated

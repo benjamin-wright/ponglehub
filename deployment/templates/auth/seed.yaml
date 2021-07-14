@@ -1,6 +1,0 @@
-apiVersion: auth.ponglehub.co.uk/v1beta1
-kind: UserSeed
-metadata:
-  name: {{ .Values.seed.name }}
-spec:
-  email: {{ .Values.seed.email }}

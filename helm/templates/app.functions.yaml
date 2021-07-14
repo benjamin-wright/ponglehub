@@ -1,0 +1,20 @@
+{{ $functions := .Values.functions }}
+{{ $top := . }}
+
+{{- range $name, $function := $functions }}
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    tier: {{ default "private" $function.tier }}
+spec:
+  template:
+    spec:
+      containers:
+        - image: {{ $function.image }}
+          env:
+          - name: PONGLE_SERVER_PORT
+            value: "8080"
+{{- end }}

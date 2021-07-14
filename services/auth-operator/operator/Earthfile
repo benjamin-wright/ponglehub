@@ -1,0 +1,18 @@
+FROM ../../../libraries/images/node+image
+
+deps:
+    COPY ../../../libraries/node/eslint-config-ponglehub+publish/marker /markers/1
+
+    COPY package*.json ./
+    RUN npm ci --production
+
+    COPY ./.eslintrc ./.eslintrc
+    COPY ./src ./src
+
+image:
+    FROM +deps
+
+    ENTRYPOINT [ "npm" ]
+    CMD [ "start" ]
+
+    SAVE IMAGE auth-operator
