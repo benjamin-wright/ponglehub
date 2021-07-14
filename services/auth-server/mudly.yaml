@@ -1,0 +1,25 @@
+language: go
+devEnv:
+  compose:
+    version: '3.9'
+    services:
+      cockroachdb:
+        image: cockroachdb/cockroach:v20.2.8
+        command: start-single-node --insecure
+        ports:
+        - "26257:26257"
+        - "8080:8080"
+scripts:
+- name: build
+  cmd: |-
+    go build -o=bin/login ./cmd/login &
+    go build -o=bin/users-delete ./cmd/users-delete &
+    go build -o=bin/users-get ./cmd/users-get &
+    go build -o=bin/users-list ./cmd/users-list &
+    go build -o=bin/users-post ./cmd/users-post &
+    go build -o=bin/users-put ./cmd/users-put &
+    wait
+- name: image
+  ignore: [ "**", "!bin/auth-server" ]
+  dockerfile: ../../dockerfiles/golang
+  context: ./
