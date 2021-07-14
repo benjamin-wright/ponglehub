@@ -9,6 +9,10 @@ devEnv:
         ports:
         - "26257:26257"
         - "8080:8080"
-scripts:
-- name: build
-  cmd: go build -o=bin/mudly ./cmd/mudly
+
+artefacts:
+- name: mudly
+  pipeline:
+    steps:
+    - name: build
+      cmd: go build -o=bin/mudly ./cmd/mudly

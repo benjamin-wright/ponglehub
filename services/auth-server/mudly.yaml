@@ -1,4 +1,3 @@
-language: go
 devEnv:
   compose:
     version: '3.9'
@@ -9,17 +8,26 @@ devEnv:
         ports:
         - "26257:26257"
         - "8080:8080"
-scripts:
-- name: build
-  cmd: |-
-    go build -o=bin/login ./cmd/login &
-    go build -o=bin/users-delete ./cmd/users-delete &
-    go build -o=bin/users-get ./cmd/users-get &
-    go build -o=bin/users-list ./cmd/users-list &
-    go build -o=bin/users-post ./cmd/users-post &
-    go build -o=bin/users-put ./cmd/users-put &
-    wait
-- name: image
-  ignore: [ "**", "!bin/auth-server" ]
-  dockerfile: ../../dockerfiles/golang
-  context: ./
+
+artefacts:
+- name: login
+  pipeline: server
+- name: users-delete
+  pipeline: server
+- name: migrations
+  depends:
+  - ../db-init
+  pipeline:
+    steps:
+    - name: build
+      cmd: go build -o=bin/migrations ./cmd/migrations
+
+pipelines:
+- name: server
+  steps:
+  - name: build
+    cmd: go build -o=bin/${APP_NAME} ./cmd/${APP_NAME}
+  - name: image
+    ignore: [ "**", "!bin/${APP_NAME}" ]
+    context: ./bin
+    dockerfile: ../../dockerfiles/golang
