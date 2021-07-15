@@ -5,7 +5,13 @@ type DevEnv struct {
 }
 
 type Pipeline struct {
-	Name string
+	Name  string
+	Steps []interface{}
+}
+
+type CommandStep struct {
+	Name    string `yaml:"name"`
+	Command string `yaml:"cmd"`
 }
 
 type Artefact struct {
@@ -15,5 +21,6 @@ type Artefact struct {
 
 type Config struct {
 	DevEnv    *DevEnv
+	Path      string
 	Artefacts []Artefact
 }

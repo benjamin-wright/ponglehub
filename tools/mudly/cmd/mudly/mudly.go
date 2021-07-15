@@ -19,7 +19,7 @@ func setLogLevel() {
 	} else if logLevel := flag.String("log-level", "info", "the logging level to use"); logLevel != nil {
 		parsedLevel, err := logrus.ParseLevel(*logLevel)
 		if err != nil {
-			logrus.Fatalf("Failed to parse log level %s from --log-level flag", logLevel)
+			logrus.Fatalf("Failed to parse log level %s from --log-level flag", *logLevel)
 		}
 
 		logrus.SetLevel(parsedLevel)
@@ -47,4 +47,9 @@ func main() {
 	}
 
 	logrus.Debugf("Targets: %+v", targets)
+
+	// yamlFile, err := ioutil.ReadFile(fmt.Sprintf("%s/mudly.yaml", path))
+	// if err != nil {
+	// 	log.Printf("Error loading config from file %s: %+v ", path, err)
+	// }
 }

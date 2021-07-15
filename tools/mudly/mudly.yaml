@@ -1,4 +1,3 @@
-language: go
 devEnv:
   compose:
     version: '3.9'
