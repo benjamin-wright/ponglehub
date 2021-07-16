@@ -3,12 +3,20 @@ package target
 import (
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 )
 
 type Target struct {
 	Dir      string
 	Artefact string
+}
+
+func (t Target) Rebase(target Target) Target {
+	return Target{
+		Dir:      path.Clean(fmt.Sprintf("%s/%s", target.Dir, t.Dir)),
+		Artefact: t.Artefact,
+	}
 }
 
 func ParseTarget(path string) (*Target, error) {
