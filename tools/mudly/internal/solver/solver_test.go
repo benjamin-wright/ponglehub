@@ -9,15 +9,45 @@ import (
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
 
+type testNode struct {
+	Path      string
+	Artefact  string
+	Step      interface{}
+	State     solver.NodeState
+	DependsOn []int
+}
+
+func convert(nodes []testNode) []solver.Node {
+	converted := []solver.Node{}
+
+	for _, node := range nodes {
+		converted = append(converted, solver.Node{
+			Path:      node.Path,
+			Artefact:  node.Artefact,
+			Step:      node.Step,
+			State:     node.State,
+			DependsOn: []*solver.Node{},
+		})
+	}
+
+	for idx, node := range nodes {
+		for _, dep := range node.DependsOn {
+			converted[idx].DependsOn = append(converted[idx].DependsOn, &converted[dep])
+		}
+	}
+
+	return converted
+}
+
 func TestSolver(t *testing.T) {
 	for _, test := range []struct {
 		Name     string
 		Targets  []target.Target
 		Configs  []config.Config
-		Expected []solver.Node
+		Expected []testNode
 	}{
 		{
-			Name:    "simplest",
+			Name:    "simple",
 			Targets: []target.Target{{Dir: ".", Artefact: "image"}},
 			Configs: []config.Config{
 				{
@@ -31,20 +61,211 @@ func TestSolver(t *testing.T) {
 										Name:    "build",
 										Command: "go build -o ./bin/mudly ./cmd/mudly",
 									},
+									config.DockerStep{
+										Name:       "docker",
+										Dockerfile: "./Dockerfile",
+										Context:    ".",
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			Expected: []solver.Node{
+			Expected: []testNode{
 				{
-					Path:      ".",
-					Artefact:  "image",
-					Step:      "build",
-					Command:   "go build -o ./bin/mudly ./cmd/mudly",
+					Path:     ".",
+					Artefact: "image",
+					Step: config.CommandStep{
+						Name:    "build",
+						Command: "go build -o ./bin/mudly ./cmd/mudly",
+					},
 					State:     solver.STATE_NONE,
-					DependsOn: []*solver.Node{},
+					DependsOn: []int{},
+				},
+				{
+					Path:     ".",
+					Artefact: "image",
+					Step: config.DockerStep{
+						Name:       "docker",
+						Dockerfile: "./Dockerfile",
+						Context:    ".",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{0},
+				},
+			},
+		},
+		{
+			Name:    "parallel builds",
+			Targets: []target.Target{{Dir: ".", Artefact: "image"}, {Dir: ".", Artefact: "something"}},
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Artefacts: []config.Artefact{
+						{
+							Name: "image",
+							Pipeline: config.Pipeline{
+								Steps: []interface{}{
+									config.CommandStep{
+										Name:    "build",
+										Command: "go build -o ./bin/mudly ./cmd/mudly",
+									},
+									config.DockerStep{
+										Name:       "docker",
+										Dockerfile: "./Dockerfile",
+										Context:    ".",
+									},
+								},
+							},
+						},
+						{
+							Name: "something",
+							Pipeline: config.Pipeline{
+								Steps: []interface{}{
+									config.CommandStep{
+										Name:    "echo",
+										Command: "echo \"hi\"",
+									},
+									config.CommandStep{
+										Name:    "build",
+										Command: "whatevs",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Expected: []testNode{
+				{
+					Path:     ".",
+					Artefact: "image",
+					Step: config.CommandStep{
+						Name:    "build",
+						Command: "go build -o ./bin/mudly ./cmd/mudly",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{},
+				},
+				{
+					Path:     ".",
+					Artefact: "image",
+					Step: config.DockerStep{
+						Name:       "docker",
+						Dockerfile: "./Dockerfile",
+						Context:    ".",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{0},
+				},
+				{
+					Path:     ".",
+					Artefact: "something",
+					Step: config.CommandStep{
+						Name:    "echo",
+						Command: "echo \"hi\"",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{},
+				},
+				{
+					Path:     ".",
+					Artefact: "something",
+					Step: config.CommandStep{
+						Name:    "build",
+						Command: "whatevs",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{2},
+				},
+			},
+		},
+		{
+			Name:    "linked builds",
+			Targets: []target.Target{{Dir: ".", Artefact: "image"}},
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Artefacts: []config.Artefact{
+						{
+							Name: "image",
+							Dependencies: []target.Target{
+								{Dir: ".", Artefact: "something"},
+							},
+							Pipeline: config.Pipeline{
+								Steps: []interface{}{
+									config.CommandStep{
+										Name:    "build",
+										Command: "go build -o ./bin/mudly ./cmd/mudly",
+									},
+									config.DockerStep{
+										Name:       "docker",
+										Dockerfile: "./Dockerfile",
+										Context:    ".",
+									},
+								},
+							},
+						},
+						{
+							Name: "something",
+							Pipeline: config.Pipeline{
+								Steps: []interface{}{
+									config.CommandStep{
+										Name:    "echo",
+										Command: "echo \"hi\"",
+									},
+									config.CommandStep{
+										Name:    "build",
+										Command: "whatevs",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Expected: []testNode{
+				{
+					Path:     ".",
+					Artefact: "something",
+					Step: config.CommandStep{
+						Name:    "echo",
+						Command: "echo \"hi\"",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{},
+				},
+				{
+					Path:     ".",
+					Artefact: "something",
+					Step: config.CommandStep{
+						Name:    "build",
+						Command: "whatevs",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{0},
+				},
+				{
+					Path:     ".",
+					Artefact: "image",
+					Step: config.CommandStep{
+						Name:    "build",
+						Command: "go build -o ./bin/mudly ./cmd/mudly",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{1},
+				},
+				{
+					Path:     ".",
+					Artefact: "image",
+					Step: config.DockerStep{
+						Name:       "docker",
+						Dockerfile: "./Dockerfile",
+						Context:    ".",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{2},
 				},
 			},
 		},
@@ -56,7 +277,7 @@ func TestSolver(t *testing.T) {
 
 			if test.Expected != nil {
 				if nodes != nil {
-					assert.Equal(u, test.Expected, nodes)
+					assert.Equal(u, convert(test.Expected), nodes)
 				} else {
 					assert.Fail(u, "expected a list of nodes")
 				}

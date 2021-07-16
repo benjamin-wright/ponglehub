@@ -90,7 +90,7 @@ func TestLoader(t *testing.T) {
 							Pipeline: Pipeline{
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/mudly"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -131,7 +131,7 @@ func TestLoader(t *testing.T) {
 								Name: "external",
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/${ARTEFACT}"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -186,7 +186,7 @@ func TestLoader(t *testing.T) {
 							Pipeline: Pipeline{
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/mudly"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -201,7 +201,7 @@ func TestLoader(t *testing.T) {
 							Pipeline: Pipeline{
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/mudly2 ./cmd/mudly2"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/mudly2"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -246,7 +246,7 @@ func TestLoader(t *testing.T) {
 								Name: "external",
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/${ARTEFACT}"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -257,7 +257,7 @@ func TestLoader(t *testing.T) {
 								Name: "external",
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/${ARTEFACT}"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -310,7 +310,7 @@ func TestLoader(t *testing.T) {
 							Pipeline: Pipeline{
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/mudly"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -325,7 +325,7 @@ func TestLoader(t *testing.T) {
 							Pipeline: Pipeline{
 								Steps: []interface{}{
 									CommandStep{Name: "build", Command: "go build -o=bin/mudly2 ./cmd/mudly2"},
-									DockerStep{Name: "image", Ignore: []string{"**", "!bin/mudly2"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},

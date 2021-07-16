@@ -17,10 +17,10 @@ type CommandStep struct {
 }
 
 type DockerStep struct {
-	Name       string   `yaml:"name"`
-	Dockerfile string   `yaml:"dockerfile"`
-	Ignore     []string `yaml:"ignore"`
-	Context    string   `yaml:"context"`
+	Name       string `yaml:"name"`
+	Dockerfile string `yaml:"dockerfile"`
+	Context    string `yaml:"context"`
+	Tag        string `yaml:"tag"`
 }
 
 type Artefact struct {
