@@ -193,33 +193,46 @@ func loadConfigFromFile(filepath string, filesystem FileSystem) (*Config, error)
 	return &config, nil
 }
 
-func resolveDependencies(options *LoadConfigOptions, config *Config) ([]Config, error) {
-	configs := []Config{}
+func getDependencyTargets(config *Config) []target.Target {
+	targets := []target.Target{}
 
 	// Resolve dependency configs and add to the list
 	for _, artefact := range config.Artefacts {
-		dependencies := []target.Target{}
-
 		for _, dependency := range artefact.Dependencies {
-			dependencies = append(dependencies, target.Target{
+			targets = append(targets, target.Target{
 				Dir:      path.Clean(fmt.Sprintf("%s/%s", config.Path, dependency.Dir)),
 				Artefact: dependency.Artefact,
 			})
 		}
-
-		depConfigs, err := LoadConfig(&LoadConfigOptions{
-			Targets: dependencies,
-			FS:      options.FS,
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse dependency: %+v", err)
-		}
-
-		configs = append(configs, depConfigs...)
 	}
 
-	return configs, nil
+	return targets
+}
+
+func getNewDependencies(configs []Config) []target.Target {
+	targets := []target.Target{}
+
+	for _, config := range configs {
+		targets = append(targets, getDependencyTargets(&config)...)
+	}
+
+	newTargets := []target.Target{}
+	for _, target := range targets {
+		isNew := true
+
+		for _, config := range configs {
+			if config.Path == target.Dir {
+				isNew = false
+				break
+			}
+		}
+
+		if isNew {
+			newTargets = append(newTargets, target)
+		}
+	}
+
+	return newTargets
 }
 
 func dedupConfigs(configs []Config) []Config {
@@ -244,21 +257,25 @@ func dedupConfigs(configs []Config) []Config {
 
 func LoadConfig(options *LoadConfigOptions) ([]Config, error) {
 	configs := []Config{}
+	targets := options.Targets
+	running := true
 
-	for _, target := range options.Targets {
-		config, err := loadConfigFromFile(target.Dir, options.FS)
-		if err != nil {
-			return nil, err
+	for running {
+		if len(targets) == 0 {
+			running = false
+			continue
 		}
 
-		configs = append(configs, *config)
+		for _, target := range targets {
+			config, err := loadConfigFromFile(target.Dir, options.FS)
+			if err != nil {
+				return nil, err
+			}
 
-		depConfigs, err := resolveDependencies(options, config)
-		if err != nil {
-			return nil, err
+			configs = append(configs, *config)
 		}
 
-		configs = append(configs, depConfigs...)
+		targets = getNewDependencies(configs)
 	}
 
 	return dedupConfigs(configs), nil

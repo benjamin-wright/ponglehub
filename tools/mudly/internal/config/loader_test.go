@@ -210,6 +210,62 @@ func TestLoader(t *testing.T) {
 			},
 		},
 		{
+			Name: "self-reference",
+			Files: []ConfigFile{
+				{
+					Path: "subdir1/mudly.yaml",
+					Content: dedent(`
+						artefacts:
+						- name: mudly1
+						  dependencies:
+						  - +mudly2
+						  pipeline: external
+						- name: mudly2
+						  pipeline: external
+						pipelines:
+						- name: external
+						  steps:
+						  - name: build
+						    cmd: go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}
+						  - name: image
+						    ignore: [ "**", "!bin/${ARTEFACT}" ]
+						    context: ./bin
+						    dockerfile: ../../dockerfiles/golang
+					`),
+				},
+			},
+			Targets: []target.Target{{Dir: "subdir1"}},
+			Expected: []Config{
+				{
+					Path: "subdir1",
+					Artefacts: []Artefact{
+						{
+							Name:         "mudly1",
+							Dependencies: []target.Target{{Dir: ".", Artefact: "mudly2"}},
+							Pipeline: Pipeline{
+								Name: "external",
+								Steps: []interface{}{
+									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
+									DockerStep{Name: "image", Ignore: []string{"**", "!bin/${ARTEFACT}"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								},
+							},
+						},
+						{
+							Name:         "mudly2",
+							Dependencies: []target.Target{},
+							Pipeline: Pipeline{
+								Name: "external",
+								Steps: []interface{}{
+									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
+									DockerStep{Name: "image", Ignore: []string{"**", "!bin/${ARTEFACT}"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			Name: "multi-target",
 			Files: []ConfigFile{
 				{
