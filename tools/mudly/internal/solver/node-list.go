@@ -14,9 +14,10 @@ type NodeList struct {
 func (n *NodeList) AddNode(config string, artefact string, node Node) {
 	idx := 0
 
-	latest := n.getLatestElement(config, artefact)
+	latest := n.getLastElement(config, artefact)
 	if latest != nil {
 		idx = latest.step + 1
+		node.DependsOn = append(node.DependsOn, &latest.node)
 	}
 
 	n.list = append(n.list, nodeListElement{
@@ -30,29 +31,39 @@ func (n *NodeList) AddNode(config string, artefact string, node Node) {
 func (n *NodeList) GetList() []Node {
 	nodes := []Node{}
 
-	for _, node := range n.list {
-		nodes = append(nodes, node.node)
+	for id := range n.list {
+		nodes = append(nodes, n.list[id].node)
 	}
 
 	return nodes
 }
 
-func (n *NodeList) getLatestElement(config string, artefact string) *nodeListElement {
+func (n *NodeList) getLastElement(config string, artefact string) *nodeListElement {
 	idx := -1
 	var latest *nodeListElement
 
-	for _, node := range n.list {
+	for id, node := range n.list {
 		if node.config == config && node.artefact == artefact && node.step > idx {
 			idx = node.step
-			latest = &node
+			latest = &n.list[id]
 		}
 	}
 
 	return latest
 }
 
-func (n *NodeList) GetLatest(config string, artefact string) *Node {
-	latest := n.getLatestElement(config, artefact)
+func (n *NodeList) getFirstElement(config string, artefact string) *nodeListElement {
+	for id, node := range n.list {
+		if node.config == config && node.artefact == artefact && node.step == 0 {
+			return &n.list[id]
+		}
+	}
+
+	return nil
+}
+
+func (n *NodeList) GetLast(config string, artefact string) *Node {
+	latest := n.getLastElement(config, artefact)
 
 	if latest == nil {
 		return nil

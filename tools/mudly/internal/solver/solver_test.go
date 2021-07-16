@@ -228,6 +228,27 @@ func TestSolver(t *testing.T) {
 			Expected: []testNode{
 				{
 					Path:     ".",
+					Artefact: "image",
+					Step: config.CommandStep{
+						Name:    "build",
+						Command: "go build -o ./bin/mudly ./cmd/mudly",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{3},
+				},
+				{
+					Path:     ".",
+					Artefact: "image",
+					Step: config.DockerStep{
+						Name:       "docker",
+						Dockerfile: "./Dockerfile",
+						Context:    ".",
+					},
+					State:     solver.STATE_NONE,
+					DependsOn: []int{0},
+				},
+				{
+					Path:     ".",
 					Artefact: "something",
 					Step: config.CommandStep{
 						Name:    "echo",
@@ -242,27 +263,6 @@ func TestSolver(t *testing.T) {
 					Step: config.CommandStep{
 						Name:    "build",
 						Command: "whatevs",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{0},
-				},
-				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.CommandStep{
-						Name:    "build",
-						Command: "go build -o ./bin/mudly ./cmd/mudly",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{1},
-				},
-				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.DockerStep{
-						Name:       "docker",
-						Dockerfile: "./Dockerfile",
-						Context:    ".",
 					},
 					State:     solver.STATE_NONE,
 					DependsOn: []int{2},

@@ -19,6 +19,10 @@ func (t Target) Rebase(target Target) Target {
 	}
 }
 
+func (t Target) IsSame(u Target) bool {
+	return t.Dir == u.Dir && t.Artefact == u.Artefact
+}
+
 func ParseTarget(path string) (*Target, error) {
 	if path == "" {
 		return nil, errors.New("failed to parse target with empty string")
