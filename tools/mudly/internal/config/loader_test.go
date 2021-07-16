@@ -39,7 +39,7 @@ func TestLoader(t *testing.T) {
 		Expected *Config
 	}{
 		{
-			Name: "success",
+			Name: "all-in-one",
 			Input: dedent(`
 				artefacts:
 				- name: mudly
@@ -47,8 +47,10 @@ func TestLoader(t *testing.T) {
 				    steps:
 				    - name: build
 				      cmd: go build -o=bin/mudly ./cmd/mudly
-				- name: other
-				  pipeline: external
+					- name: image
+					  ignore: [ "**", "!bin/${APP_NAME}" ]
+					  context: ./bin
+					  dockerfile: ../../dockerfiles/golang
 			`),
 			Expected: &Config{
 				Path: "",
@@ -58,12 +60,9 @@ func TestLoader(t *testing.T) {
 						Pipeline: Pipeline{
 							Steps: []interface{}{
 								CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
+								DockerStep{Name: "image", Ignore: []string{"**", "!bin/${APP_NAME}"}, Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 							},
 						},
-					},
-					{
-						Name:     "other",
-						Pipeline: Pipeline{Name: "external"},
 					},
 				},
 			},

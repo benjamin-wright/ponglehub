@@ -1,18 +1,11 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
-
-type DevEnvLoader struct {
-	Compose *map[string]interface{} `yaml:"compose"`
-}
-
-type PipelineLoader struct {
-	Name  string        `yaml:"name"`
-	Steps []interface{} `yaml:"-"`
-}
 
 func isCommandStep(n *yaml.Node) bool {
 	for _, child := range n.Content {
@@ -24,7 +17,17 @@ func isCommandStep(n *yaml.Node) bool {
 	return false
 }
 
-func (p *PipelineLoader) UnmarshalYAML(n *yaml.Node) error {
+func isDockerStep(n *yaml.Node) bool {
+	for _, child := range n.Content {
+		if child.Value == "dockerfile" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (p *Pipeline) UnmarshalYAML(n *yaml.Node) error {
 	type tmpLoader struct {
 		Name  string      `yaml:"name"`
 		Steps []yaml.Node `yaml:"steps"`
@@ -40,12 +43,18 @@ func (p *PipelineLoader) UnmarshalYAML(n *yaml.Node) error {
 	for _, stepNode := range obj.Steps {
 		if isCommandStep(&stepNode) {
 			step := CommandStep{}
-			err := stepNode.Decode(&step)
-			if err != nil {
+			if err := stepNode.Decode(&step); err != nil {
 				return err
 			}
-
 			p.Steps = append(p.Steps, step)
+		} else if isDockerStep(&stepNode) {
+			step := DockerStep{}
+			if err := stepNode.Decode(&step); err != nil {
+				return err
+			}
+			p.Steps = append(p.Steps, step)
+		} else {
+			return fmt.Errorf("failed to indentify step type: %+v", stepNode)
 		}
 	}
 
@@ -73,7 +82,7 @@ func (a *ArtefactLoader) UnmarshalYAML(n *yaml.Node) error {
 	if obj.Pipeline.Kind == yaml.ScalarNode {
 		a.Pipeline = obj.Pipeline.Value
 	} else {
-		pipeline := PipelineLoader{}
+		pipeline := Pipeline{}
 		if err := obj.Pipeline.Decode(&pipeline); err != nil {
 			return err
 		}
@@ -86,7 +95,7 @@ func (a *ArtefactLoader) UnmarshalYAML(n *yaml.Node) error {
 type ConfigLoader struct {
 	DevEnv    *DevEnv          `yaml:"devEnv"`
 	Artefacts []ArtefactLoader `yaml:"artefacts"`
-	Pipelines []PipelineLoader `yaml:"pipelines"`
+	Pipelines []Pipeline       `yaml:"pipelines"`
 }
 
 func LoadConfig(data []byte) (*Config, error) {
@@ -106,22 +115,20 @@ func LoadConfig(data []byte) (*Config, error) {
 	}
 
 	for _, artefact := range conf.Artefacts {
-		if pipeline, ok := artefact.Pipeline.(PipelineLoader); ok {
+		switch pipeline := artefact.Pipeline.(type) {
+		case Pipeline:
 			result.Artefacts = append(result.Artefacts, Artefact{
-				Name: artefact.Name,
-				Pipeline: Pipeline{
-					Name:  pipeline.Name,
-					Steps: pipeline.Steps,
-				},
+				Name:     artefact.Name,
+				Pipeline: pipeline,
 			})
-		} else if pipeline, ok := artefact.Pipeline.(string); ok {
+		case string:
 			result.Artefacts = append(result.Artefacts, Artefact{
 				Name: artefact.Name,
 				Pipeline: Pipeline{
 					Name: pipeline,
 				},
 			})
-		} else {
+		default:
 			logrus.Warnf("Failed to process artefact, unknown pipeline type: %+v", artefact)
 		}
 	}

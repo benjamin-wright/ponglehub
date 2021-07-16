@@ -1,12 +1,12 @@
 package config
 
 type DevEnv struct {
-	Compose *map[string]interface{}
+	Compose *map[string]interface{} `yaml:"compose"`
 }
 
 type Pipeline struct {
-	Name  string
-	Steps []interface{}
+	Name  string        `yaml:"name"`
+	Steps []interface{} `yaml:"-"`
 }
 
 type CommandStep struct {
@@ -14,9 +14,16 @@ type CommandStep struct {
 	Command string `yaml:"cmd"`
 }
 
+type DockerStep struct {
+	Name       string   `yaml:"name"`
+	Dockerfile string   `yaml:"dockerfile"`
+	Ignore     []string `yaml:"ignore"`
+	Context    string   `yaml:"context"`
+}
+
 type Artefact struct {
-	Name     string
-	Pipeline Pipeline
+	Name     string   `yaml:"name"`
+	Pipeline Pipeline `yaml:"pipeline"`
 }
 
 type Config struct {
