@@ -17,7 +17,6 @@ node_modules
 build
 tilt_modules
 chart-cache
-target
 
 **.tmp-earthly-out
 .scratch
