@@ -1,14 +1,3 @@
-devEnv:
-  compose:
-    version: '3.9'
-    services:
-      cockroachdb:
-        image: cockroachdb/cockroach:v20.2.8
-        command: start-single-node --insecure
-        ports:
-        - "26257:26257"
-        - "8080:8080"
-
 artefacts:
 - name: mudly
   pipeline:

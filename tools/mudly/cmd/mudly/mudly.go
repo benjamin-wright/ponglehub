@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/tools/mudly/internal/config"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
 
@@ -48,8 +49,10 @@ func main() {
 
 	logrus.Debugf("Targets: %+v", targets)
 
-	// yamlFile, err := ioutil.ReadFile(fmt.Sprintf("%s/mudly.yaml", path))
-	// if err != nil {
-	// 	log.Printf("Error loading config from file %s: %+v ", path, err)
-	// }
+	configs, err := config.LoadConfig(&config.LoadConfigOptions{Targets: targets})
+	if err != nil {
+		logrus.Fatalf("Error loading config: %+v", err)
+	}
+
+	logrus.Debugf("Configs: %+v", configs)
 }

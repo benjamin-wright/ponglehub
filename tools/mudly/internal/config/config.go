@@ -1,5 +1,7 @@
 package config
 
+import "ponglehub.co.uk/tools/mudly/internal/target"
+
 type DevEnv struct {
 	Compose *map[string]interface{} `yaml:"compose"`
 }
@@ -22,8 +24,9 @@ type DockerStep struct {
 }
 
 type Artefact struct {
-	Name     string   `yaml:"name"`
-	Pipeline Pipeline `yaml:"pipeline"`
+	Name         string          `yaml:"name"`
+	Pipeline     Pipeline        `yaml:"pipeline"`
+	Dependencies []target.Target `yaml:"dependencies"`
 }
 
 type Config struct {
