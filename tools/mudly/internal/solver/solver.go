@@ -2,8 +2,8 @@ package solver
 
 import (
 	"fmt"
+	"path"
 
-	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/tools/mudly/internal/config"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
@@ -40,7 +40,7 @@ func getArtefact(target target.Target, configs []config.Config) (*config.Config,
 	var cfg config.Config
 	missing := true
 	for _, c := range configs {
-		if target.Dir == c.Path {
+		if path.Clean(target.Dir) == c.Path {
 			cfg = c
 			missing = false
 			break
@@ -112,6 +112,7 @@ func collectDependencies(targets []target.Target, configs []config.Config) ([]Li
 		}
 
 		links = append(links, newLinks...)
+		targets = append(targets, newTargets...)
 	}
 
 	output := []Link{}
@@ -177,7 +178,7 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 				DependsOn: []*Node{},
 			}
 
-			nodes.AddNode(cfg.Path, artefact.Name, newNode)
+			nodes.AddNode(cfg.Path, artefact.Name, &newNode)
 		}
 	}
 
@@ -185,10 +186,6 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 }
 
 func linkNodes(links []Link, nodes *NodeList) error {
-	for id, node := range nodes.list {
-		logrus.Infof("BEFORE: %s+%s %p %+v", node.config, node.artefact, &nodes.list[id], node.node.DependsOn)
-	}
-
 	for _, link := range links {
 		sourceNode := nodes.getFirstElement(link.Source.Dir, link.Source.Artefact)
 		if sourceNode == nil {
@@ -200,29 +197,30 @@ func linkNodes(links []Link, nodes *NodeList) error {
 			return fmt.Errorf("failed to generate link for %+v, couldn't find target element", link)
 		}
 
-		sourceNode.node.DependsOn = append(sourceNode.node.DependsOn, &targetNode.node)
-	}
-
-	for id, node := range nodes.list {
-		logrus.Infof("AFTER: %s+%s %p %+v", node.config, node.artefact, &nodes.list[id], node.node.DependsOn)
+		sourceNode.node.DependsOn = append(sourceNode.node.DependsOn, targetNode.node)
 	}
 
 	return nil
 }
 
-func Solve(targets []target.Target, configs []config.Config) ([]Node, error) {
+func Solve(targets []target.Target, configs []config.Config) ([]*Node, error) {
+	// Recursively compile the chain of dependency links between the input targets and their references
+	// and their references references.
 	links, err := collectDependencies(targets, configs)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reduce the target and dependency list down to just unique config and artefact combinations
 	deduped := getDedupedTargets(targets, links)
 
+	// Create the solver node list for all the unique config and artefact combinations
 	nodes, err := createNodes(deduped, configs)
 	if err != nil {
 		return nil, err
 	}
 
+	// Decorate the node list with the dependency links, so that we can figure out the build order
 	err = linkNodes(links, nodes)
 	if err != nil {
 		return nil, err

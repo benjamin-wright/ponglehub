@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"ponglehub.co.uk/tools/mudly/internal/steps"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
 
@@ -88,9 +89,9 @@ func TestLoader(t *testing.T) {
 							Name:         "mudly",
 							Dependencies: []target.Target{},
 							Pipeline: Pipeline{
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -129,9 +130,9 @@ func TestLoader(t *testing.T) {
 							Dependencies: []target.Target{},
 							Pipeline: Pipeline{
 								Name: "external",
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -184,9 +185,9 @@ func TestLoader(t *testing.T) {
 							Name:         "mudly1",
 							Dependencies: []target.Target{{Dir: "../subdir2", Artefact: "mudly2"}},
 							Pipeline: Pipeline{
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -199,9 +200,9 @@ func TestLoader(t *testing.T) {
 							Name:         "mudly2",
 							Dependencies: []target.Target{},
 							Pipeline: Pipeline{
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/mudly2 ./cmd/mudly2"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/mudly2 ./cmd/mudly2"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -244,9 +245,9 @@ func TestLoader(t *testing.T) {
 							Dependencies: []target.Target{{Dir: ".", Artefact: "mudly2"}},
 							Pipeline: Pipeline{
 								Name: "external",
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -255,9 +256,9 @@ func TestLoader(t *testing.T) {
 							Dependencies: []target.Target{},
 							Pipeline: Pipeline{
 								Name: "external",
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -308,9 +309,9 @@ func TestLoader(t *testing.T) {
 							Name:         "mudly1",
 							Dependencies: []target.Target{},
 							Pipeline: Pipeline{
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},
@@ -323,9 +324,9 @@ func TestLoader(t *testing.T) {
 							Name:         "mudly2",
 							Dependencies: []target.Target{},
 							Pipeline: Pipeline{
-								Steps: []interface{}{
-									CommandStep{Name: "build", Command: "go build -o=bin/mudly2 ./cmd/mudly2"},
-									DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
+								Steps: []Runnable{
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/mudly2 ./cmd/mudly2"},
+									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
 						},

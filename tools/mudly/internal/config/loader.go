@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"gopkg.in/yaml.v3"
+	"ponglehub.co.uk/tools/mudly/internal/steps"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
 
@@ -45,13 +46,13 @@ func (p *Pipeline) UnmarshalYAML(n *yaml.Node) error {
 
 	for _, stepNode := range obj.Steps {
 		if isCommandStep(&stepNode) {
-			step := CommandStep{}
+			step := steps.CommandStep{}
 			if err := stepNode.Decode(&step); err != nil {
 				return err
 			}
 			p.Steps = append(p.Steps, step)
 		} else if isDockerStep(&stepNode) {
-			step := DockerStep{}
+			step := steps.DockerStep{}
 			if err := stepNode.Decode(&step); err != nil {
 				return err
 			}

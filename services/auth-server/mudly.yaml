@@ -28,6 +28,5 @@ pipelines:
   - name: build
     cmd: go build -o=bin/${APP_NAME} ./cmd/${APP_NAME}
   - name: image
-    ignore: [ "**", "!bin/${APP_NAME}" ]
     context: ./bin
     dockerfile: ../../dockerfiles/golang

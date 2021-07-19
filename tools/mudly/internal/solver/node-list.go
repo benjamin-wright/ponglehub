@@ -1,7 +1,7 @@
 package solver
 
 type nodeListElement struct {
-	node     Node
+	node     *Node
 	config   string
 	artefact string
 	step     int
@@ -11,13 +11,13 @@ type NodeList struct {
 	list []nodeListElement
 }
 
-func (n *NodeList) AddNode(config string, artefact string, node Node) {
+func (n *NodeList) AddNode(config string, artefact string, node *Node) {
 	idx := 0
 
 	latest := n.getLastElement(config, artefact)
 	if latest != nil {
 		idx = latest.step + 1
-		node.DependsOn = append(node.DependsOn, &latest.node)
+		node.DependsOn = append(node.DependsOn, latest.node)
 	}
 
 	n.list = append(n.list, nodeListElement{
@@ -28,8 +28,8 @@ func (n *NodeList) AddNode(config string, artefact string, node Node) {
 	})
 }
 
-func (n *NodeList) GetList() []Node {
-	nodes := []Node{}
+func (n *NodeList) GetList() []*Node {
+	nodes := []*Node{}
 
 	for id := range n.list {
 		nodes = append(nodes, n.list[id].node)
@@ -69,5 +69,5 @@ func (n *NodeList) GetLast(config string, artefact string) *Node {
 		return nil
 	}
 
-	return &latest.node
+	return latest.node
 }

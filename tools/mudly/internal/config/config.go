@@ -2,25 +2,17 @@ package config
 
 import "ponglehub.co.uk/tools/mudly/internal/target"
 
+type Runnable interface {
+	Run() bool
+}
+
 type DevEnv struct {
 	Compose *map[string]interface{} `yaml:"compose"`
 }
 
 type Pipeline struct {
-	Name  string        `yaml:"name"`
-	Steps []interface{} `yaml:"-"`
-}
-
-type CommandStep struct {
-	Name    string `yaml:"name"`
-	Command string `yaml:"cmd"`
-}
-
-type DockerStep struct {
-	Name       string `yaml:"name"`
-	Dockerfile string `yaml:"dockerfile"`
-	Context    string `yaml:"context"`
-	Tag        string `yaml:"tag"`
+	Name  string     `yaml:"name"`
+	Steps []Runnable `yaml:"-"`
 }
 
 type Artefact struct {

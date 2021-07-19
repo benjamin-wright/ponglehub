@@ -1,285 +1,360 @@
-package solver_test
+package solver
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/tools/mudly/internal/config"
-	"ponglehub.co.uk/tools/mudly/internal/solver"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
 
-type testNode struct {
-	Path      string
-	Artefact  string
-	Step      interface{}
-	State     solver.NodeState
-	DependsOn []int
+type getArtefactResult struct {
+	Config   string
+	Artefact string
+	Pipeline string
 }
 
-func convert(nodes []testNode) []solver.Node {
-	converted := []solver.Node{}
+func TestGetArtefact(t *testing.T) {
+	for _, test := range []struct {
+		Name     string
+		Target   target.Target
+		Configs  []config.Config
+		Expected *getArtefactResult
+	}{
+		{
+			Name:   "simple",
+			Target: target.Target{Dir: ".", Artefact: "test-artefact"},
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Artefacts: []config.Artefact{
+						{
+							Name: "test-artefact",
+						},
+					},
+				},
+			},
+			Expected: &getArtefactResult{Config: ".", Artefact: "test-artefact"},
+		},
+		{
+			Name:   "picks the right artefact",
+			Target: target.Target{Dir: ".", Artefact: "other"},
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Artefacts: []config.Artefact{
+						{
+							Name: "test-artefact",
+						},
+						{
+							Name: "other",
+						},
+					},
+				},
+			},
+			Expected: &getArtefactResult{Config: ".", Artefact: "other"},
+		},
+		{
+			Name:   "picks the right artefact reverse",
+			Target: target.Target{Dir: ".", Artefact: "other"},
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Artefacts: []config.Artefact{
+						{
+							Name: "other",
+						},
+						{
+							Name: "test-artefact",
+						},
+					},
+				},
+			},
+			Expected: &getArtefactResult{Config: ".", Artefact: "other"},
+		},
+		{
+			Name:   "picks the right config",
+			Target: target.Target{Dir: "./subdir", Artefact: "test-artefact"},
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Artefacts: []config.Artefact{
+						{
+							Name:     "test-artefact",
+							Pipeline: config.Pipeline{Name: "firstConfig"},
+						},
+					},
+				},
+				{
+					Path: "subdir",
+					Artefacts: []config.Artefact{
+						{
+							Name:     "test-artefact",
+							Pipeline: config.Pipeline{Name: "secondConfig"},
+						},
+					},
+				},
+			},
+			Expected: &getArtefactResult{Config: "subdir", Artefact: "test-artefact", Pipeline: "secondConfig"},
+		},
+		{
+			Name:   "picks the right config reversed",
+			Target: target.Target{Dir: "./subdir", Artefact: "test-artefact"},
+			Configs: []config.Config{
+				{
+					Path: "subdir",
+					Artefacts: []config.Artefact{
+						{
+							Name:     "test-artefact",
+							Pipeline: config.Pipeline{Name: "firstConfig"},
+						},
+					},
+				},
+				{
+					Path: ".",
+					Artefacts: []config.Artefact{
+						{
+							Name:     "test-artefact",
+							Pipeline: config.Pipeline{Name: "secondConfig"},
+						},
+					},
+				},
+			},
+			Expected: &getArtefactResult{Config: "subdir", Artefact: "test-artefact", Pipeline: "firstConfig"},
+		},
+	} {
+		t.Run(test.Name, func(u *testing.T) {
+			cfg, artefact, err := getArtefact(test.Target, test.Configs)
 
-	for _, node := range nodes {
-		converted = append(converted, solver.Node{
-			Path:      node.Path,
-			Artefact:  node.Artefact,
-			Step:      node.Step,
-			State:     node.State,
-			DependsOn: []*solver.Node{},
+			assert.NoError(u, err, "didn't expect an error")
+
+			if test.Expected != nil {
+				if cfg != nil && artefact != nil {
+					assert.Equal(u, test.Expected, &getArtefactResult{Config: cfg.Path, Artefact: artefact.Name, Pipeline: artefact.Pipeline.Name})
+				} else {
+					assert.Fail(u, "expected a config and artefact", "%+v, %+v", cfg, artefact)
+				}
+			}
 		})
 	}
-
-	for idx, node := range nodes {
-		for _, dep := range node.DependsOn {
-			converted[idx].DependsOn = append(converted[idx].DependsOn, &converted[dep])
-		}
-	}
-
-	return converted
 }
 
-func TestSolver(t *testing.T) {
+func TestCollectDependencies(t *testing.T) {
 	for _, test := range []struct {
 		Name     string
 		Targets  []target.Target
 		Configs  []config.Config
-		Expected []testNode
+		Expected []Link
 	}{
 		{
-			Name:    "simple",
-			Targets: []target.Target{{Dir: ".", Artefact: "image"}},
-			Configs: []config.Config{
-				{
-					Path: ".",
-					Artefacts: []config.Artefact{
-						{
-							Name: "image",
-							Pipeline: config.Pipeline{
-								Steps: []interface{}{
-									config.CommandStep{
-										Name:    "build",
-										Command: "go build -o ./bin/mudly ./cmd/mudly",
-									},
-									config.DockerStep{
-										Name:       "docker",
-										Dockerfile: "./Dockerfile",
-										Context:    ".",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Expected: []testNode{
-				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.CommandStep{
-						Name:    "build",
-						Command: "go build -o ./bin/mudly ./cmd/mudly",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{},
-				},
-				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.DockerStep{
-						Name:       "docker",
-						Dockerfile: "./Dockerfile",
-						Context:    ".",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{0},
-				},
-			},
+			Name: "should get nothing from nothing",
 		},
 		{
-			Name:    "parallel builds",
-			Targets: []target.Target{{Dir: ".", Artefact: "image"}, {Dir: ".", Artefact: "something"}},
+			Name: "should find local links",
+			Targets: []target.Target{
+				{Dir: ".", Artefact: "artefact-1"},
+			},
 			Configs: []config.Config{
 				{
 					Path: ".",
 					Artefacts: []config.Artefact{
 						{
-							Name: "image",
-							Pipeline: config.Pipeline{
-								Steps: []interface{}{
-									config.CommandStep{
-										Name:    "build",
-										Command: "go build -o ./bin/mudly ./cmd/mudly",
-									},
-									config.DockerStep{
-										Name:       "docker",
-										Dockerfile: "./Dockerfile",
-										Context:    ".",
-									},
-								},
-							},
-						},
-						{
-							Name: "something",
-							Pipeline: config.Pipeline{
-								Steps: []interface{}{
-									config.CommandStep{
-										Name:    "echo",
-										Command: "echo \"hi\"",
-									},
-									config.CommandStep{
-										Name:    "build",
-										Command: "whatevs",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Expected: []testNode{
-				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.CommandStep{
-						Name:    "build",
-						Command: "go build -o ./bin/mudly ./cmd/mudly",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{},
-				},
-				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.DockerStep{
-						Name:       "docker",
-						Dockerfile: "./Dockerfile",
-						Context:    ".",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{0},
-				},
-				{
-					Path:     ".",
-					Artefact: "something",
-					Step: config.CommandStep{
-						Name:    "echo",
-						Command: "echo \"hi\"",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{},
-				},
-				{
-					Path:     ".",
-					Artefact: "something",
-					Step: config.CommandStep{
-						Name:    "build",
-						Command: "whatevs",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{2},
-				},
-			},
-		},
-		{
-			Name:    "linked builds",
-			Targets: []target.Target{{Dir: ".", Artefact: "image"}},
-			Configs: []config.Config{
-				{
-					Path: ".",
-					Artefacts: []config.Artefact{
-						{
-							Name: "image",
+							Name: "artefact-1",
 							Dependencies: []target.Target{
-								{Dir: ".", Artefact: "something"},
-							},
-							Pipeline: config.Pipeline{
-								Steps: []interface{}{
-									config.CommandStep{
-										Name:    "build",
-										Command: "go build -o ./bin/mudly ./cmd/mudly",
-									},
-									config.DockerStep{
-										Name:       "docker",
-										Dockerfile: "./Dockerfile",
-										Context:    ".",
-									},
-								},
+								{Dir: ".", Artefact: "artefact-2"},
 							},
 						},
 						{
-							Name: "something",
-							Pipeline: config.Pipeline{
-								Steps: []interface{}{
-									config.CommandStep{
-										Name:    "echo",
-										Command: "echo \"hi\"",
-									},
-									config.CommandStep{
-										Name:    "build",
-										Command: "whatevs",
-									},
-								},
+							Name: "artefact-2",
+						},
+					},
+				},
+			},
+			Expected: []Link{
+				{
+					Target: target.Target{Dir: ".", Artefact: "artefact-2"},
+					Source: target.Target{Dir: ".", Artefact: "artefact-1"},
+				},
+			},
+		},
+		{
+			Name: "should find remote links",
+			Targets: []target.Target{
+				{Dir: "subdir1", Artefact: "artefact-1"},
+			},
+			Configs: []config.Config{
+				{
+					Path: "subdir1",
+					Artefacts: []config.Artefact{
+						{
+							Name: "artefact-1",
+							Dependencies: []target.Target{
+								{Dir: "../subdir2", Artefact: "artefact-2"},
+							},
+						},
+						{
+							Name: "artefact-2",
+						},
+					},
+				},
+				{
+					Path: "subdir2",
+					Artefacts: []config.Artefact{
+						{
+							Name: "artefact-2",
+						},
+					},
+				},
+			},
+			Expected: []Link{
+				{
+					Target: target.Target{Dir: "subdir2", Artefact: "artefact-2"},
+					Source: target.Target{Dir: "subdir1", Artefact: "artefact-1"},
+				},
+			},
+		},
+		{
+			Name: "should find chained dependency links",
+			Targets: []target.Target{
+				{Dir: "subdir1", Artefact: "artefact-1"},
+			},
+			Configs: []config.Config{
+				{
+					Path: "subdir1",
+					Artefacts: []config.Artefact{
+						{
+							Name: "artefact-1",
+							Dependencies: []target.Target{
+								{Dir: "../subdir2", Artefact: "artefact-2"},
+							},
+						},
+						{
+							Name: "artefact-2",
+						},
+					},
+				},
+				{
+					Path: "subdir2",
+					Artefacts: []config.Artefact{
+						{
+							Name: "artefact-2",
+							Dependencies: []target.Target{
+								{Dir: "../subdir1", Artefact: "artefact-2"},
 							},
 						},
 					},
 				},
 			},
-			Expected: []testNode{
+			Expected: []Link{
 				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.CommandStep{
-						Name:    "build",
-						Command: "go build -o ./bin/mudly ./cmd/mudly",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{3},
+					Target: target.Target{Dir: "subdir2", Artefact: "artefact-2"},
+					Source: target.Target{Dir: "subdir1", Artefact: "artefact-1"},
 				},
 				{
-					Path:     ".",
-					Artefact: "image",
-					Step: config.DockerStep{
-						Name:       "docker",
-						Dockerfile: "./Dockerfile",
-						Context:    ".",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{0},
-				},
-				{
-					Path:     ".",
-					Artefact: "something",
-					Step: config.CommandStep{
-						Name:    "echo",
-						Command: "echo \"hi\"",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{},
-				},
-				{
-					Path:     ".",
-					Artefact: "something",
-					Step: config.CommandStep{
-						Name:    "build",
-						Command: "whatevs",
-					},
-					State:     solver.STATE_NONE,
-					DependsOn: []int{2},
+					Target: target.Target{Dir: "subdir1", Artefact: "artefact-2"},
+					Source: target.Target{Dir: "subdir2", Artefact: "artefact-2"},
 				},
 			},
 		},
 	} {
 		t.Run(test.Name, func(u *testing.T) {
-			nodes, err := solver.Solve(test.Targets, test.Configs)
+			links, err := collectDependencies(test.Targets, test.Configs)
 
 			assert.NoError(u, err, "didn't expect an error")
 
 			if test.Expected != nil {
-				if nodes != nil {
-					assert.Equal(u, convert(test.Expected), nodes)
+				if links != nil {
+					assert.Equal(u, test.Expected, links)
 				} else {
-					assert.Fail(u, "expected a list of nodes")
+					assert.Fail(u, "expected a list of links")
+				}
+			}
+		})
+	}
+}
+
+func TestGetDedupedTargets(t *testing.T) {
+	for _, test := range []struct {
+		Name     string
+		Targets  []target.Target
+		Links    []Link
+		Expected []target.Target
+	}{
+		{
+			Name: "should get nothing from nothing",
+		},
+		{
+			Name: "should return non-duplicated targets",
+			Targets: []target.Target{
+				{Dir: ".", Artefact: "artefact-1"},
+				{Dir: ".", Artefact: "artefact-2"},
+			},
+			Expected: []target.Target{
+				{Dir: ".", Artefact: "artefact-1"},
+				{Dir: ".", Artefact: "artefact-2"},
+			},
+		},
+		{
+			Name: "should add linked targets",
+			Targets: []target.Target{
+				{Dir: ".", Artefact: "artefact-1"},
+				{Dir: ".", Artefact: "artefact-2"},
+			},
+			Links: []Link{
+				{
+					Source: target.Target{Dir: ".", Artefact: "artefact-1"},
+					Target: target.Target{Dir: ".", Artefact: "artefact-3"},
+				},
+				{
+					Source: target.Target{Dir: ".", Artefact: "artefact-2"},
+					Target: target.Target{Dir: "subdir", Artefact: "artefact-1"},
+				},
+			},
+			Expected: []target.Target{
+				{Dir: ".", Artefact: "artefact-1"},
+				{Dir: ".", Artefact: "artefact-2"},
+				{Dir: ".", Artefact: "artefact-3"},
+				{Dir: "subdir", Artefact: "artefact-1"},
+			},
+		},
+		{
+			Name: "should eliminate input and linked duplicates",
+			Targets: []target.Target{
+				{Dir: ".", Artefact: "artefact-1"},
+				{Dir: ".", Artefact: "artefact-2"},
+				{Dir: ".", Artefact: "artefact-2"},
+				{Dir: ".", Artefact: "artefact-3"},
+			},
+			Links: []Link{
+				{
+					Source: target.Target{Dir: ".", Artefact: "artefact-1"},
+					Target: target.Target{Dir: ".", Artefact: "artefact-2"},
+				},
+				{
+					Source: target.Target{Dir: ".", Artefact: "artefact-1"},
+					Target: target.Target{Dir: "subdir", Artefact: "artefact-1"},
+				},
+				{
+					Source: target.Target{Dir: ".", Artefact: "artefact-3"},
+					Target: target.Target{Dir: "subdir", Artefact: "artefact-1"},
+				},
+			},
+			Expected: []target.Target{
+				{Dir: ".", Artefact: "artefact-1"},
+				{Dir: ".", Artefact: "artefact-2"},
+				{Dir: ".", Artefact: "artefact-3"},
+				{Dir: "subdir", Artefact: "artefact-1"},
+			},
+		},
+	} {
+		t.Run(test.Name, func(u *testing.T) {
+			deduped := getDedupedTargets(test.Targets, test.Links)
+
+			if test.Expected != nil {
+				if deduped != nil {
+					assert.Equal(u, test.Expected, deduped)
+				} else {
+					assert.Fail(u, "expected a list of targets")
 				}
 			}
 		})
