@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/tools/mudly/internal/config"
+	"ponglehub.co.uk/tools/mudly/internal/runner"
 	"ponglehub.co.uk/tools/mudly/internal/solver"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
@@ -64,5 +65,10 @@ func main() {
 
 	for _, node := range nodes {
 		logrus.Debugf("Node: %+v", *node)
+	}
+
+	err = runner.Run(nodes)
+	if err != nil {
+		logrus.Fatalf("Error in runner: %+v", err)
 	}
 }

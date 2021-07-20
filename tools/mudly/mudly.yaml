@@ -4,3 +4,5 @@ artefacts:
     steps:
     - name: build
       cmd: go build -o=bin/mudly ./cmd/mudly
+    - name: image
+      dockerfile: ./Dockerfile

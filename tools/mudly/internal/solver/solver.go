@@ -11,9 +11,7 @@ import (
 type NodeState int
 
 const (
-	STATE_NONE NodeState = iota
-	STATE_PENDING
-	STATE_READY
+	STATE_PENDING NodeState = iota
 	STATE_RUNNING
 	STATE_ERROR
 	STATE_COMPLETE
@@ -22,7 +20,7 @@ const (
 type Node struct {
 	Path      string
 	Artefact  string
-	Step      interface{}
+	Step      config.Runnable
 	State     NodeState
 	DependsOn []*Node
 }
@@ -174,7 +172,7 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 				Path:      cfg.Path,
 				Artefact:  artefact.Name,
 				Step:      step,
-				State:     STATE_NONE,
+				State:     STATE_PENDING,
 				DependsOn: []*Node{},
 			}
 

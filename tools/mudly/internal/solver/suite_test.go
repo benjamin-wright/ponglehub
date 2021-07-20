@@ -13,7 +13,7 @@ import (
 type testNode struct {
 	Path      string
 	Artefact  string
-	Step      interface{}
+	Step      config.Runnable
 	State     solver.NodeState
 	DependsOn []int
 }
@@ -82,7 +82,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "go build -o ./bin/mudly ./cmd/mudly",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -93,7 +93,7 @@ func TestSolver(t *testing.T) {
 						Dockerfile: "./Dockerfile",
 						Context:    ".",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{0},
 				},
 			},
@@ -147,7 +147,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "go build -o ./bin/mudly ./cmd/mudly",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -158,7 +158,7 @@ func TestSolver(t *testing.T) {
 						Dockerfile: "./Dockerfile",
 						Context:    ".",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{0},
 				},
 				{
@@ -168,7 +168,7 @@ func TestSolver(t *testing.T) {
 						Name:    "echo",
 						Command: "echo \"hi\"",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -178,7 +178,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "whatevs",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{2},
 				},
 			},
@@ -235,7 +235,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "go build -o ./bin/mudly ./cmd/mudly",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{3},
 				},
 				{
@@ -246,7 +246,7 @@ func TestSolver(t *testing.T) {
 						Dockerfile: "./Dockerfile",
 						Context:    ".",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{0},
 				},
 				{
@@ -256,7 +256,7 @@ func TestSolver(t *testing.T) {
 						Name:    "echo",
 						Command: "echo \"hi\"",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -266,7 +266,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "whatevs",
 					},
-					State:     solver.STATE_NONE,
+					State:     solver.STATE_PENDING,
 					DependsOn: []int{2},
 				},
 			},

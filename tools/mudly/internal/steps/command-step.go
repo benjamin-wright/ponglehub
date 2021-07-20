@@ -8,3 +8,7 @@ type CommandStep struct {
 func (c CommandStep) Run() bool {
 	return true
 }
+
+func (c CommandStep) String() string {
+	return c.Name
+}

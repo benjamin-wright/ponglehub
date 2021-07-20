@@ -10,3 +10,7 @@ type DockerStep struct {
 func (d DockerStep) Run() bool {
 	return true
 }
+
+func (d DockerStep) String() string {
+	return d.Name
+}
