@@ -2,7 +2,11 @@ artefacts:
 - name: mudly
   pipeline:
     steps:
+    - name: test
+      cmd: go test ./...
     - name: build
-      cmd: go build -o=bin/mudly ./cmd/mudly
-    - name: image
-      dockerfile: ./Dockerfile
+      cmd: go build -o=bin/mudly -v ./cmd/mudly
+    - name: link
+      cmd: |-
+        rm -rf /usr/local/bin/mudly
+        ln -s $(pwd)/bin/mudly /usr/local/bin/mudly

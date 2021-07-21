@@ -21,6 +21,7 @@ func Run(nodes []*solver.Node) (err error) {
 
 		for _, node := range pending {
 			numRunning += 1
+			node.State = solver.STATE_RUNNING
 			go runNode(node, outputChan)
 		}
 
@@ -60,8 +61,8 @@ func getRunnableNodes(nodes []*solver.Node) []*solver.Node {
 }
 
 func runNode(node *solver.Node, outputChan chan<- runResult) {
-	logrus.Infof("Running step %s:%s", node.Artefact, node.Step)
-	success := node.Step.Run()
+	logrus.Infof("Running steps %s:%s", node.Artefact, node.Step)
+	success := node.Step.Run(node.SharedEnv)
 	if success {
 		node.State = solver.STATE_COMPLETE
 	} else {

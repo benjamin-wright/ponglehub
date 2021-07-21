@@ -33,8 +33,9 @@ func isDockerStep(n *yaml.Node) bool {
 
 func (p *Pipeline) UnmarshalYAML(n *yaml.Node) error {
 	type tmpLoader struct {
-		Name  string      `yaml:"name"`
-		Steps []yaml.Node `yaml:"steps"`
+		Name  string            `yaml:"name"`
+		Steps []yaml.Node       `yaml:"steps"`
+		Env   map[string]string `yaml:"env"`
 	}
 
 	obj := &tmpLoader{}
@@ -43,6 +44,7 @@ func (p *Pipeline) UnmarshalYAML(n *yaml.Node) error {
 	}
 
 	p.Name = obj.Name
+	p.Env = obj.Env
 
 	for _, stepNode := range obj.Steps {
 		if isCommandStep(&stepNode) {
@@ -66,16 +68,18 @@ func (p *Pipeline) UnmarshalYAML(n *yaml.Node) error {
 }
 
 type ArtefactLoader struct {
-	Name         string      `yaml:"name"`
-	Pipeline     interface{} `yaml:"-"`
-	Dependencies []string    `yaml:"dependencies"`
+	Name         string            `yaml:"name"`
+	Pipeline     interface{}       `yaml:"-"`
+	Dependencies []string          `yaml:"dependencies"`
+	Env          map[string]string `yaml:"env"`
 }
 
 func (a *ArtefactLoader) UnmarshalYAML(n *yaml.Node) error {
 	type tmpLoader struct {
-		Name         string    `yaml:"name"`
-		Pipeline     yaml.Node `yaml:"pipeline"`
-		Dependencies []string  `yaml:"dependencies"`
+		Name         string            `yaml:"name"`
+		Pipeline     yaml.Node         `yaml:"pipeline"`
+		Dependencies []string          `yaml:"dependencies"`
+		Env          map[string]string `yaml:"env"`
 	}
 
 	obj := &tmpLoader{}
@@ -85,6 +89,7 @@ func (a *ArtefactLoader) UnmarshalYAML(n *yaml.Node) error {
 
 	a.Name = obj.Name
 	a.Dependencies = obj.Dependencies
+	a.Env = obj.Env
 
 	if obj.Pipeline.Kind == yaml.ScalarNode {
 		a.Pipeline = obj.Pipeline.Value
@@ -100,9 +105,10 @@ func (a *ArtefactLoader) UnmarshalYAML(n *yaml.Node) error {
 }
 
 type ConfigLoader struct {
-	DevEnv    *DevEnv          `yaml:"devEnv"`
-	Artefacts []ArtefactLoader `yaml:"artefacts"`
-	Pipelines []Pipeline       `yaml:"pipelines"`
+	DevEnv    *DevEnv           `yaml:"devEnv"`
+	Artefacts []ArtefactLoader  `yaml:"artefacts"`
+	Pipelines []Pipeline        `yaml:"pipelines"`
+	Env       map[string]string `yaml:"env"`
 }
 
 type FileSystem interface {
@@ -141,6 +147,7 @@ func loadConfigFromFile(filepath string, filesystem FileSystem) (*Config, error)
 
 	config := Config{
 		Path: path.Clean(filepath),
+		Env:  loader.Env,
 	}
 
 	if loader.DevEnv != nil {
@@ -188,6 +195,7 @@ func loadConfigFromFile(filepath string, filesystem FileSystem) (*Config, error)
 			Name:         artefact.Name,
 			Pipeline:     resolvedPipeline,
 			Dependencies: dependencies,
+			Env:          artefact.Env,
 		})
 	}
 

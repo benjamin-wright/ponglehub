@@ -13,6 +13,7 @@ import (
 type testNode struct {
 	Path      string
 	Artefact  string
+	SharedEnv map[string]string
 	Step      config.Runnable
 	State     solver.NodeState
 	DependsOn []int
@@ -26,6 +27,7 @@ func convert(nodes []testNode) []*solver.Node {
 		converted = append(converted, &solver.Node{
 			Path:      node.Path,
 			Artefact:  node.Artefact,
+			SharedEnv: node.SharedEnv,
 			Step:      node.Step,
 			State:     node.State,
 			DependsOn: []*solver.Node{},
@@ -189,17 +191,29 @@ func TestSolver(t *testing.T) {
 			Configs: []config.Config{
 				{
 					Path: ".",
+					Env: map[string]string{
+						"GLOBAL_ENV": "value3",
+					},
 					Artefacts: []config.Artefact{
 						{
 							Name: "image",
+							Env: map[string]string{
+								"ARTEFACT_ENV": "value2",
+							},
 							Dependencies: []target.Target{
 								{Dir: ".", Artefact: "something"},
 							},
 							Pipeline: config.Pipeline{
+								Env: map[string]string{
+									"PIPELINE_ENV": "value1",
+								},
 								Steps: []config.Runnable{
 									steps.CommandStep{
 										Name:    "build",
 										Command: "go build -o ./bin/mudly ./cmd/mudly",
+										Env: map[string]string{
+											"STEP_ENV": "value0",
+										},
 									},
 									steps.DockerStep{
 										Name:       "docker",
@@ -231,9 +245,17 @@ func TestSolver(t *testing.T) {
 				{
 					Path:     ".",
 					Artefact: "image",
+					SharedEnv: map[string]string{
+						"PIPELINE_ENV": "value1",
+						"ARTEFACT_ENV": "value2",
+						"GLOBAL_ENV":   "value3",
+					},
 					Step: steps.CommandStep{
 						Name:    "build",
 						Command: "go build -o ./bin/mudly ./cmd/mudly",
+						Env: map[string]string{
+							"STEP_ENV": "value0",
+						},
 					},
 					State:     solver.STATE_PENDING,
 					DependsOn: []int{3},
@@ -241,6 +263,11 @@ func TestSolver(t *testing.T) {
 				{
 					Path:     ".",
 					Artefact: "image",
+					SharedEnv: map[string]string{
+						"PIPELINE_ENV": "value1",
+						"ARTEFACT_ENV": "value2",
+						"GLOBAL_ENV":   "value3",
+					},
 					Step: steps.DockerStep{
 						Name:       "docker",
 						Dockerfile: "./Dockerfile",
@@ -252,6 +279,9 @@ func TestSolver(t *testing.T) {
 				{
 					Path:     ".",
 					Artefact: "something",
+					SharedEnv: map[string]string{
+						"GLOBAL_ENV": "value3",
+					},
 					Step: steps.CommandStep{
 						Name:    "echo",
 						Command: "echo \"hi\"",
@@ -262,6 +292,9 @@ func TestSolver(t *testing.T) {
 				{
 					Path:     ".",
 					Artefact: "something",
+					SharedEnv: map[string]string{
+						"GLOBAL_ENV": "value3",
+					},
 					Step: steps.CommandStep{
 						Name:    "build",
 						Command: "whatevs",

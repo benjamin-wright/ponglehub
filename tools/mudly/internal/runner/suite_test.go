@@ -19,8 +19,6 @@ func TestRun(t *testing.T) {
 			err := runner.Run(test.Nodes)
 
 			assert.NoError(u, err)
-
-			u.Fatal("haha")
 		})
 	}
 }

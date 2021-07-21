@@ -18,6 +18,7 @@ const (
 )
 
 type Node struct {
+	SharedEnv map[string]string
 	Path      string
 	Artefact  string
 	Step      config.Runnable
@@ -157,6 +158,24 @@ func getDedupedTargets(targets []target.Target, links []Link) []target.Target {
 	return output
 }
 
+func mergeMaps(maps ...map[string]string) map[string]string {
+	output_map := map[string]string{}
+
+	hasAny := false
+	for _, obj := range maps {
+		for key, value := range obj {
+			output_map[key] = value
+			hasAny = true
+		}
+	}
+
+	if hasAny {
+		return output_map
+	} else {
+		return nil
+	}
+}
+
 func createNodes(targets []target.Target, configs []config.Config) (*NodeList, error) {
 	nodes := NodeList{list: []nodeListElement{}}
 
@@ -169,6 +188,7 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 		pipeline := &artefact.Pipeline
 		for _, step := range pipeline.Steps {
 			newNode := Node{
+				SharedEnv: mergeMaps(cfg.Env, artefact.Env, pipeline.Env),
 				Path:      cfg.Path,
 				Artefact:  artefact.Name,
 				Step:      step,

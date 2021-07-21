@@ -67,12 +67,20 @@ func TestLoader(t *testing.T) {
 				{
 					Path: "./mudly.yaml",
 					Content: dedent(`
+						env:
+						  GLOBAL_VAR: value4
 						artefacts:
 						- name: mudly
+						  env:
+						    ARTEFACT_VAR: value3
 						  pipeline:
+							env:
+							  SHARED_VAR: value2
 						    steps:
 						    - name: build
 						      cmd: go build -o=bin/mudly ./cmd/mudly
+							  env:
+							  	SOME_VAR: value
 						    - name: image
 						      ignore: [ "**", "!bin/mudly" ]
 						      context: ./bin
@@ -84,13 +92,20 @@ func TestLoader(t *testing.T) {
 			Expected: []Config{
 				{
 					Path: ".",
+					Env: map[string]string{
+						"GLOBAL_VAR": "value4",
+					},
 					Artefacts: []Artefact{
 						{
 							Name:         "mudly",
 							Dependencies: []target.Target{},
+							Env: map[string]string{
+								"ARTEFACT_VAR": "value3",
+							},
 							Pipeline: Pipeline{
+								Env: map[string]string{"SHARED_VAR": "value2"},
 								Steps: []Runnable{
-									steps.CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly"},
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/mudly ./cmd/mudly", Env: map[string]string{"SOME_VAR": "value"}},
 									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
