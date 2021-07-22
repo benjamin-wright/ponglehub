@@ -30,11 +30,15 @@ artefacts:
           '. |= (select(.kind=="Service" and .metadata.name=="knative-local-gateway") | .metadata.labels["experimental.istio.io/disable-gateway-port-translation"]="true")' \
           infra/manifests/generated/knative-net-istio.yaml
 - name: start
+  dependencies:
+  - +generate
   pipeline:
     steps:
     - name: registry
+      condition: "! k3d registry list | grep -w k3d-$REGISTRY_NAME" 
       cmd: k3d registry create $REGISTRY_NAME --port $REGISTRY_PORT
     - name: cluster
+      condition: "! k3d cluster list | grep -w $CLUSTER_NAME"
       cmd: |-
         k3d cluster create $CLUSTER_NAME \
           --registry-use $REGISTRY_NAME \
@@ -43,16 +47,21 @@ artefacts:
           --volume $(pwd)/infra/manifests:/var/lib/rancher/k3s/server/manifests/preload \
           -p "80:80@loadbalancer" \
           --wait
-    - name: kubeconfig
-      cmd: |-
+
         mkdir -p .scratch
         k3d kubeconfig get $CLUSTER_NAME > .scratch/kubeconfig
+- name: clean
+  pipeline:
+    steps:
+    - name: remove manifests
+      cmd: rm -rf infra/manifests/generated
 - name: stop
   pipeline:
     steps:
-    - name: print
+    - name: cluster
+      condition: "k3d cluster list | grep -w $CLUSTER_NAME"
       cmd: |-
         k3d cluster delete $CLUSTER_NAME || true
-        k3d registry delete $REGISTRY_NAME || true
-
-        echo "hi"
+    - name: registry
+      condition: "k3d registry list | grep -w k3d-$REGISTRY_NAME" 
+      cmd: k3d registry delete $REGISTRY_NAME
