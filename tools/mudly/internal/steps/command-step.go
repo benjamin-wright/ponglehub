@@ -24,7 +24,7 @@ func (c CommandStep) Run(artefact string, env map[string]string) bool {
 			test:     true,
 		})
 
-		if test {
+		if !test {
 			logrus.Infof("%s[%s (test)]: Skipping step", artefact, c.Name)
 			return true
 		}
