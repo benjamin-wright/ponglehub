@@ -6,20 +6,21 @@ artefacts:
 - name: generate
   pipeline:
     steps:
-    - name: clean
-      cmd: |-
-        rm -rf infra/manifests/generated
-        mkdir -p infra/manifests/generated
     - name: istio
       condition: |-
-        [[ ! -f crd-operator.yaml ]]
-        [[ ! -f istio-operator.yaml ]]
+        [[ ! -f infra/manifests/generated/crd-operator.yaml ]]
+        [[ ! -f infra/manifests/generated/istio-operator.yaml ]]
       cmd: |-
+        mkdir -p infra/manifests/generated
         curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.10.1 sh -
         helm template istio-operator ./istio-1.10.1/manifests/charts/istio-operator --namespace istio-operator > infra/manifests/generated/istio-operator.yaml
         cp ./istio-1.10.1/manifests/charts/istio-operator/crds/* infra/manifests/generated/
         rm -rf istio-1.10.1
     - name: knative
+      condition: |-
+        [[ ! -f infra/manifests/generated/knative-net-istio.yaml ]]
+        [[ ! -f infra/manifests/generated/knative-serving-core.yaml ]]
+        [[ ! -f infra/manifests/generated/knative-serving-crds.yaml ]]
       cmd: |-
         curl -L https://github.com/knative/serving/releases/download/v0.22.0/serving-crds.yaml -o infra/manifests/generated/knative-serving-crds.yaml
         curl -L https://github.com/knative/serving/releases/download/v0.22.0/serving-core.yaml -o infra/manifests/generated/knative-serving-core.yaml
