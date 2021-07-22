@@ -26,13 +26,20 @@ func (d DockerStep) args() []string {
 	return args
 }
 
-func (d DockerStep) Run(artefact string, env map[string]string) bool {
-	return runShellCommand(&shellCommand{
+func (d DockerStep) Run(dir string, artefact string, env map[string]string) CommandResult {
+	success := runShellCommand(&shellCommand{
+		dir:      dir,
 		artefact: artefact,
 		step:     d.Name,
 		command:  "docker",
 		args:     d.args(),
 	})
+
+	if success {
+		return COMMAND_SUCCESS
+	} else {
+		return COMMAND_ERROR
+	}
 }
 
 func (d DockerStep) String() string {

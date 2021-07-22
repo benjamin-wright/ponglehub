@@ -1,9 +1,12 @@
 package config
 
-import "ponglehub.co.uk/tools/mudly/internal/target"
+import (
+	"ponglehub.co.uk/tools/mudly/internal/steps"
+	"ponglehub.co.uk/tools/mudly/internal/target"
+)
 
 type Runnable interface {
-	Run(artefact string, env map[string]string) bool
+	Run(dir string, artefact string, env map[string]string) steps.CommandResult
 }
 
 type DevEnv struct {

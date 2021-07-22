@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/tools/mudly/internal/solver"
+	"ponglehub.co.uk/tools/mudly/internal/steps"
 )
 
 type runResult struct {
@@ -47,7 +48,7 @@ func getRunnableNodes(nodes []*solver.Node) []*solver.Node {
 		runnable := node.State == solver.STATE_PENDING
 
 		for _, dep := range node.DependsOn {
-			if dep.State != solver.STATE_COMPLETE {
+			if dep.State != solver.STATE_COMPLETE && dep.State != solver.STATE_SKIPPED {
 				runnable = false
 			}
 		}
@@ -60,13 +61,35 @@ func getRunnableNodes(nodes []*solver.Node) []*solver.Node {
 	return runnables
 }
 
+func depsSkipped(node *solver.Node) bool {
+	skipped := node.DependsOn != nil && len(node.DependsOn) > 0
+
+	for _, dep := range node.DependsOn {
+		if dep.State != solver.STATE_SKIPPED {
+			skipped = false
+		}
+	}
+
+	return skipped
+}
+
 func runNode(node *solver.Node, outputChan chan<- runResult) {
+	if depsSkipped(node) {
+		node.SharedEnv["DEPS_SKIPPED"] = "true"
+	}
+
 	logrus.Infof("Running steps %s:%s", node.Artefact, node.Step)
-	success := node.Step.Run(node.Artefact, node.SharedEnv)
-	if success {
+	result := node.Step.Run(node.Path, node.Artefact, node.SharedEnv)
+	success := true
+
+	switch result {
+	case steps.COMMAND_SUCCESS:
 		node.State = solver.STATE_COMPLETE
-	} else {
+	case steps.COMMAND_SKIPPED:
+		node.State = solver.STATE_SKIPPED
+	case steps.COMMAND_ERROR:
 		node.State = solver.STATE_ERROR
+		success = false
 	}
 
 	outputChan <- runResult{

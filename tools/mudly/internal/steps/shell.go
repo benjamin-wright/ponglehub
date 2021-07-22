@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"os/exec"
+	"path"
 
 	"github.com/sirupsen/logrus"
 )
 
 type shellCommand struct {
+	dir      string
 	artefact string
 	step     string
 	command  string
@@ -19,6 +21,7 @@ type shellCommand struct {
 
 func runShellCommand(command *shellCommand) bool {
 	cmd := exec.Command(command.command, command.args...)
+	cmd.Dir = path.Clean(command.dir)
 
 	for key, value := range command.env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
