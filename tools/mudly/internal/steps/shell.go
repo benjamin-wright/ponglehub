@@ -3,6 +3,7 @@ package steps
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
 	"path"
 
@@ -23,6 +24,7 @@ func runShellCommand(command *shellCommand) bool {
 	cmd := exec.Command(command.command, command.args...)
 	cmd.Dir = path.Clean(command.dir)
 
+	cmd.Env = os.Environ()
 	for key, value := range command.env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 	}
