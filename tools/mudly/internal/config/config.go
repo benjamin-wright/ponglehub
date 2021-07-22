@@ -3,7 +3,7 @@ package config
 import "ponglehub.co.uk/tools/mudly/internal/target"
 
 type Runnable interface {
-	Run(env map[string]string) bool
+	Run(artefact string, env map[string]string) bool
 }
 
 type DevEnv struct {

@@ -62,7 +62,7 @@ func getRunnableNodes(nodes []*solver.Node) []*solver.Node {
 
 func runNode(node *solver.Node, outputChan chan<- runResult) {
 	logrus.Infof("Running steps %s:%s", node.Artefact, node.Step)
-	success := node.Step.Run(node.SharedEnv)
+	success := node.Step.Run(node.Artefact, node.SharedEnv)
 	if success {
 		node.State = solver.STATE_COMPLETE
 	} else {

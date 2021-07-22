@@ -127,6 +127,7 @@ func TestLoader(t *testing.T) {
 						- name: external
 						  steps:
 						  - name: build
+						    condition: "[[ ! -f ./bin/${ARTEFACT} ]]"
 						    cmd: go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}
 						  - name: image
 						    ignore: [ "**", "!bin/${ARTEFACT}" ]
@@ -146,7 +147,7 @@ func TestLoader(t *testing.T) {
 							Pipeline: Pipeline{
 								Name: "external",
 								Steps: []Runnable{
-									steps.CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}"},
+									steps.CommandStep{Name: "build", Command: "go build -o=bin/${ARTEFACT} ./cmd/${ARTEFACT}", Condition: "[[ ! -f ./bin/${ARTEFACT} ]]"},
 									steps.DockerStep{Name: "image", Context: "./bin", Dockerfile: "../../dockerfiles/golang"},
 								},
 							},
