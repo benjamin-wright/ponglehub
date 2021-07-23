@@ -3,7 +3,6 @@
 because sometimes you don't have room to containerise everything
 
 ToDo:
- - condition based on skipped status of previous step
  - condition based on last updated time of files
  - ignore patterns for files included in above
  - implement docker step / investigate custom steps

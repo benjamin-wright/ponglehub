@@ -15,7 +15,7 @@ type runResult struct {
 
 func Run(nodes []*solver.Node) (err error) {
 	numRunning := 0
-	outputChan := make(chan runResult)
+	outputChan := make(chan runResult, 10)
 
 	for {
 		pending := getRunnableNodes(nodes)
