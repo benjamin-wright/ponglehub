@@ -11,3 +11,10 @@ artefacts:
       cmd: |-
         rm -rf /usr/local/bin/mudly
         ln -s $(pwd)/bin/mudly /usr/local/bin/mudly
+- name: watch
+  pipeline:
+    steps:
+    - name: try
+      watch:
+      - go.mod
+      cmd: cat go.mod

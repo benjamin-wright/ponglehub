@@ -32,8 +32,13 @@ func MergeMaps(maps ...map[string]string) map[string]string {
 type AgeChecker struct{}
 
 func (a *AgeChecker) HasChangedSince(t time.Time, paths []string) (bool, error) {
+	workdir, err := osInstance.Getwd()
+	if err != nil {
+		return false, fmt.Errorf("failed to get working dir: %+v", err)
+	}
+
 	for _, p := range paths {
-		matches, err := filepath.Glob(p)
+		matches, err := filepath.Glob(filepath.Join(workdir, p))
 		if err != nil {
 			return false, err
 		}

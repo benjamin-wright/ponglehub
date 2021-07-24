@@ -31,10 +31,23 @@ var ageCheckerInstance Checker = &utils.AgeChecker{}
 func (c CommandStep) Run(dir string, artefact string, env map[string]string) CommandResult {
 	merged := utils.MergeMaps(env, c.Env)
 
-	_, err := ageCheckerInstance.FetchTimestamp(dir, artefact, c.Name)
-	if err != nil {
-		logrus.Errorf("%s[%s]: failed fetching timestamp: %+v", artefact, c.Name, err)
-		return COMMAND_ERROR
+	if c.Watch != nil && len(c.Watch) > 0 {
+		t, err := ageCheckerInstance.FetchTimestamp(dir, artefact, c.Name)
+		if err != nil {
+			logrus.Errorf("%s[%s]: failed fetching timestamp: %+v", artefact, c.Name, err)
+			return COMMAND_ERROR
+		}
+
+		hasChanged, err := ageCheckerInstance.HasChangedSince(t, c.Watch)
+		if err != nil {
+			logrus.Errorf("%s[%s]: failed comparing timestamp: %+v", artefact, c.Name, err)
+			return COMMAND_ERROR
+		}
+
+		if !hasChanged {
+			logrus.Infof("%s[%s (test)]: Skipping step with no changes", artefact, c.Name)
+			return COMMAND_SKIPPED
+		}
 	}
 
 	if c.Condition != "" {
@@ -49,7 +62,7 @@ func (c CommandStep) Run(dir string, artefact string, env map[string]string) Com
 		})
 
 		if !test {
-			logrus.Infof("%s[%s (test)]: Skipping step", artefact, c.Name)
+			logrus.Infof("%s[%s (test)]: Skipping step when parent skips", artefact, c.Name)
 			return COMMAND_SKIPPED
 		}
 	}
