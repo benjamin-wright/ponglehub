@@ -60,7 +60,7 @@ func (a *AgeChecker) HasChangedSince(t time.Time, paths []string) (bool, error) 
 func (a *AgeChecker) FetchTimestamp(config string, artefact string, step string) (time.Time, error) {
 	mudlyDir, ok := os.LookupEnv("MUDLY_DIR")
 	if !ok {
-		mudlyDir = "~/.mudly"
+		mudlyDir = os.ExpandEnv("$HOME/.mudly")
 	}
 
 	data, err := os.ReadFile(path.Join(mudlyDir, "timestamps"))
@@ -74,7 +74,26 @@ func (a *AgeChecker) FetchTimestamp(config string, artefact string, step string)
 		return time.Time{}, fmt.Errorf("failed to parse timestamp data: %+v", err)
 	}
 
-	return time.Time{}, err
+	workdir, err := osInstance.Getwd()
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to get working dir: %+v", err)
+	}
+
+	for _, c := range timestampData.Configs {
+		if c.Path == path.Join(workdir, config) {
+			for _, a := range c.Artefacts {
+				if a.Name == artefact {
+					for _, s := range a.Steps {
+						if s.Name == step {
+							return time.Unix(s.Timestamp, 0), nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return time.Now(), nil
 }
 
 func (a *AgeChecker) SaveTimestamp(config string, artefact string, step string) error {
@@ -127,7 +146,6 @@ func (o *osImpl) GetTimestamp() int64    { return time.Now().Unix() }
 var osInstance OSTools = &osImpl{}
 
 func updateConfig(timestampData TimestampData, config string, artefact string, step string) (TimestampData, error) {
-
 	workdir, err := osInstance.Getwd()
 	if err != nil {
 		return timestampData, fmt.Errorf("failed to get working dir: %+v", err)

@@ -2,6 +2,7 @@ package steps
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/tools/mudly/internal/utils"
@@ -17,6 +18,8 @@ type CommandStep struct {
 
 type Checker interface {
 	SaveTimestamp(dir string, artefact string, step string) error
+	FetchTimestamp(dir string, artefact string, step string) (time.Time, error)
+	HasChangedSince(t time.Time, paths []string) (bool, error)
 }
 
 func SetMockChecker(instance Checker) {
@@ -27,6 +30,12 @@ var ageCheckerInstance Checker = &utils.AgeChecker{}
 
 func (c CommandStep) Run(dir string, artefact string, env map[string]string) CommandResult {
 	merged := utils.MergeMaps(env, c.Env)
+
+	_, err := ageCheckerInstance.FetchTimestamp(dir, artefact, c.Name)
+	if err != nil {
+		logrus.Errorf("%s[%s]: failed fetching timestamp: %+v", artefact, c.Name, err)
+		return COMMAND_ERROR
+	}
 
 	if c.Condition != "" {
 		test := runShellCommand(&shellCommand{
