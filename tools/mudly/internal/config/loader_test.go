@@ -65,7 +65,7 @@ func TestLoader(t *testing.T) {
 			Name: "all-in-one",
 			Files: []ConfigFile{
 				{
-					Path: "./mudly.yaml",
+					Path: "./Mudfile",
 					Content: dedent(`
 						env:
 						  GLOBAL_VAR: value4
@@ -118,7 +118,7 @@ func TestLoader(t *testing.T) {
 			Name: "external pipelines",
 			Files: []ConfigFile{
 				{
-					Path: "./mudly.yaml",
+					Path: "./Mudfile",
 					Content: dedent(`
 						artefacts:
 						- name: mudly
@@ -160,7 +160,7 @@ func TestLoader(t *testing.T) {
 			Name: "linked dependencies",
 			Files: []ConfigFile{
 				{
-					Path: "subdir1/mudly.yaml",
+					Path: "subdir1/Mudfile",
 					Content: dedent(`
 						artefacts:
 						- name: mudly1
@@ -177,7 +177,7 @@ func TestLoader(t *testing.T) {
 					`),
 				},
 				{
-					Path: "subdir2/mudly.yaml",
+					Path: "subdir2/Mudfile",
 					Content: dedent(`
 						artefacts:
 						- name: mudly2
@@ -230,7 +230,7 @@ func TestLoader(t *testing.T) {
 			Name: "self-reference",
 			Files: []ConfigFile{
 				{
-					Path: "subdir1/mudly.yaml",
+					Path: "subdir1/Mudfile",
 					Content: dedent(`
 						artefacts:
 						- name: mudly1
@@ -286,7 +286,7 @@ func TestLoader(t *testing.T) {
 			Name: "multi-target",
 			Files: []ConfigFile{
 				{
-					Path: "subdir1/mudly.yaml",
+					Path: "subdir1/Mudfile",
 					Content: dedent(`
 						artefacts:
 						- name: mudly1
@@ -301,7 +301,7 @@ func TestLoader(t *testing.T) {
 					`),
 				},
 				{
-					Path: "subdir2/mudly.yaml",
+					Path: "subdir2/Mudfile",
 					Content: dedent(`
 						artefacts:
 						- name: mudly2

@@ -1,0 +1,210 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Mudfile",
+	"patterns": [
+		{
+			"include": "#comment"
+		},
+		{
+			"include": "#docker-include"
+		},
+		{
+			"include": "#artefact"
+		},
+		{
+			"include": "#pipeline"
+		}
+	],
+	"scopeName": "source.mudfile",
+	"repository": {
+		"comment": {
+			"patterns": [
+				{
+					"captures": {
+						"1": {
+							"name": "punctuation.whitespace.comment.leading.mudfile"
+						},
+						"2": {
+							"name": "comment.line.number-sign.mudfile"
+						},
+						"3": {
+							"name": "punctuation.definition.comment.mudfile"
+						}
+					},
+					"comment": "comment.line",
+					"match": "^(\\s*)((#).*$\\n?)"
+				},
+				{
+					"name": "comment.line.mudfile",
+					"match": "(\\s+)((#).*$\\n?)"
+				},
+				{
+					"captures": {
+						"2": {
+							"name": "comment.line.number-sign.mudfile"
+						}
+					},
+					"match": "([\\\\\\s]+)((#).*$\\n?)"
+				},
+				{
+					"name": "comment.line.number-sign.mudfile",
+					"begin": "(\\/\\*)",
+					"beginCaptures": {
+						"1": {
+							"name": "punctuation.definition.comment.mudfile"
+						}
+					},
+					"end": "(\\*/)",
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.definition.comment.mudfile"
+						}
+					}
+				}
+			]
+		},
+		"artefact": {
+			"begin": "^(ARTEFACT) (\\S*)$",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control"
+				},
+				"2": {
+					"name": "variable.parameter"
+				}
+			},
+			"end": "(?x)(?= ^\\S)",
+			"name": "custom.mudfile.artefact",
+			"patterns": [
+				{
+					"include": "#steps"
+				}
+			]
+		},
+		"pipeline": {
+			"begin": "^(PIPELINE) (\\S*)$",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control"
+				},
+				"2": {
+					"name": "variable.parameter"
+				}
+			},
+			"end": "(?x)(?= ^\\S)",
+			"name": "custom.mudfile.pipeline",
+			"patterns": [
+				{
+					"include": "#steps"
+				}
+			]
+		},
+		"steps": {
+			"begin": "^\\s{2}(STEP) (\\S*)$",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control"
+				},
+				"2": {
+					"name": "variable.parameter"
+				}
+			},
+			"end": "(?x)(?= ^\\s{0,2}\\S)",
+			"name": "custom.mudfile.step",
+			"patterns": [
+				{ "include": "#command" },
+				{ "include": "#condition" },
+				{ "include": "#docker-link" }
+			]
+		},
+		"command": {
+			"patterns": [
+				{
+					"begin": "^\\s{4}(COMMAND)$",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.control"
+						}
+					},
+					"end": "(?x)(?= ^\\s{0,4}\\S)",
+					"name": "meta.embedded.block.shellscript",
+					"patterns": [
+						{ "include": "source.shell" }
+					]
+				},
+				{
+					"match": "^\\s{4}(COMMAND)\\s(.+)$",
+					"captures": {
+						"1": {
+							"name": "keyword.control"
+						},
+						"2": {
+							"name": "meta.embedded.block.shellscript",
+							"patterns": [
+								{ "include": "source.shell" }
+							]
+						}
+					}
+				}
+			]
+		},
+		"condition": {
+			"patterns": [
+				{
+					"begin": "^\\s{4}(CONDITION)$",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.control"
+						}
+					},
+					"end": "(?x)(?= ^\\s{0,4}\\S)",
+					"name": "meta.embedded.block.shellscript",
+					"patterns": [
+						{ "include": "source.shell" }
+					]
+				},
+				{
+					"match": "^\\s{4}(CONDITION)\\s(.+)$",
+					"captures": {
+						"1": {
+							"name": "keyword.control"
+						},
+						"2": {
+							"name": "meta.embedded.block.shellscript",
+							"patterns": [
+								{ "include": "source.shell" }
+							]
+						}
+					}
+				}
+			]
+		},
+		"docker-link": {
+			"match": "^\\s{4}(DOCKERFILE)\\s(.+)$",
+			"captures": {
+				"1": {
+					"name": "keyword.control"
+				},
+				"2": {
+					"name": "entity.name.type.class"
+				}
+			}
+		},
+		"docker-include": {
+			"begin": "^(DOCKERFILE) (\\S*)$",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control"
+				},
+				"2": {
+					"name": "variable.parameter"
+				}
+			},
+			"end": "(?x)(?= ^\\S)",
+			"contentName": "meta.embedded.block.dockerfile",
+			"patterns": [
+				{ "include": "source.dockerfile" }
+			]
+		}
+	}
+}

@@ -1,0 +1,37 @@
+# artefacts:
+# - name: mudly
+#   pipeline:
+#     steps:
+
+/*
+multiline
+
+and this
+*/
+
+PIPELINE test-pipeline
+  STEP build
+    COMMAND go build $(pwd) -o=bin/mudly -v ./cmd/mudly
+
+ARTEFACT mudly
+  STEP test
+    COMMAND go test ./...
+  STEP build
+    COMMAND go build -o=bin/mudly -v ./cmd/mudly
+  STEP link
+    CONDITION [[ ! -f /usr/local/bin/mudly ]]
+    COMMAND
+      rm -rf /usr/local/bin/mudly
+      ln -s $(pwd)/bin/mudly /usr/local/bin/mudly
+
+DOCKERFILE go-image
+  FROM golang:1.2.3
+  RUN go test ./...
+
+ARTEFACT image
+  STEP image
+    DOCKERFILE go-image
+
+ARTEFACT watch
+  STEP try
+    COMMAND cat go.mod

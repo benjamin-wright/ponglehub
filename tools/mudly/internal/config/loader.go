@@ -135,7 +135,7 @@ func loadConfigFromFile(filepath string, filesystem FileSystem) (*Config, error)
 		fs = DefaultFS{}
 	}
 
-	data, err := fs.ReadFile(fmt.Sprintf("%s/mudly.yaml", filepath))
+	data, err := fs.ReadFile(fmt.Sprintf("%s/Mudfile", filepath))
 	if err != nil {
 		log.Printf("Error loading config from file %s: %+v ", filepath, err)
 	}
