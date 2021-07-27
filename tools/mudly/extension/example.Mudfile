@@ -18,7 +18,7 @@ ARTEFACT mudly
   ENV VAR_2=value2
 
   STEP test
-    ENV VAR_3 = value3
+    ENV VAR_3=value3
     WATCH ./path1 ./path2
     COMMAND go test ./...
   STEP build
@@ -41,6 +41,10 @@ ARTEFACT image
 ARTEFACT watch
   PIPELINE test-pipeline
 
+ARTEFACT remote-watch
+  PIPELINE remote-pipeline ./somewhere-else
+
 PIPELINE test-pipeline
+  ENV VAR_4=value4
   STEP build
     COMMAND go build $(pwd) -o=bin/mudly -v ./cmd/mudly
