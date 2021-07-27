@@ -9,12 +9,17 @@ multiline
 and this
 */
 
-PIPELINE test-pipeline
-  STEP build
-    COMMAND go build $(pwd) -o=bin/mudly -v ./cmd/mudly
+ENV VAR_0=value0
 
 ARTEFACT mudly
+  DEPENDS ON ../another-config+image1
+  DEPENDS ON ../another-config+image2
+  ENV VAR_1=value1
+  ENV VAR_2=value2
+
   STEP test
+    ENV VAR_3 = value3
+    WATCH ./path1 ./path2
     COMMAND go test ./...
   STEP build
     COMMAND go build -o=bin/mudly -v ./cmd/mudly
@@ -25,13 +30,17 @@ ARTEFACT mudly
       ln -s $(pwd)/bin/mudly /usr/local/bin/mudly
 
 DOCKERFILE go-image
-  FROM golang:1.2.3
-  RUN go test ./...
+  FROM go:1.3.2
+  RUN go dep download
 
 ARTEFACT image
+  DEPENDS ON +mudly
   STEP image
     DOCKERFILE go-image
 
 ARTEFACT watch
-  STEP try
-    COMMAND cat go.mod
+  PIPELINE test-pipeline
+
+PIPELINE test-pipeline
+  STEP build
+    COMMAND go build $(pwd) -o=bin/mudly -v ./cmd/mudly
