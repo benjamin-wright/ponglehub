@@ -108,7 +108,27 @@
 				{ "include": "#command" },
 				{ "include": "#condition" },
 				{ "include": "#docker-link" },
-				{ "include": "#env" }
+				{ "include": "#env" },
+				{ "include": "#watch" }
+			]
+		},
+		"watch": {
+			"patterns": [
+				{
+					"match": "^\\s{4}(WATCH)(((?:\\s)\\S+)+)$",
+					"captures": {
+						"1": { "name": "keyword.control" },
+						"2": { "name": "variable.parameter" }
+					}
+				},
+				{
+					"begin": "^\\s{4}(WATCH)$",
+					"beginCaptures": {
+						"1": { "name": "keyword.control" }
+					},
+					"end": "(?x)(?= ^\\s{0,4}\\S)",
+					"name": "variable.parameter"
+				}
 			]
 		},
 		"command": {
