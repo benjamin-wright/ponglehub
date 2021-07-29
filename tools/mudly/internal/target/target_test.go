@@ -15,8 +15,8 @@ func TestTargetParsing(t *testing.T) {
 		Error    string
 	}{
 		{Name: "success", Path: "+target", Expected: &target.Target{Dir: ".", Artefact: "target"}},
-		{Name: "with path", Path: "./some/path+target", Expected: &target.Target{Dir: "./some/path", Artefact: "target"}},
-		{Name: "with special chars", Path: "./some/path+some-target", Expected: &target.Target{Dir: "./some/path", Artefact: "some-target"}},
+		{Name: "with path", Path: "./some/path+target", Expected: &target.Target{Dir: "some/path", Artefact: "target"}},
+		{Name: "with special chars", Path: "./some/path+some-target", Expected: &target.Target{Dir: "some/path", Artefact: "some-target"}},
 		{Name: "should error if empty", Path: "", Error: "failed to parse target with empty string"},
 		{Name: "too many artefacts", Path: "./some/path+target+other", Error: "failed to parse target from path: ./some/path+target+other"},
 		{Name: "missing artefact", Path: "./some/path", Error: "failed to parse target from path: ./some/path"},

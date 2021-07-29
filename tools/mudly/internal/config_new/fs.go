@@ -13,3 +13,7 @@ func (fs defaultFS) ReadFile(path string) ([]byte, error) {
 }
 
 var fsInstance FileSystem = defaultFS{}
+
+func SetFS(replacement FileSystem) {
+	fsInstance = replacement
+}

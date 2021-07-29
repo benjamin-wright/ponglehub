@@ -23,14 +23,14 @@ func (t Target) IsSame(u Target) bool {
 	return t.Dir == u.Dir && t.Artefact == u.Artefact
 }
 
-func ParseTarget(path string) (*Target, error) {
-	if path == "" {
+func ParseTarget(filepath string) (*Target, error) {
+	if filepath == "" {
 		return nil, errors.New("failed to parse target with empty string")
 	}
 
-	parts := strings.Split(path, "+")
+	parts := strings.Split(filepath, "+")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("failed to parse target from path: %s", path)
+		return nil, fmt.Errorf("failed to parse target from path: %s", filepath)
 	}
 
 	dir := parts[0]
@@ -41,7 +41,7 @@ func ParseTarget(path string) (*Target, error) {
 	}
 
 	return &Target{
-		Dir:      dir,
+		Dir:      path.Clean(dir),
 		Artefact: artefact,
 	}, nil
 }

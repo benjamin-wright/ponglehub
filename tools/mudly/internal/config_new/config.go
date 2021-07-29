@@ -1,30 +1,35 @@
 package config_new
 
-import "ponglehub.co.uk/tools/mudly/internal/target"
+type Dockerfile struct {
+	Name    string
+	Content string
+}
 
-type Step struct {
-	Name       string
-	Watch      []string
-	Command    string
-	Condition  string
-	Dockerfile string
+type Config struct {
+	Path       string
+	Dockerfile []Dockerfile
+	Artefacts  []Artefact
+	Pipelines  []Pipeline
+	Env        map[string]string
 }
 
 type Pipeline struct {
 	Name  string
 	Steps []Step
-	Env   map[string]string
 }
 
 type Artefact struct {
 	Name      string
-	Pipeline  Pipeline
-	DependsOn []target.Target
+	DependsOn []string
 	Env       map[string]string
+	Steps     []Step
+	Pipeline  string
 }
 
-type Config struct {
-	Path      string
-	Artefacts []Artefact
-	Env       map[string]string
+type Step struct {
+	Name       string
+	Env        map[string]string
+	Watch      []string
+	Dommand    string
+	Dockerfile string
 }
