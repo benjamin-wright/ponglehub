@@ -69,10 +69,25 @@ func TestLoadConfig(t *testing.T) {
 				{
 					Path: "./Mudfile",
 					Content: dedent(`
-						ENV GLOBAL_VAR=value1
+                        ENV GLOBAL_VAR=value1
+                        
+                        ARTEFACT my-artefact
+                          ENV ART_VAL=value2
+                          DEPENDS ON ../somefile+other-artefact
 
-						ARTEFACT my-artefact
-					`),
+                          STEP test
+                            ENV STEP_VAR=value3
+                            WATCH ./path1 ./path2
+                            CONDITION echo "inline script"
+
+                          STEP image
+                            CONDITION
+                              echo "multiline"
+                                # indented
+                              echo "script"
+
+                        ENV G_2_VAR=var2
+                    `),
 				},
 			},
 			Targets: []target.Target{{Dir: "."}},
@@ -81,10 +96,34 @@ func TestLoadConfig(t *testing.T) {
 					Path: ".",
 					Env: map[string]string{
 						"GLOBAL_VAR": "value1",
+						"G_2_VAR":    "var2",
 					},
 					Artefacts: []config_new.Artefact{
 						{
 							Name: "my-artefact",
+							Env: map[string]string{
+								"ART_VAL": "value2",
+							},
+							DependsOn: []target.Target{
+								{Dir: "../somefile", Artefact: "other-artefact"},
+							},
+							Steps: []config_new.Step{
+								{
+									Name: "test",
+									Env: map[string]string{
+										"STEP_VAR": "value3",
+									},
+									Condition: "echo \"inline script\"",
+									Watch: []string{
+										"./path1",
+										"./path2",
+									},
+								},
+								{
+									Name:      "image",
+									Condition: "echo \"multiline\"\n  # indented\necho \"script\"",
+								},
+							},
 						},
 					},
 				},

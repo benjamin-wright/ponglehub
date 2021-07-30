@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"strings"
 
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
@@ -91,20 +92,69 @@ func getConfigData(filepath string) (Config, error) {
 	return cfg, nil
 }
 
-var artefactRegex *regexp.Regexp = regexp.MustCompile(`^ARTEFACT (\S+)$`)
-
 func getArtefact(r *reader) (Artefact, error) {
 	artefact := Artefact{}
 	firstLine := r.line()
-	matches := artefactRegex.FindStringSubmatch(firstLine)
 
-	if len(matches) != 2 {
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
 		return artefact, fmt.Errorf("failed to parse artefact line \"%s\", wrong number of arguments", firstLine)
 	}
 
-	return Artefact{
-		Name: matches[1],
-	}, nil
+	artefact.Name = parts[1]
+
+	targetIndent := r.indent()
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		switch r.getLineType() {
+		case ENV_LINE:
+			name, value, err := getEnv(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			if artefact.Env == nil {
+				artefact.Env = map[string]string{}
+			}
+
+			artefact.Env[name] = value
+		case DEPENDS_LINE:
+			t, err := getDepends(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			if artefact.DependsOn == nil {
+				artefact.DependsOn = []target.Target{}
+			}
+
+			artefact.DependsOn = append(artefact.DependsOn, t)
+		case STEP_LINE:
+			step, err := getStep(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			if artefact.Steps == nil {
+				artefact.Steps = []Step{}
+			}
+
+			artefact.Steps = append(artefact.Steps, step)
+		default:
+			return artefact, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
+
+	return artefact, nil
 }
 
 func getPipeline(r *reader) (Pipeline, error) {
@@ -125,4 +175,133 @@ func getEnv(r *reader) (string, string, error) {
 	}
 
 	return matches[1], matches[2], nil
+}
+
+func getDepends(r *reader) (target.Target, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 3 {
+		return target.Target{}, fmt.Errorf("depends unknown syntax error for line \"%s\"", r.line())
+	}
+
+	t, err := target.ParseTarget(parts[2])
+	if err != nil {
+		return target.Target{}, err
+	}
+
+	if t == nil {
+		return target.Target{}, fmt.Errorf("expected a target but got nil: \"%s\"", r.line())
+	}
+
+	return *t, nil
+}
+
+func getStep(r *reader) (Step, error) {
+	step := Step{}
+	firstLine := r.line()
+
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return step, fmt.Errorf("failed to parse artefact line \"%s\", wrong number of arguments", firstLine)
+	}
+
+	step.Name = parts[1]
+
+	targetIndent := r.indent()
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		switch r.getLineType() {
+		case ENV_LINE:
+			name, value, err := getEnv(r)
+			if err != nil {
+				return step, err
+			}
+
+			if step.Env == nil {
+				step.Env = map[string]string{}
+			}
+
+			step.Env[name] = value
+		case WATCH_LINE:
+			paths, err := getWatchPaths(r)
+			if err != nil {
+				return step, err
+			}
+
+			if step.Watch == nil {
+				step.Watch = []string{}
+			}
+
+			step.Watch = append(step.Watch, paths...)
+		case CONDITION_LINE:
+			condition, err := getCondition(r)
+			if err != nil {
+				return step, err
+			}
+
+			step.Condition = condition
+		default:
+			return step, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
+
+	return step, nil
+}
+
+func getWatchPaths(r *reader) ([]string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("unknown syntax error for line \"%s\"", r.line())
+	}
+
+	return parts[1:], nil
+}
+
+func getCondition(r *reader) (string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) > 1 {
+		return strings.Join(parts[1:], " "), nil
+	}
+
+	lines := []string{}
+	targetIndent := r.indent()
+	steppedIndent := targetIndent
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		if steppedIndent == targetIndent {
+			steppedIndent = indent
+		}
+
+		lines = append(lines, r.line()[steppedIndent:])
+	}
+
+	if len(lines) == 0 {
+		return "", errors.New("empty condition not supported")
+	}
+
+	return strings.Join(lines, "\n"), nil
 }

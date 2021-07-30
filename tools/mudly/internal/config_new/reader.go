@@ -1,6 +1,7 @@
 package config_new
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -14,6 +15,10 @@ func openFile(filepath string) (*reader, error) {
 	data, err := fsInstance.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open config file: %+v", err)
+	}
+
+	if strings.Contains(string(data), "\t") {
+		return nil, errors.New("your file has tabs in it")
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -47,7 +52,10 @@ const (
 	ARTEFACT_LINE lineType = iota
 	PIPELINE_LINE
 	ENV_LINE
+	DEPENDS_LINE
 	STEP_LINE
+	WATCH_LINE
+	CONDITION_LINE
 	UNKNOWN_LINE
 	READER_ERROR
 )
@@ -67,15 +75,54 @@ func (r *reader) getLineType() lineType {
 		return ARTEFACT_LINE
 	}
 
+	if strings.HasPrefix(trimmed, "DEPENDS ON") {
+		return DEPENDS_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "STEP") {
+		return STEP_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "WATCH") {
+		return WATCH_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "CONDITION") {
+		return CONDITION_LINE
+	}
+
 	return UNKNOWN_LINE
 }
-func (r *reader) indent() int       { return 0 }
+
+func (r *reader) indent() int {
+	if r.index >= len(r.lines) {
+		return -1
+	}
+
+	line := r.line()
+	trimmed := strings.TrimLeft(line, " ")
+
+	return len(line) - len(trimmed)
+}
+
 func (r *reader) getBlockEnd() int  { return 0 }
 func (r *reader) isNewEntity() bool { return false }
+
 func (r *reader) nextLine() bool {
+	if r.index >= len(r.lines)-1 {
+		return false
+	}
+
 	r.index++
-	return r.index < len(r.lines)
+	return true
 }
+
+func (r *reader) previousLine() {
+	if r.index > 0 {
+		r.index--
+	}
+}
+
 func (r *reader) line() string {
 	if r.index < 0 || r.index >= len(r.lines) {
 		return ""
