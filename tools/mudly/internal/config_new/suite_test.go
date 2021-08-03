@@ -105,6 +105,10 @@ func TestLoadConfig(t *testing.T) {
                             COMMAND do the thing
                           STEP step-2
                             COMMAND do the other thing
+                        
+                        DOCKERFILE file-name
+                          FROM something
+                          RUN hello there
                     `),
 				},
 			},
@@ -152,6 +156,12 @@ func TestLoadConfig(t *testing.T) {
 						{
 							Name:     "local-pipeline",
 							Pipeline: "my-pipeline",
+						},
+					},
+					Dockerfile: []config_new.Dockerfile{
+						{
+							Name:    "file-name",
+							Content: "FROM something\nRUN hello there",
 						},
 					},
 					Pipelines: []config_new.Pipeline{

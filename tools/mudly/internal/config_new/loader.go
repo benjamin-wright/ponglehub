@@ -84,12 +84,46 @@ func getConfigData(filepath string) (Config, error) {
 			}
 
 			cfg.Env[name] = value
+		case DOCKER_LINE:
+			dockerfile, err := getDockerfile(r)
+			if err != nil {
+				return cfg, err
+			}
+
+			if cfg.Dockerfile == nil {
+				cfg.Dockerfile = []Dockerfile{}
+			}
+
+			cfg.Dockerfile = append(cfg.Dockerfile, dockerfile)
 		default:
 			return cfg, fmt.Errorf("unknown line type: %s", r.line())
 		}
 	}
 
 	return cfg, nil
+}
+
+func getDockerfile(r *reader) (Dockerfile, error) {
+	dockerfile := Dockerfile{}
+	firstLine := r.line()
+
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return dockerfile, fmt.Errorf("failed to parse dockerfile line \"%s\", wrong number of arguments", firstLine)
+	}
+
+	dockerfile.Name = parts[1]
+
+	content, err := getStringOrMultiline(r, true)
+	if err != nil {
+		return dockerfile, fmt.Errorf("failed to parse dockerfile: %+v", err)
+	}
+
+	dockerfile.Content = content
+
+	return dockerfile, nil
 }
 
 func getArtefact(r *reader) (Artefact, error) {
@@ -314,21 +348,21 @@ func getStep(r *reader) (Step, error) {
 
 			step.Watch = append(step.Watch, paths...)
 		case CONDITION_LINE:
-			condition, err := getStringOrMultiline(r)
+			condition, err := getStringOrMultiline(r, false)
 			if err != nil {
 				return step, err
 			}
 
 			step.Condition = condition
 		case COMMAND_LINE:
-			command, err := getStringOrMultiline(r)
+			command, err := getStringOrMultiline(r, false)
 			if err != nil {
 				return step, err
 			}
 
 			step.Command = command
 		case DOCKER_LINE:
-			dockerfile, err := getStringOrMultiline(r)
+			dockerfile, err := getStringArg(r)
 			if err != nil {
 				return step, err
 			}
@@ -354,12 +388,24 @@ func getWatchPaths(r *reader) ([]string, error) {
 	return parts[1:], nil
 }
 
-func getStringOrMultiline(r *reader) (string, error) {
+func getStringArg(r *reader) (string, error) {
 	trimmed := strings.TrimSpace(r.line())
 
 	parts := strings.Split(trimmed, " ")
 
-	if len(parts) > 1 {
+	if len(parts) != 2 {
+		return "", fmt.Errorf("unknown syntax error for line \"%s\"", r.line())
+	}
+
+	return parts[1], nil
+}
+
+func getStringOrMultiline(r *reader, ignoreFirstLine bool) (string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) > 1 && !ignoreFirstLine {
 		return strings.Join(parts[1:], " "), nil
 	}
 
