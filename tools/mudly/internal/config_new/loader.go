@@ -30,16 +30,53 @@ func getDirs(targets []target.Target) []string {
 	return dirs
 }
 
+func getDependencyTargets(config Config) []target.Target {
+	root := target.Target{Dir: config.Path}
+
+	newTargets := []target.Target{}
+
+	for _, artefact := range config.Artefacts {
+		for _, target := range artefact.DependsOn {
+			newTargets = append(newTargets, target.Rebase(root))
+		}
+	}
+
+	return newTargets
+}
+
 func LoadConfigs(targets []target.Target) ([]Config, error) {
 	configs := []Config{}
 
-	for _, dir := range getDirs(targets) {
-		cfg, err := getConfigData(dir)
-		if err != nil {
-			return nil, err
+	for {
+		newTargets := []target.Target{}
+
+		for _, dir := range getDirs(targets) {
+			got := false
+			for _, cfg := range configs {
+				if cfg.Path == dir {
+					got = true
+				}
+			}
+
+			if got {
+				continue
+			}
+
+			cfg, err := getConfigData(dir)
+			if err != nil {
+				return nil, err
+			}
+
+			configs = append(configs, cfg)
+
+			newTargets = append(newTargets, getDependencyTargets(cfg)...)
 		}
 
-		configs = append(configs, cfg)
+		if len(newTargets) == 0 {
+			break
+		} else {
+			targets = append(targets, newTargets...)
+		}
 	}
 
 	return configs, nil

@@ -67,13 +67,25 @@ func TestLoadConfig(t *testing.T) {
 			Name: "all-in-one",
 			Files: []ConfigFile{
 				{
+					Path: "../somedir/Mudfile",
+					Content: dedent(`
+                        ARTEFACT not-referenced
+                          STEP do-something-else
+                            COMMAND echo "ho"
+
+                        ARTEFACT other-artefact
+                          STEP do-something
+                            COMMAND echo "hi"
+                    `),
+				},
+				{
 					Path: "./Mudfile",
 					Content: dedent(`
                         ENV GLOBAL_VAR=value1
                         
                         ARTEFACT my-artefact
                           ENV ART_VAL=value2
-                          DEPENDS ON ../somefile+other-artefact
+                          DEPENDS ON ../somedir+other-artefact
 
                           STEP test
                             ENV STEP_VAR=value3
@@ -127,7 +139,7 @@ func TestLoadConfig(t *testing.T) {
 								"ART_VAL": "value2",
 							},
 							DependsOn: []target.Target{
-								{Dir: "../somefile", Artefact: "other-artefact"},
+								{Dir: "../somedir", Artefact: "other-artefact"},
 							},
 							Steps: []config_new.Step{
 								{
@@ -173,6 +185,29 @@ func TestLoadConfig(t *testing.T) {
 							Steps: []config_new.Step{
 								{Name: "step-1", Command: "do the thing"},
 								{Name: "step-2", Command: "do the other thing"},
+							},
+						},
+					},
+				},
+				{
+					Path: "../somedir",
+					Artefacts: []config_new.Artefact{
+						{
+							Name: "not-referenced",
+							Steps: []config_new.Step{
+								{
+									Name:    "do-something-else",
+									Command: "echo \"ho\"",
+								},
+							},
+						},
+						{
+							Name: "other-artefact",
+							Steps: []config_new.Step{
+								{
+									Name:    "do-something",
+									Command: "echo \"hi\"",
+								},
 							},
 						},
 					},
