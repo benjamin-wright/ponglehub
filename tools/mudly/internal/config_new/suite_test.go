@@ -79,6 +79,13 @@ func TestLoadConfig(t *testing.T) {
                             ENV STEP_VAR=value3
                             WATCH ./path1 ./path2
                             CONDITION echo "inline script"
+                            COMMAND echo "inline command"
+                        
+                          STEP multiline
+                            COMMAND
+                              echo "multiline"
+                              echo "command"
+                                # random comment
 
                           STEP image
                             CONDITION
@@ -114,10 +121,15 @@ func TestLoadConfig(t *testing.T) {
 										"STEP_VAR": "value3",
 									},
 									Condition: "echo \"inline script\"",
+									Command:   "echo \"inline command\"",
 									Watch: []string{
 										"./path1",
 										"./path2",
 									},
+								},
+								{
+									Name:    "multiline",
+									Command: "echo \"multiline\"\necho \"command\"\n  # random comment",
 								},
 								{
 									Name:      "image",

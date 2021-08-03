@@ -251,6 +251,13 @@ func getStep(r *reader) (Step, error) {
 			}
 
 			step.Condition = condition
+		case COMMAND_LINE:
+			command, err := getCommand(r)
+			if err != nil {
+				return step, err
+			}
+
+			step.Command = command
 		default:
 			return step, fmt.Errorf("unknown line type: %s", r.line())
 		}
@@ -301,6 +308,41 @@ func getCondition(r *reader) (string, error) {
 
 	if len(lines) == 0 {
 		return "", errors.New("empty condition not supported")
+	}
+
+	return strings.Join(lines, "\n"), nil
+}
+
+func getCommand(r *reader) (string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) > 1 {
+		return strings.Join(parts[1:], " "), nil
+	}
+
+	lines := []string{}
+	targetIndent := r.indent()
+	steppedIndent := targetIndent
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		if steppedIndent == targetIndent {
+			steppedIndent = indent
+		}
+
+		lines = append(lines, r.line()[steppedIndent:])
+	}
+
+	if len(lines) == 0 {
+		return "", errors.New("empty command not supported")
 	}
 
 	return strings.Join(lines, "\n"), nil

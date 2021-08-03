@@ -32,6 +32,7 @@ type Step struct {
 	Name       string
 	Env        map[string]string
 	Condition  string
+	Command    string
 	Watch      []string
 	Dommand    string
 	Dockerfile string

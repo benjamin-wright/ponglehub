@@ -56,6 +56,7 @@ const (
 	STEP_LINE
 	WATCH_LINE
 	CONDITION_LINE
+	COMMAND_LINE
 	UNKNOWN_LINE
 	READER_ERROR
 )
@@ -91,6 +92,10 @@ func (r *reader) getLineType() lineType {
 		return CONDITION_LINE
 	}
 
+	if strings.HasPrefix(trimmed, "COMMAND") {
+		return COMMAND_LINE
+	}
+
 	return UNKNOWN_LINE
 }
 
@@ -104,9 +109,6 @@ func (r *reader) indent() int {
 
 	return len(line) - len(trimmed)
 }
-
-func (r *reader) getBlockEnd() int  { return 0 }
-func (r *reader) isNewEntity() bool { return false }
 
 func (r *reader) nextLine() bool {
 	if r.index >= len(r.lines)-1 {
