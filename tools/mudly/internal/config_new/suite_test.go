@@ -92,8 +92,19 @@ func TestLoadConfig(t *testing.T) {
                               echo "multiline"
                                 # indented
                               echo "script"
+                            DOCKERFILE file-name
 
                         ENV G_2_VAR=var2
+                        
+                        ARTEFACT local-pipeline
+                          PIPELINE my-pipeline
+                        
+                        PIPELINE my-pipeline
+                          ENV P_VAR=var-p
+                          STEP step-1
+                            COMMAND do the thing
+                          STEP step-2
+                            COMMAND do the other thing
                     `),
 				},
 			},
@@ -132,9 +143,26 @@ func TestLoadConfig(t *testing.T) {
 									Command: "echo \"multiline\"\necho \"command\"\n  # random comment",
 								},
 								{
-									Name:      "image",
-									Condition: "echo \"multiline\"\n  # indented\necho \"script\"",
+									Name:       "image",
+									Condition:  "echo \"multiline\"\n  # indented\necho \"script\"",
+									Dockerfile: "file-name",
 								},
+							},
+						},
+						{
+							Name:     "local-pipeline",
+							Pipeline: "my-pipeline",
+						},
+					},
+					Pipelines: []config_new.Pipeline{
+						{
+							Name: "my-pipeline",
+							Env: map[string]string{
+								"P_VAR": "var-p",
+							},
+							Steps: []config_new.Step{
+								{Name: "step-1", Command: "do the thing"},
+								{Name: "step-2", Command: "do the other thing"},
 							},
 						},
 					},

@@ -57,6 +57,7 @@ const (
 	WATCH_LINE
 	CONDITION_LINE
 	COMMAND_LINE
+	DOCKER_LINE
 	UNKNOWN_LINE
 	READER_ERROR
 )
@@ -94,6 +95,14 @@ func (r *reader) getLineType() lineType {
 
 	if strings.HasPrefix(trimmed, "COMMAND") {
 		return COMMAND_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "DOCKERFILE") {
+		return DOCKER_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "PIPELINE") {
+		return PIPELINE_LINE
 	}
 
 	return UNKNOWN_LINE

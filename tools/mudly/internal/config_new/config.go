@@ -17,6 +17,7 @@ type Config struct {
 
 type Pipeline struct {
 	Name  string
+	Env   map[string]string
 	Steps []Step
 }
 
@@ -34,6 +35,5 @@ type Step struct {
 	Condition  string
 	Command    string
 	Watch      []string
-	Dommand    string
 	Dockerfile string
 }

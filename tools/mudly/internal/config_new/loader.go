@@ -127,6 +127,13 @@ func getArtefact(r *reader) (Artefact, error) {
 			}
 
 			artefact.Env[name] = value
+		case PIPELINE_LINE:
+			name, err := getPipelineLink(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			artefact.Pipeline = name
 		case DEPENDS_LINE:
 			t, err := getDepends(r)
 			if err != nil {
@@ -158,7 +165,69 @@ func getArtefact(r *reader) (Artefact, error) {
 }
 
 func getPipeline(r *reader) (Pipeline, error) {
-	return Pipeline{}, errors.New("not implemented")
+	pipeline := Pipeline{}
+	firstLine := r.line()
+
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return pipeline, fmt.Errorf("failed to parse pipeline line \"%s\", wrong number of arguments", firstLine)
+	}
+
+	pipeline.Name = parts[1]
+
+	targetIndent := r.indent()
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		switch r.getLineType() {
+		case ENV_LINE:
+			name, value, err := getEnv(r)
+			if err != nil {
+				return pipeline, err
+			}
+
+			if pipeline.Env == nil {
+				pipeline.Env = map[string]string{}
+			}
+
+			pipeline.Env[name] = value
+		case STEP_LINE:
+			step, err := getStep(r)
+			if err != nil {
+				return pipeline, err
+			}
+
+			if pipeline.Steps == nil {
+				pipeline.Steps = []Step{}
+			}
+
+			pipeline.Steps = append(pipeline.Steps, step)
+		default:
+			return pipeline, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
+
+	return pipeline, nil
+}
+
+func getPipelineLink(r *reader) (string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return "", fmt.Errorf("pipeline unknown syntax error for line \"%s\"", r.line())
+	}
+
+	return parts[1], nil
 }
 
 var envRegex *regexp.Regexp = regexp.MustCompile(`^(?:\s*)ENV (\S+)\=(\S+)$`)
@@ -245,19 +314,26 @@ func getStep(r *reader) (Step, error) {
 
 			step.Watch = append(step.Watch, paths...)
 		case CONDITION_LINE:
-			condition, err := getCondition(r)
+			condition, err := getStringOrMultiline(r)
 			if err != nil {
 				return step, err
 			}
 
 			step.Condition = condition
 		case COMMAND_LINE:
-			command, err := getCommand(r)
+			command, err := getStringOrMultiline(r)
 			if err != nil {
 				return step, err
 			}
 
 			step.Command = command
+		case DOCKER_LINE:
+			dockerfile, err := getStringOrMultiline(r)
+			if err != nil {
+				return step, err
+			}
+
+			step.Dockerfile = dockerfile
 		default:
 			return step, fmt.Errorf("unknown line type: %s", r.line())
 		}
@@ -278,7 +354,7 @@ func getWatchPaths(r *reader) ([]string, error) {
 	return parts[1:], nil
 }
 
-func getCondition(r *reader) (string, error) {
+func getStringOrMultiline(r *reader) (string, error) {
 	trimmed := strings.TrimSpace(r.line())
 
 	parts := strings.Split(trimmed, " ")
@@ -307,42 +383,7 @@ func getCondition(r *reader) (string, error) {
 	}
 
 	if len(lines) == 0 {
-		return "", errors.New("empty condition not supported")
-	}
-
-	return strings.Join(lines, "\n"), nil
-}
-
-func getCommand(r *reader) (string, error) {
-	trimmed := strings.TrimSpace(r.line())
-
-	parts := strings.Split(trimmed, " ")
-
-	if len(parts) > 1 {
-		return strings.Join(parts[1:], " "), nil
-	}
-
-	lines := []string{}
-	targetIndent := r.indent()
-	steppedIndent := targetIndent
-
-	for r.nextLine() {
-		indent := r.indent()
-
-		if indent <= targetIndent {
-			r.previousLine()
-			break
-		}
-
-		if steppedIndent == targetIndent {
-			steppedIndent = indent
-		}
-
-		lines = append(lines, r.line()[steppedIndent:])
-	}
-
-	if len(lines) == 0 {
-		return "", errors.New("empty command not supported")
+		return "", errors.New("empty string / multiline-string not supported")
 	}
 
 	return strings.Join(lines, "\n"), nil
