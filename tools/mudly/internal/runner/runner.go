@@ -30,7 +30,6 @@ func Run(nodes []*Node) (err error) {
 
 		result := <-outputChan
 
-		logrus.Infof("Finished step %s:%s", result.node.Artefact, result.node.Step)
 		if !result.success {
 			return fmt.Errorf("error running step %s:%s", result.node.Artefact, result.node.Step)
 		}
@@ -73,6 +72,10 @@ func depsSkipped(node *Node) bool {
 
 func runNode(node *Node, outputChan chan<- runResult) {
 	if depsSkipped(node) {
+		if node.SharedEnv == nil {
+			node.SharedEnv = map[string]string{}
+		}
+
 		node.SharedEnv["DEPS_SKIPPED"] = "true"
 	}
 
@@ -82,10 +85,13 @@ func runNode(node *Node, outputChan chan<- runResult) {
 
 	switch result {
 	case COMMAND_SUCCESS:
+		logrus.Infof("Finished step %s:%s -> SUCCESS", node.Artefact, node.Step)
 		node.State = STATE_COMPLETE
 	case COMMAND_SKIPPED:
+		logrus.Infof("Finished step %s:%s -> SKIPPED", node.Artefact, node.Step)
 		node.State = STATE_SKIPPED
 	case COMMAND_ERROR:
+		logrus.Infof("Finished step %s:%s -> ERROR", node.Artefact, node.Step)
 		node.State = STATE_ERROR
 		success = false
 	}

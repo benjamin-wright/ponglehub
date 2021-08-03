@@ -46,7 +46,7 @@ func (c CommandStep) Run(dir string, artefact string, env map[string]string) run
 		}
 
 		if !hasChanged {
-			logrus.Infof("%s[%s (test)]: Skipping step with no changes", artefact, c.Name)
+			logrus.Debugf("%s[%s (test)]: Skipping step with no changes", artefact, c.Name)
 			return runner.COMMAND_SKIPPED
 		}
 	}
@@ -63,7 +63,7 @@ func (c CommandStep) Run(dir string, artefact string, env map[string]string) run
 		})
 
 		if !test {
-			logrus.Infof("%s[%s (test)]: Skipping step when parent skips", artefact, c.Name)
+			logrus.Debugf("%s[%s (test)]: Skipping step, condition not met", artefact, c.Name)
 			return runner.COMMAND_SKIPPED
 		}
 	}
