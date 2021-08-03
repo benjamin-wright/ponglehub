@@ -203,7 +203,7 @@ func updateConfig(timestampData TimestampData, config string, artefact string, s
 		stepIndex = len(timestampData.Configs[cfgIndex].Artefacts[artefactIndex].Steps) - 1
 	}
 
-	logrus.Infof("Indices: %d, %d, %d", cfgIndex, artefactIndex, stepIndex)
+	logrus.Debugf("Indices: %d, %d, %d", cfgIndex, artefactIndex, stepIndex)
 
 	timestampData.Configs[cfgIndex].Artefacts[artefactIndex].Steps[stepIndex].Timestamp = osInstance.GetTimestamp()
 

@@ -10,6 +10,7 @@ ARTEFACT mudly
     ENV VAR_3=value3
     WATCH ./path1 ./path2
     COMMAND go test ./...
+    TAG localhost:5000/image-name
   STEP build
     COMMAND go build -o=bin/mudly -v ./cmd/mudly
   STEP link

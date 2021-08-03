@@ -68,6 +68,13 @@
 				"4": { "name": "variable.parameter" }
 			}
 		},
+		"tag": {
+			"match": "^(?: \\s+)?(TAG) (\\S*)$",
+			"captures": {
+				"1": { "name": "keyword.control" },
+				"2": { "name": "variable.parameter" }
+			}
+		},
 		"pipeline": {
 			"begin": "^(PIPELINE) (\\S*)$",
 			"beginCaptures": {
@@ -109,7 +116,8 @@
 				{ "include": "#condition" },
 				{ "include": "#docker-link" },
 				{ "include": "#env" },
-				{ "include": "#watch" }
+				{ "include": "#watch" },
+				{ "include": "#tag" }
 			]
 		},
 		"watch": {

@@ -78,7 +78,7 @@ func (c CommandStep) Run(dir string, artefact string, env map[string]string) run
 	})
 
 	if success {
-		logrus.Infof("writing timestamp...")
+		logrus.Debugf("writing timestamp...")
 		if err := ageCheckerInstance.SaveTimestamp(dir, artefact, c.Name); err != nil {
 			logrus.Warnf("Failed to write timestamp: %+v", err)
 		}
