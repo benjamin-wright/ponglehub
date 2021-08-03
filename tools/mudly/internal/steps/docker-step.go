@@ -1,5 +1,7 @@
 package steps
 
+import "ponglehub.co.uk/tools/mudly/internal/runner"
+
 type DockerStep struct {
 	Name       string `yaml:"name"`
 	Dockerfile string `yaml:"dockerfile"`
@@ -26,7 +28,7 @@ func (d DockerStep) args() []string {
 	return args
 }
 
-func (d DockerStep) Run(dir string, artefact string, env map[string]string) CommandResult {
+func (d DockerStep) Run(dir string, artefact string, env map[string]string) runner.CommandResult {
 	success := runShellCommand(&shellCommand{
 		dir:      dir,
 		artefact: artefact,
@@ -36,9 +38,9 @@ func (d DockerStep) Run(dir string, artefact string, env map[string]string) Comm
 	})
 
 	if success {
-		return COMMAND_SUCCESS
+		return runner.COMMAND_SUCCESS
 	} else {
-		return COMMAND_ERROR
+		return runner.COMMAND_ERROR
 	}
 }
 

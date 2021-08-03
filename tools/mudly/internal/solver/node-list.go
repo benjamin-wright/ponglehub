@@ -1,7 +1,9 @@
 package solver
 
+import "ponglehub.co.uk/tools/mudly/internal/runner"
+
 type nodeListElement struct {
-	node     *Node
+	node     *runner.Node
 	config   string
 	artefact string
 	step     int
@@ -11,7 +13,7 @@ type NodeList struct {
 	list []nodeListElement
 }
 
-func (n *NodeList) AddNode(config string, artefact string, node *Node) {
+func (n *NodeList) AddNode(config string, artefact string, node *runner.Node) {
 	idx := 0
 
 	latest := n.getLastElement(config, artefact)
@@ -28,8 +30,8 @@ func (n *NodeList) AddNode(config string, artefact string, node *Node) {
 	})
 }
 
-func (n *NodeList) GetList() []*Node {
-	nodes := []*Node{}
+func (n *NodeList) GetList() []*runner.Node {
+	nodes := []*runner.Node{}
 
 	for id := range n.list {
 		nodes = append(nodes, n.list[id].node)
@@ -62,7 +64,7 @@ func (n *NodeList) getFirstElement(config string, artefact string) *nodeListElem
 	return nil
 }
 
-func (n *NodeList) GetLast(config string, artefact string) *Node {
+func (n *NodeList) GetLast(config string, artefact string) *runner.Node {
 	latest := n.getLastElement(config, artefact)
 
 	if latest == nil {

@@ -81,7 +81,7 @@ func TestGetArtefact(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name:     "test-artefact",
-							Pipeline: config.Pipeline{Name: "firstConfig"},
+							Pipeline: "firstConfig",
 						},
 					},
 				},
@@ -90,7 +90,7 @@ func TestGetArtefact(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name:     "test-artefact",
-							Pipeline: config.Pipeline{Name: "secondConfig"},
+							Pipeline: "secondConfig",
 						},
 					},
 				},
@@ -106,7 +106,7 @@ func TestGetArtefact(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name:     "test-artefact",
-							Pipeline: config.Pipeline{Name: "firstConfig"},
+							Pipeline: "firstConfig",
 						},
 					},
 				},
@@ -115,7 +115,7 @@ func TestGetArtefact(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name:     "test-artefact",
-							Pipeline: config.Pipeline{Name: "secondConfig"},
+							Pipeline: "secondConfig",
 						},
 					},
 				},
@@ -130,9 +130,74 @@ func TestGetArtefact(t *testing.T) {
 
 			if test.Expected != nil {
 				if cfg != nil && artefact != nil {
-					assert.Equal(u, test.Expected, &getArtefactResult{Config: cfg.Path, Artefact: artefact.Name, Pipeline: artefact.Pipeline.Name})
+					assert.Equal(u, test.Expected, &getArtefactResult{Config: cfg.Path, Artefact: artefact.Name, Pipeline: artefact.Pipeline})
 				} else {
 					assert.Fail(u, "expected a config and artefact", "%+v, %+v", cfg, artefact)
+				}
+			}
+		})
+	}
+}
+func TestGetPipeline(t *testing.T) {
+	for _, test := range []struct {
+		Name     string
+		Config   *config.Config
+		Artefact *config.Artefact
+		Expected *config.Pipeline
+		Error    string
+	}{
+		{
+			Name: "take artefact steps",
+			Artefact: &config.Artefact{
+				Steps: []config.Step{
+					{Name: "hi"},
+					{Name: "ho"},
+				},
+			},
+			Expected: &config.Pipeline{Steps: []config.Step{{Name: "hi"}, {Name: "ho"}}},
+		},
+		{
+			Name: "take pipeline steps if artefact has none",
+			Config: &config.Config{
+				Pipelines: []config.Pipeline{
+					{Name: "wrong-one", Steps: []config.Step{{Name: "hi"}}},
+					{Name: "pipeline-name", Steps: []config.Step{{Name: "ho"}}},
+				},
+			},
+			Artefact: &config.Artefact{
+				Pipeline: "pipeline-name",
+			},
+			Expected: &config.Pipeline{Name: "pipeline-name", Steps: []config.Step{{Name: "ho"}}},
+		},
+		{
+			Name: "error if pipeline not found",
+			Config: &config.Config{
+				Path: "some-dir",
+				Pipelines: []config.Pipeline{
+					{Name: "pipeline-name", Steps: []config.Step{{Name: "ho"}}},
+				},
+			},
+			Artefact: &config.Artefact{
+				Name:     "my-artefact",
+				Pipeline: "wrong-name",
+			},
+			Error: "failed to get pipeline from artefact my-artefact (some-dir)",
+		},
+	} {
+		t.Run(test.Name, func(u *testing.T) {
+			pipeline, err := getPipeline(test.Config, test.Artefact)
+
+			if test.Error != "" {
+				assert.EqualError(u, err, test.Error)
+			} else {
+				assert.NoError(u, err, "didn't expect an error")
+			}
+
+			if test.Expected != nil {
+				if pipeline != nil {
+					assert.Equal(u, test.Expected, pipeline)
+				} else {
+					assert.Fail(u, "expected a pipeline", "%+v", pipeline)
 				}
 			}
 		})
@@ -144,7 +209,7 @@ func TestCollectDependencies(t *testing.T) {
 		Name     string
 		Targets  []target.Target
 		Configs  []config.Config
-		Expected []Link
+		Expected []link
 	}{
 		{
 			Name: "should get nothing from nothing",
@@ -160,7 +225,7 @@ func TestCollectDependencies(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name: "artefact-1",
-							Dependencies: []target.Target{
+							DependsOn: []target.Target{
 								{Dir: ".", Artefact: "artefact-2"},
 							},
 						},
@@ -170,7 +235,7 @@ func TestCollectDependencies(t *testing.T) {
 					},
 				},
 			},
-			Expected: []Link{
+			Expected: []link{
 				{
 					Target: target.Target{Dir: ".", Artefact: "artefact-2"},
 					Source: target.Target{Dir: ".", Artefact: "artefact-1"},
@@ -188,7 +253,7 @@ func TestCollectDependencies(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name: "artefact-1",
-							Dependencies: []target.Target{
+							DependsOn: []target.Target{
 								{Dir: "../subdir2", Artefact: "artefact-2"},
 							},
 						},
@@ -206,7 +271,7 @@ func TestCollectDependencies(t *testing.T) {
 					},
 				},
 			},
-			Expected: []Link{
+			Expected: []link{
 				{
 					Target: target.Target{Dir: "subdir2", Artefact: "artefact-2"},
 					Source: target.Target{Dir: "subdir1", Artefact: "artefact-1"},
@@ -224,7 +289,7 @@ func TestCollectDependencies(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name: "artefact-1",
-							Dependencies: []target.Target{
+							DependsOn: []target.Target{
 								{Dir: "../subdir2", Artefact: "artefact-2"},
 							},
 						},
@@ -238,14 +303,14 @@ func TestCollectDependencies(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name: "artefact-2",
-							Dependencies: []target.Target{
+							DependsOn: []target.Target{
 								{Dir: "../subdir1", Artefact: "artefact-2"},
 							},
 						},
 					},
 				},
 			},
-			Expected: []Link{
+			Expected: []link{
 				{
 					Target: target.Target{Dir: "subdir2", Artefact: "artefact-2"},
 					Source: target.Target{Dir: "subdir1", Artefact: "artefact-1"},
@@ -277,7 +342,7 @@ func TestGetDedupedTargets(t *testing.T) {
 	for _, test := range []struct {
 		Name     string
 		Targets  []target.Target
-		Links    []Link
+		Links    []link
 		Expected []target.Target
 	}{
 		{
@@ -300,7 +365,7 @@ func TestGetDedupedTargets(t *testing.T) {
 				{Dir: ".", Artefact: "artefact-1"},
 				{Dir: ".", Artefact: "artefact-2"},
 			},
-			Links: []Link{
+			Links: []link{
 				{
 					Source: target.Target{Dir: ".", Artefact: "artefact-1"},
 					Target: target.Target{Dir: ".", Artefact: "artefact-3"},
@@ -325,7 +390,7 @@ func TestGetDedupedTargets(t *testing.T) {
 				{Dir: ".", Artefact: "artefact-2"},
 				{Dir: ".", Artefact: "artefact-3"},
 			},
-			Links: []Link{
+			Links: []link{
 				{
 					Source: target.Target{Dir: ".", Artefact: "artefact-1"},
 					Target: target.Target{Dir: ".", Artefact: "artefact-2"},

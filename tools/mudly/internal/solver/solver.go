@@ -5,35 +5,18 @@ import (
 	"path"
 
 	"ponglehub.co.uk/tools/mudly/internal/config"
+	"ponglehub.co.uk/tools/mudly/internal/runner"
+	"ponglehub.co.uk/tools/mudly/internal/steps"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 	"ponglehub.co.uk/tools/mudly/internal/utils"
 )
 
-type NodeState int
-
-const (
-	STATE_PENDING NodeState = iota
-	STATE_RUNNING
-	STATE_ERROR
-	STATE_SKIPPED
-	STATE_COMPLETE
-)
-
-type Node struct {
-	SharedEnv map[string]string
-	Path      string
-	Artefact  string
-	Step      config.Runnable
-	State     NodeState
-	DependsOn []*Node
-}
-
-type Link struct {
+type link struct {
 	Target target.Target
 	Source target.Target
 }
 
-func (l Link) isSame(m Link) bool {
+func (l link) isSame(m link) bool {
 	return l.Source.IsSame(m.Source) && l.Target.IsSame(m.Target)
 }
 
@@ -69,12 +52,29 @@ func getArtefact(target target.Target, configs []config.Config) (*config.Config,
 	return &cfg, &artefact, nil
 }
 
-func collectDependencies(targets []target.Target, configs []config.Config) ([]Link, error) {
+func getPipeline(cfg *config.Config, artefact *config.Artefact) (*config.Pipeline, error) {
+	if artefact.Steps != nil && len(artefact.Steps) > 0 {
+		return &config.Pipeline{
+			Name:  "",
+			Steps: artefact.Steps,
+		}, nil
+	} else if artefact.Pipeline != "" {
+		for _, pipeline := range cfg.Pipelines {
+			if pipeline.Name == artefact.Pipeline {
+				return &pipeline, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("failed to get pipeline from artefact %s (%s)", artefact.Name, cfg.Path)
+}
+
+func collectDependencies(targets []target.Target, configs []config.Config) ([]link, error) {
 	running := true
-	links := []Link{}
+	links := []link{}
 
 	for running {
-		newLinks := []Link{}
+		newLinks := []link{}
 		newTargets := []target.Target{}
 
 		for _, target := range targets {
@@ -83,10 +83,10 @@ func collectDependencies(targets []target.Target, configs []config.Config) ([]Li
 				return nil, err
 			}
 
-			for _, dep := range artefact.Dependencies {
+			for _, dep := range artefact.DependsOn {
 				rebased := dep.Rebase(target)
 
-				link := Link{
+				link := link{
 					Target: rebased,
 					Source: target,
 				}
@@ -116,7 +116,7 @@ func collectDependencies(targets []target.Target, configs []config.Config) ([]Li
 		targets = append(targets, newTargets...)
 	}
 
-	output := []Link{}
+	output := []link{}
 
 	for _, link := range links {
 		missing := true
@@ -136,7 +136,7 @@ func collectDependencies(targets []target.Target, configs []config.Config) ([]Li
 	return output, nil
 }
 
-func getDedupedTargets(targets []target.Target, links []Link) []target.Target {
+func getDedupedTargets(targets []target.Target, links []link) []target.Target {
 	for _, link := range links {
 		targets = append(targets, link.Target)
 	}
@@ -160,6 +160,29 @@ func getDedupedTargets(targets []target.Target, links []Link) []target.Target {
 	return output
 }
 
+func createRunnable(step config.Step) (runner.Runnable, error) {
+	if step.Command != "" {
+		return steps.CommandStep{
+			Name:      step.Name,
+			Condition: step.Condition,
+			Watch:     step.Watch,
+			Command:   step.Command,
+			Env:       step.Env,
+		}, nil
+	}
+
+	if step.Dockerfile != "" {
+		return steps.DockerStep{
+			Name:       step.Name,
+			Dockerfile: step.Dockerfile,
+			Context:    step.Context,
+			Tag:        step.Tag,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("failed to convert config step into runnable step: %+v", step)
+}
+
 func createNodes(targets []target.Target, configs []config.Config) (*NodeList, error) {
 	nodes := NodeList{list: []nodeListElement{}}
 
@@ -169,15 +192,23 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 			return &nodes, err
 		}
 
-		pipeline := &artefact.Pipeline
+		pipeline, err := getPipeline(cfg, artefact)
+		if err != nil {
+			return &nodes, err
+		}
 		for _, step := range pipeline.Steps {
-			newNode := Node{
+			runnable, err := createRunnable(step)
+			if err != nil {
+				return &nodes, err
+			}
+
+			newNode := runner.Node{
 				SharedEnv: utils.MergeMaps(cfg.Env, artefact.Env, pipeline.Env),
 				Path:      cfg.Path,
 				Artefact:  artefact.Name,
-				Step:      step,
-				State:     STATE_PENDING,
-				DependsOn: []*Node{},
+				Step:      runnable,
+				State:     runner.STATE_PENDING,
+				DependsOn: []*runner.Node{},
 			}
 
 			nodes.AddNode(cfg.Path, artefact.Name, &newNode)
@@ -187,7 +218,7 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 	return &nodes, nil
 }
 
-func linkNodes(links []Link, nodes *NodeList) error {
+func linkNodes(links []link, nodes *NodeList) error {
 	for _, link := range links {
 		sourceNode := nodes.getFirstElement(link.Source.Dir, link.Source.Artefact)
 		if sourceNode == nil {
@@ -205,7 +236,7 @@ func linkNodes(links []Link, nodes *NodeList) error {
 	return nil
 }
 
-func Solve(targets []target.Target, configs []config.Config) ([]*Node, error) {
+func Solve(targets []target.Target, configs []config.Config) ([]*runner.Node, error) {
 	// Recursively compile the chain of dependency links between the input targets and their references
 	// and their references references.
 	links, err := collectDependencies(targets, configs)

@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/tools/mudly/internal/config"
+	"ponglehub.co.uk/tools/mudly/internal/runner"
 	"ponglehub.co.uk/tools/mudly/internal/solver"
 	"ponglehub.co.uk/tools/mudly/internal/steps"
 	"ponglehub.co.uk/tools/mudly/internal/target"
@@ -14,23 +15,23 @@ type testNode struct {
 	Path      string
 	Artefact  string
 	SharedEnv map[string]string
-	Step      config.Runnable
-	State     solver.NodeState
+	Step      runner.Runnable
+	State     runner.NodeState
 	DependsOn []int
 }
 
-func convert(nodes []testNode) []*solver.Node {
-	converted := []*solver.Node{}
+func convert(nodes []testNode) []*runner.Node {
+	converted := []*runner.Node{}
 
 	for id := range nodes {
 		node := nodes[id]
-		converted = append(converted, &solver.Node{
+		converted = append(converted, &runner.Node{
 			Path:      node.Path,
 			Artefact:  node.Artefact,
 			SharedEnv: node.SharedEnv,
 			Step:      node.Step,
 			State:     node.State,
-			DependsOn: []*solver.Node{},
+			DependsOn: []*runner.Node{},
 		})
 	}
 
@@ -59,17 +60,15 @@ func TestSolver(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name: "image",
-							Pipeline: config.Pipeline{
-								Steps: []config.Runnable{
-									steps.CommandStep{
-										Name:    "build",
-										Command: "go build -o ./bin/mudly ./cmd/mudly",
-									},
-									steps.DockerStep{
-										Name:       "docker",
-										Dockerfile: "./Dockerfile",
-										Context:    ".",
-									},
+							Steps: []config.Step{
+								{
+									Name:    "build",
+									Command: "go build -o ./bin/mudly ./cmd/mudly",
+								},
+								{
+									Name:       "docker",
+									Dockerfile: "./Dockerfile",
+									Context:    ".",
 								},
 							},
 						},
@@ -84,7 +83,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "go build -o ./bin/mudly ./cmd/mudly",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -95,7 +94,7 @@ func TestSolver(t *testing.T) {
 						Dockerfile: "./Dockerfile",
 						Context:    ".",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{0},
 				},
 			},
@@ -109,32 +108,28 @@ func TestSolver(t *testing.T) {
 					Artefacts: []config.Artefact{
 						{
 							Name: "image",
-							Pipeline: config.Pipeline{
-								Steps: []config.Runnable{
-									steps.CommandStep{
-										Name:    "build",
-										Command: "go build -o ./bin/mudly ./cmd/mudly",
-									},
-									steps.DockerStep{
-										Name:       "docker",
-										Dockerfile: "./Dockerfile",
-										Context:    ".",
-									},
+							Steps: []config.Step{
+								{
+									Name:    "build",
+									Command: "go build -o ./bin/mudly ./cmd/mudly",
+								},
+								{
+									Name:       "docker",
+									Dockerfile: "./Dockerfile",
+									Context:    ".",
 								},
 							},
 						},
 						{
 							Name: "something",
-							Pipeline: config.Pipeline{
-								Steps: []config.Runnable{
-									steps.CommandStep{
-										Name:    "echo",
-										Command: "echo \"hi\"",
-									},
-									steps.CommandStep{
-										Name:    "build",
-										Command: "whatevs",
-									},
+							Steps: []config.Step{
+								{
+									Name:    "echo",
+									Command: "echo \"hi\"",
+								},
+								{
+									Name:    "build",
+									Command: "whatevs",
 								},
 							},
 						},
@@ -149,7 +144,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "go build -o ./bin/mudly ./cmd/mudly",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -160,7 +155,7 @@ func TestSolver(t *testing.T) {
 						Dockerfile: "./Dockerfile",
 						Context:    ".",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{0},
 				},
 				{
@@ -170,7 +165,7 @@ func TestSolver(t *testing.T) {
 						Name:    "echo",
 						Command: "echo \"hi\"",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -180,7 +175,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "whatevs",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{2},
 				},
 			},
@@ -194,47 +189,49 @@ func TestSolver(t *testing.T) {
 					Env: map[string]string{
 						"GLOBAL_ENV": "value3",
 					},
+					Pipelines: []config.Pipeline{
+						{
+							Name: "my-pipeline",
+							Env: map[string]string{
+								"PIPELINE_ENV": "value1",
+							},
+							Steps: []config.Step{
+								{
+									Name:    "build",
+									Command: "go build -o ./bin/mudly ./cmd/mudly",
+									Env: map[string]string{
+										"STEP_ENV": "value0",
+									},
+								},
+								{
+									Name:       "docker",
+									Dockerfile: "./Dockerfile",
+									Context:    ".",
+								},
+							},
+						},
+					},
 					Artefacts: []config.Artefact{
 						{
 							Name: "image",
 							Env: map[string]string{
 								"ARTEFACT_ENV": "value2",
 							},
-							Dependencies: []target.Target{
+							DependsOn: []target.Target{
 								{Dir: ".", Artefact: "something"},
 							},
-							Pipeline: config.Pipeline{
-								Env: map[string]string{
-									"PIPELINE_ENV": "value1",
-								},
-								Steps: []config.Runnable{
-									steps.CommandStep{
-										Name:    "build",
-										Command: "go build -o ./bin/mudly ./cmd/mudly",
-										Env: map[string]string{
-											"STEP_ENV": "value0",
-										},
-									},
-									steps.DockerStep{
-										Name:       "docker",
-										Dockerfile: "./Dockerfile",
-										Context:    ".",
-									},
-								},
-							},
+							Pipeline: "my-pipeline",
 						},
 						{
 							Name: "something",
-							Pipeline: config.Pipeline{
-								Steps: []config.Runnable{
-									steps.CommandStep{
-										Name:    "echo",
-										Command: "echo \"hi\"",
-									},
-									steps.CommandStep{
-										Name:    "build",
-										Command: "whatevs",
-									},
+							Steps: []config.Step{
+								{
+									Name:    "echo",
+									Command: "echo \"hi\"",
+								},
+								{
+									Name:    "build",
+									Command: "whatevs",
 								},
 							},
 						},
@@ -257,7 +254,7 @@ func TestSolver(t *testing.T) {
 							"STEP_ENV": "value0",
 						},
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{3},
 				},
 				{
@@ -273,7 +270,7 @@ func TestSolver(t *testing.T) {
 						Dockerfile: "./Dockerfile",
 						Context:    ".",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{0},
 				},
 				{
@@ -286,7 +283,7 @@ func TestSolver(t *testing.T) {
 						Name:    "echo",
 						Command: "echo \"hi\"",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{},
 				},
 				{
@@ -299,7 +296,7 @@ func TestSolver(t *testing.T) {
 						Name:    "build",
 						Command: "whatevs",
 					},
-					State:     solver.STATE_PENDING,
+					State:     runner.STATE_PENDING,
 					DependsOn: []int{2},
 				},
 			},

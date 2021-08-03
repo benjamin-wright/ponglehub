@@ -1,291 +1,487 @@
 package config
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"path"
+	"regexp"
+	"strings"
 
-	"gopkg.in/yaml.v3"
-	"ponglehub.co.uk/tools/mudly/internal/steps"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
 
-func isCommandStep(n *yaml.Node) bool {
-	for _, child := range n.Content {
-		if child.Value == "cmd" {
-			return true
-		}
-	}
+func getDirs(targets []target.Target) []string {
+	dirs := []string{}
 
-	return false
-}
-
-func isDockerStep(n *yaml.Node) bool {
-	for _, child := range n.Content {
-		if child.Value == "dockerfile" {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (p *Pipeline) UnmarshalYAML(n *yaml.Node) error {
-	type tmpLoader struct {
-		Name  string            `yaml:"name"`
-		Steps []yaml.Node       `yaml:"steps"`
-		Env   map[string]string `yaml:"env"`
-	}
-
-	obj := &tmpLoader{}
-	if err := n.Decode(obj); err != nil {
-		return err
-	}
-
-	p.Name = obj.Name
-	p.Env = obj.Env
-
-	for _, stepNode := range obj.Steps {
-		if isCommandStep(&stepNode) {
-			step := steps.CommandStep{}
-			if err := stepNode.Decode(&step); err != nil {
-				return err
-			}
-			p.Steps = append(p.Steps, step)
-		} else if isDockerStep(&stepNode) {
-			step := steps.DockerStep{}
-			if err := stepNode.Decode(&step); err != nil {
-				return err
-			}
-			p.Steps = append(p.Steps, step)
-		} else {
-			return fmt.Errorf("failed to indentify step type: %+v", stepNode)
-		}
-	}
-
-	return nil
-}
-
-type ArtefactLoader struct {
-	Name         string            `yaml:"name"`
-	Pipeline     interface{}       `yaml:"-"`
-	Dependencies []string          `yaml:"dependencies"`
-	Env          map[string]string `yaml:"env"`
-}
-
-func (a *ArtefactLoader) UnmarshalYAML(n *yaml.Node) error {
-	type tmpLoader struct {
-		Name         string            `yaml:"name"`
-		Pipeline     yaml.Node         `yaml:"pipeline"`
-		Dependencies []string          `yaml:"dependencies"`
-		Env          map[string]string `yaml:"env"`
-	}
-
-	obj := &tmpLoader{}
-	if err := n.Decode(obj); err != nil {
-		return err
-	}
-
-	a.Name = obj.Name
-	a.Dependencies = obj.Dependencies
-	a.Env = obj.Env
-
-	if obj.Pipeline.Kind == yaml.ScalarNode {
-		a.Pipeline = obj.Pipeline.Value
-	} else {
-		pipeline := Pipeline{}
-		if err := obj.Pipeline.Decode(&pipeline); err != nil {
-			return err
-		}
-		a.Pipeline = pipeline
-	}
-
-	return nil
-}
-
-type ConfigLoader struct {
-	DevEnv    *DevEnv           `yaml:"devEnv"`
-	Artefacts []ArtefactLoader  `yaml:"artefacts"`
-	Pipelines []Pipeline        `yaml:"pipelines"`
-	Env       map[string]string `yaml:"env"`
-}
-
-type FileSystem interface {
-	ReadFile(path string) ([]byte, error)
-}
-
-type DefaultFS struct{}
-
-func (fs DefaultFS) ReadFile(path string) ([]byte, error) {
-	return ioutil.ReadFile(path)
-}
-
-type LoadConfigOptions struct {
-	Targets []target.Target
-	FS      FileSystem
-}
-
-func loadConfigFromFile(filepath string, filesystem FileSystem) (*Config, error) {
-	var loader ConfigLoader
-	var fs FileSystem
-	if filesystem != nil {
-		fs = filesystem
-	} else {
-		fs = DefaultFS{}
-	}
-
-	data, err := fs.ReadFile(fmt.Sprintf("%s/Mudfile", filepath))
-	if err != nil {
-		log.Printf("Error loading config from file %s: %+v ", filepath, err)
-	}
-
-	err = yaml.Unmarshal(data, &loader)
-	if err != nil {
-		return nil, err
-	}
-
-	config := Config{
-		Path: path.Clean(filepath),
-		Env:  loader.Env,
-	}
-
-	if loader.DevEnv != nil {
-		config.DevEnv = &DevEnv{
-			Compose: loader.DevEnv.Compose,
-		}
-	}
-
-	for _, artefact := range loader.Artefacts {
-		dependencies := []target.Target{}
-
-		for _, targetString := range artefact.Dependencies {
-			dependency, err := target.ParseTarget(targetString)
-			if err != nil {
-				return nil, fmt.Errorf("failed parsing dependency target: %+v", err)
-			}
-
-			dependencies = append(dependencies, *dependency)
-		}
-
-		var resolvedPipeline Pipeline
-
-		switch pipeline := artefact.Pipeline.(type) {
-		case Pipeline:
-			resolvedPipeline = pipeline
-		case string:
-			missing := true
-
-			for _, external := range loader.Pipelines {
-				if external.Name == pipeline {
-					resolvedPipeline = external
-					missing = false
-					break
-				}
-			}
-
-			if missing {
-				return nil, fmt.Errorf("failed to resolve pipeline %s", pipeline)
-			}
-		default:
-			return nil, fmt.Errorf("failed to process artefact, unknown pipeline type: %+v", artefact)
-		}
-
-		config.Artefacts = append(config.Artefacts, Artefact{
-			Name:         artefact.Name,
-			Pipeline:     resolvedPipeline,
-			Dependencies: dependencies,
-			Env:          artefact.Env,
-		})
-	}
-
-	return &config, nil
-}
-
-func getDependencyTargets(config *Config) []target.Target {
-	targets := []target.Target{}
-
-	// Resolve dependency configs and add to the list
-	for _, artefact := range config.Artefacts {
-		for _, dependency := range artefact.Dependencies {
-			targets = append(targets, target.Target{
-				Dir:      path.Clean(fmt.Sprintf("%s/%s", config.Path, dependency.Dir)),
-				Artefact: dependency.Artefact,
-			})
-		}
-	}
-
-	return targets
-}
-
-func getNewDependencies(configs []Config) []target.Target {
-	targets := []target.Target{}
-
-	for _, config := range configs {
-		targets = append(targets, getDependencyTargets(&config)...)
-	}
-
-	newTargets := []target.Target{}
 	for _, target := range targets {
-		isNew := true
-
-		for _, config := range configs {
-			if config.Path == target.Dir {
-				isNew = false
+		dupe := false
+		for _, dir := range dirs {
+			if target.Dir == dir {
+				dupe = true
 				break
 			}
 		}
 
-		if isNew {
-			newTargets = append(newTargets, target)
+		if !dupe {
+			dirs = append(dirs, target.Dir)
+		}
+	}
+
+	return dirs
+}
+
+func getDependencyTargets(config Config) []target.Target {
+	root := target.Target{Dir: config.Path}
+
+	newTargets := []target.Target{}
+
+	for _, artefact := range config.Artefacts {
+		for _, target := range artefact.DependsOn {
+			newTargets = append(newTargets, target.Rebase(root))
 		}
 	}
 
 	return newTargets
 }
 
-func dedupConfigs(configs []Config) []Config {
-	result := []Config{}
-
-	for _, config := range configs {
-		add := true
-		for _, existing := range result {
-			if config.Path == existing.Path {
-				add = false
-				break
-			}
-		}
-
-		if add {
-			result = append(result, config)
-		}
-	}
-
-	return result
-}
-
-func LoadConfig(options *LoadConfigOptions) ([]Config, error) {
+func LoadConfigs(targets []target.Target) ([]Config, error) {
 	configs := []Config{}
-	targets := options.Targets
-	running := true
 
-	for running {
-		if len(targets) == 0 {
-			running = false
-			continue
-		}
+	for {
+		newTargets := []target.Target{}
 
-		for _, target := range targets {
-			config, err := loadConfigFromFile(target.Dir, options.FS)
+		for _, dir := range getDirs(targets) {
+			got := false
+			for _, cfg := range configs {
+				if cfg.Path == dir {
+					got = true
+				}
+			}
+
+			if got {
+				continue
+			}
+
+			cfg, err := getConfigData(dir)
 			if err != nil {
 				return nil, err
 			}
 
-			configs = append(configs, *config)
+			configs = append(configs, cfg)
+
+			newTargets = append(newTargets, getDependencyTargets(cfg)...)
 		}
 
-		targets = getNewDependencies(configs)
+		if len(newTargets) == 0 {
+			break
+		} else {
+			targets = append(targets, newTargets...)
+		}
 	}
 
-	return dedupConfigs(configs), nil
+	return configs, nil
+}
+
+func getConfigData(filepath string) (Config, error) {
+	cfg := Config{}
+
+	cfg.Path = filepath
+
+	r, err := openFile(path.Join(filepath, "Mudfile"))
+	if err != nil {
+		return cfg, err
+	}
+
+	r.prune()
+
+	for r.nextLine() {
+		switch r.getLineType() {
+		case ARTEFACT_LINE:
+			artefact, err := getArtefact(r)
+			if err != nil {
+				return cfg, err
+			}
+
+			cfg.Artefacts = append(cfg.Artefacts, artefact)
+		case PIPELINE_LINE:
+			pipeline, err := getPipeline(r)
+			if err != nil {
+				return cfg, err
+			}
+
+			cfg.Pipelines = append(cfg.Pipelines, pipeline)
+		case ENV_LINE:
+			name, value, err := getEnv(r)
+			if err != nil {
+				return cfg, err
+			}
+
+			if cfg.Env == nil {
+				cfg.Env = map[string]string{}
+			}
+
+			cfg.Env[name] = value
+		case DOCKER_LINE:
+			dockerfile, err := getDockerfile(r)
+			if err != nil {
+				return cfg, err
+			}
+
+			if cfg.Dockerfile == nil {
+				cfg.Dockerfile = []Dockerfile{}
+			}
+
+			cfg.Dockerfile = append(cfg.Dockerfile, dockerfile)
+		default:
+			return cfg, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
+
+	return cfg, nil
+}
+
+func getDockerfile(r *reader) (Dockerfile, error) {
+	dockerfile := Dockerfile{}
+	firstLine := r.line()
+
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return dockerfile, fmt.Errorf("failed to parse dockerfile line \"%s\", wrong number of arguments", firstLine)
+	}
+
+	dockerfile.Name = parts[1]
+
+	content, err := getStringOrMultiline(r, true)
+	if err != nil {
+		return dockerfile, fmt.Errorf("failed to parse dockerfile: %+v", err)
+	}
+
+	dockerfile.Content = content
+
+	return dockerfile, nil
+}
+
+func getArtefact(r *reader) (Artefact, error) {
+	artefact := Artefact{}
+	firstLine := r.line()
+
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return artefact, fmt.Errorf("failed to parse artefact line \"%s\", wrong number of arguments", firstLine)
+	}
+
+	artefact.Name = parts[1]
+
+	targetIndent := r.indent()
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		switch r.getLineType() {
+		case ENV_LINE:
+			name, value, err := getEnv(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			if artefact.Env == nil {
+				artefact.Env = map[string]string{}
+			}
+
+			artefact.Env[name] = value
+		case PIPELINE_LINE:
+			name, err := getPipelineLink(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			artefact.Pipeline = name
+		case DEPENDS_LINE:
+			t, err := getDepends(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			if artefact.DependsOn == nil {
+				artefact.DependsOn = []target.Target{}
+			}
+
+			artefact.DependsOn = append(artefact.DependsOn, t)
+		case STEP_LINE:
+			step, err := getStep(r)
+			if err != nil {
+				return artefact, err
+			}
+
+			if artefact.Steps == nil {
+				artefact.Steps = []Step{}
+			}
+
+			artefact.Steps = append(artefact.Steps, step)
+		default:
+			return artefact, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
+
+	return artefact, nil
+}
+
+func getPipeline(r *reader) (Pipeline, error) {
+	pipeline := Pipeline{}
+	firstLine := r.line()
+
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return pipeline, fmt.Errorf("failed to parse pipeline line \"%s\", wrong number of arguments", firstLine)
+	}
+
+	pipeline.Name = parts[1]
+
+	targetIndent := r.indent()
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		switch r.getLineType() {
+		case ENV_LINE:
+			name, value, err := getEnv(r)
+			if err != nil {
+				return pipeline, err
+			}
+
+			if pipeline.Env == nil {
+				pipeline.Env = map[string]string{}
+			}
+
+			pipeline.Env[name] = value
+		case STEP_LINE:
+			step, err := getStep(r)
+			if err != nil {
+				return pipeline, err
+			}
+
+			if pipeline.Steps == nil {
+				pipeline.Steps = []Step{}
+			}
+
+			pipeline.Steps = append(pipeline.Steps, step)
+		default:
+			return pipeline, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
+
+	return pipeline, nil
+}
+
+func getPipelineLink(r *reader) (string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return "", fmt.Errorf("pipeline unknown syntax error for line \"%s\"", r.line())
+	}
+
+	return parts[1], nil
+}
+
+var envRegex *regexp.Regexp = regexp.MustCompile(`^(?:\s*)ENV (\S+)\=(\S+)$`)
+
+func getEnv(r *reader) (string, string, error) {
+	matches := envRegex.FindStringSubmatch(r.line())
+
+	if matches == nil {
+		return "", "", fmt.Errorf("env unknown syntax error for line \"%s\"", r.line())
+	}
+
+	if len(matches) != 3 {
+		return "", "", fmt.Errorf("env match count error for line \"%s\" (found %d, expecting 2)", r.line(), len(matches)-1)
+	}
+
+	return matches[1], matches[2], nil
+}
+
+func getDepends(r *reader) (target.Target, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 3 {
+		return target.Target{}, fmt.Errorf("depends unknown syntax error for line \"%s\"", r.line())
+	}
+
+	t, err := target.ParseTarget(parts[2])
+	if err != nil {
+		return target.Target{}, err
+	}
+
+	if t == nil {
+		return target.Target{}, fmt.Errorf("expected a target but got nil: \"%s\"", r.line())
+	}
+
+	return *t, nil
+}
+
+func getStep(r *reader) (Step, error) {
+	step := Step{}
+	firstLine := r.line()
+
+	trimmed := strings.TrimSpace(firstLine)
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return step, fmt.Errorf("failed to parse artefact line \"%s\", wrong number of arguments", firstLine)
+	}
+
+	step.Name = parts[1]
+
+	targetIndent := r.indent()
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		switch r.getLineType() {
+		case ENV_LINE:
+			name, value, err := getEnv(r)
+			if err != nil {
+				return step, err
+			}
+
+			if step.Env == nil {
+				step.Env = map[string]string{}
+			}
+
+			step.Env[name] = value
+		case WATCH_LINE:
+			paths, err := getWatchPaths(r)
+			if err != nil {
+				return step, err
+			}
+
+			if step.Watch == nil {
+				step.Watch = []string{}
+			}
+
+			step.Watch = append(step.Watch, paths...)
+		case CONDITION_LINE:
+			condition, err := getStringOrMultiline(r, false)
+			if err != nil {
+				return step, err
+			}
+
+			step.Condition = condition
+		case COMMAND_LINE:
+			command, err := getStringOrMultiline(r, false)
+			if err != nil {
+				return step, err
+			}
+
+			step.Command = command
+		case DOCKER_LINE:
+			dockerfile, err := getStringArg(r)
+			if err != nil {
+				return step, err
+			}
+
+			step.Dockerfile = dockerfile
+		case CONTEXT_LINE:
+			context, err := getStringArg(r)
+			if err != nil {
+				return step, err
+			}
+
+			step.Context = context
+		case TAG_LINE:
+			tag, err := getStringArg(r)
+			if err != nil {
+				return step, err
+			}
+
+			step.Tag = tag
+		default:
+			return step, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
+
+	return step, nil
+}
+
+func getWatchPaths(r *reader) ([]string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("unknown syntax error for line \"%s\"", r.line())
+	}
+
+	return parts[1:], nil
+}
+
+func getStringArg(r *reader) (string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) != 2 {
+		return "", fmt.Errorf("unknown syntax error for line \"%s\"", r.line())
+	}
+
+	return parts[1], nil
+}
+
+func getStringOrMultiline(r *reader, ignoreFirstLine bool) (string, error) {
+	trimmed := strings.TrimSpace(r.line())
+
+	parts := strings.Split(trimmed, " ")
+
+	if len(parts) > 1 && !ignoreFirstLine {
+		return strings.Join(parts[1:], " "), nil
+	}
+
+	lines := []string{}
+	targetIndent := r.indent()
+	steppedIndent := targetIndent
+
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		if steppedIndent == targetIndent {
+			steppedIndent = indent
+		}
+
+		lines = append(lines, r.line()[steppedIndent:])
+	}
+
+	if len(lines) == 0 {
+		return "", errors.New("empty string / multiline-string not supported")
+	}
+
+	return strings.Join(lines, "\n"), nil
 }

@@ -1,4 +1,4 @@
-package config_new
+package config
 
 import (
 	"errors"
@@ -58,6 +58,8 @@ const (
 	CONDITION_LINE
 	COMMAND_LINE
 	DOCKER_LINE
+	CONTEXT_LINE
+	TAG_LINE
 	UNKNOWN_LINE
 	READER_ERROR
 )
@@ -99,6 +101,14 @@ func (r *reader) getLineType() lineType {
 
 	if strings.HasPrefix(trimmed, "DOCKERFILE") {
 		return DOCKER_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "CONTEXT") {
+		return CONTEXT_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "TAG") {
+		return TAG_LINE
 	}
 
 	if strings.HasPrefix(trimmed, "PIPELINE") {

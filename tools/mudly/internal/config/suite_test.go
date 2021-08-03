@@ -1,4 +1,4 @@
-package config_new_test
+package config_test
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"ponglehub.co.uk/tools/mudly/internal/config_new"
+	"ponglehub.co.uk/tools/mudly/internal/config"
 	"ponglehub.co.uk/tools/mudly/internal/target"
 )
 
@@ -61,7 +61,7 @@ func TestLoadConfig(t *testing.T) {
 		Name     string
 		Files    []ConfigFile
 		Targets  []target.Target
-		Expected []config_new.Config
+		Expected []config.Config
 	}{
 		{
 			Name: "all-in-one",
@@ -72,8 +72,9 @@ func TestLoadConfig(t *testing.T) {
                         ARTEFACT not-referenced
                           STEP do-something-else
                             COMMAND echo "ho"
-
+                        
                         ARTEFACT other-artefact
+                          DEPENDS ON +not-referenced
                           STEP do-something
                             COMMAND echo "hi"
                     `),
@@ -105,6 +106,8 @@ func TestLoadConfig(t *testing.T) {
                                 # indented
                               echo "script"
                             DOCKERFILE file-name
+							CONTEXT ./
+							TAG localhost:5000/my-image
 
                         ENV G_2_VAR=var2
                         
@@ -125,14 +128,14 @@ func TestLoadConfig(t *testing.T) {
 				},
 			},
 			Targets: []target.Target{{Dir: "."}},
-			Expected: []config_new.Config{
+			Expected: []config.Config{
 				{
 					Path: ".",
 					Env: map[string]string{
 						"GLOBAL_VAR": "value1",
 						"G_2_VAR":    "var2",
 					},
-					Artefacts: []config_new.Artefact{
+					Artefacts: []config.Artefact{
 						{
 							Name: "my-artefact",
 							Env: map[string]string{
@@ -141,7 +144,7 @@ func TestLoadConfig(t *testing.T) {
 							DependsOn: []target.Target{
 								{Dir: "../somedir", Artefact: "other-artefact"},
 							},
-							Steps: []config_new.Step{
+							Steps: []config.Step{
 								{
 									Name: "test",
 									Env: map[string]string{
@@ -162,6 +165,8 @@ func TestLoadConfig(t *testing.T) {
 									Name:       "image",
 									Condition:  "echo \"multiline\"\n  # indented\necho \"script\"",
 									Dockerfile: "file-name",
+									Context:    "./",
+									Tag:        "localhost:5000/my-image",
 								},
 							},
 						},
@@ -170,19 +175,19 @@ func TestLoadConfig(t *testing.T) {
 							Pipeline: "my-pipeline",
 						},
 					},
-					Dockerfile: []config_new.Dockerfile{
+					Dockerfile: []config.Dockerfile{
 						{
 							Name:    "file-name",
 							Content: "FROM something\nRUN hello there",
 						},
 					},
-					Pipelines: []config_new.Pipeline{
+					Pipelines: []config.Pipeline{
 						{
 							Name: "my-pipeline",
 							Env: map[string]string{
 								"P_VAR": "var-p",
 							},
-							Steps: []config_new.Step{
+							Steps: []config.Step{
 								{Name: "step-1", Command: "do the thing"},
 								{Name: "step-2", Command: "do the other thing"},
 							},
@@ -191,10 +196,10 @@ func TestLoadConfig(t *testing.T) {
 				},
 				{
 					Path: "../somedir",
-					Artefacts: []config_new.Artefact{
+					Artefacts: []config.Artefact{
 						{
 							Name: "not-referenced",
-							Steps: []config_new.Step{
+							Steps: []config.Step{
 								{
 									Name:    "do-something-else",
 									Command: "echo \"ho\"",
@@ -203,7 +208,10 @@ func TestLoadConfig(t *testing.T) {
 						},
 						{
 							Name: "other-artefact",
-							Steps: []config_new.Step{
+							DependsOn: []target.Target{
+								{Dir: ".", Artefact: "not-referenced"},
+							},
+							Steps: []config.Step{
 								{
 									Name:    "do-something",
 									Command: "echo \"hi\"",
@@ -216,13 +224,13 @@ func TestLoadConfig(t *testing.T) {
 		},
 	} {
 		t.Run(test.Name, func(u *testing.T) {
-			config_new.SetFS(
+			config.SetFS(
 				&MockFS{
 					files: test.Files,
 				},
 			)
 
-			conf, err := config_new.LoadConfigs(test.Targets)
+			conf, err := config.LoadConfigs(test.Targets)
 
 			assert.NoError(u, err, "didn't expect an error")
 

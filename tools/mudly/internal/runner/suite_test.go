@@ -9,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/tools/mudly/internal/runner"
-	"ponglehub.co.uk/tools/mudly/internal/solver"
-	"ponglehub.co.uk/tools/mudly/internal/steps"
 )
 
 type callArgs struct {
@@ -32,19 +30,21 @@ func (c *callStack) addCall(args callArgs) {
 }
 
 type mockRunnable struct {
-	result  steps.CommandResult
+	result  runner.CommandResult
 	stack   *callStack
 	timeout int
 }
 
-func (n *mockRunnable) Run(dir string, artefact string, env map[string]string) steps.CommandResult {
+func (n *mockRunnable) Run(dir string, artefact string, env map[string]string) runner.CommandResult {
 	time.Sleep(time.Millisecond * time.Duration(n.timeout))
 	n.stack.addCall(callArgs{dir: dir, artefact: artefact, env: env})
 	return n.result
 }
 
-func convert(nodesString string) ([]*solver.Node, *callStack) {
-	nodes := []*solver.Node{}
+func (n *mockRunnable) String() string { return "" }
+
+func convert(nodesString string) ([]*runner.Node, *callStack) {
+	nodes := []*runner.Node{}
 	stack := callStack{mu: &sync.Mutex{}}
 
 	for _, segment := range strings.Split(nodesString, ",") {
@@ -58,14 +58,14 @@ func convert(nodesString string) ([]*solver.Node, *callStack) {
 			parts[0] = parts[0][:startIndex]
 		}
 
-		node := solver.Node{
+		node := runner.Node{
 			Artefact: parts[0],
 			Step: &mockRunnable{
-				result:  steps.COMMAND_SUCCESS,
+				result:  runner.COMMAND_SUCCESS,
 				stack:   &stack,
 				timeout: timeout,
 			},
-			State: solver.STATE_PENDING,
+			State: runner.STATE_PENDING,
 		}
 
 		nodes = append(nodes, &node)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/tools/mudly/internal/runner"
 	"ponglehub.co.uk/tools/mudly/internal/utils"
 )
 
@@ -28,25 +29,25 @@ func SetMockChecker(instance Checker) {
 
 var ageCheckerInstance Checker = &utils.AgeChecker{}
 
-func (c CommandStep) Run(dir string, artefact string, env map[string]string) CommandResult {
+func (c CommandStep) Run(dir string, artefact string, env map[string]string) runner.CommandResult {
 	merged := utils.MergeMaps(env, c.Env)
 
 	if c.Watch != nil && len(c.Watch) > 0 {
 		t, err := ageCheckerInstance.FetchTimestamp(dir, artefact, c.Name)
 		if err != nil {
 			logrus.Errorf("%s[%s]: failed fetching timestamp: %+v", artefact, c.Name, err)
-			return COMMAND_ERROR
+			return runner.COMMAND_ERROR
 		}
 
 		hasChanged, err := ageCheckerInstance.HasChangedSince(t, c.Watch)
 		if err != nil {
 			logrus.Errorf("%s[%s]: failed comparing timestamp: %+v", artefact, c.Name, err)
-			return COMMAND_ERROR
+			return runner.COMMAND_ERROR
 		}
 
 		if !hasChanged {
 			logrus.Infof("%s[%s (test)]: Skipping step with no changes", artefact, c.Name)
-			return COMMAND_SKIPPED
+			return runner.COMMAND_SKIPPED
 		}
 	}
 
@@ -63,7 +64,7 @@ func (c CommandStep) Run(dir string, artefact string, env map[string]string) Com
 
 		if !test {
 			logrus.Infof("%s[%s (test)]: Skipping step when parent skips", artefact, c.Name)
-			return COMMAND_SKIPPED
+			return runner.COMMAND_SKIPPED
 		}
 	}
 
@@ -81,9 +82,9 @@ func (c CommandStep) Run(dir string, artefact string, env map[string]string) Com
 		if err := ageCheckerInstance.SaveTimestamp(dir, artefact, c.Name); err != nil {
 			logrus.Warnf("Failed to write timestamp: %+v", err)
 		}
-		return COMMAND_SUCCESS
+		return runner.COMMAND_SUCCESS
 	} else {
-		return COMMAND_ERROR
+		return runner.COMMAND_ERROR
 	}
 }
 

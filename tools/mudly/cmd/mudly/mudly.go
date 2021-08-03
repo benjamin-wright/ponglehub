@@ -51,7 +51,7 @@ func main() {
 
 	logrus.Debugf("Targets: %+v", targets)
 
-	configs, err := config.LoadConfig(&config.LoadConfigOptions{Targets: targets})
+	configs, err := config.LoadConfigs(targets)
 	if err != nil {
 		logrus.Fatalf("Error loading config: %+v", err)
 	}
