@@ -83,7 +83,12 @@ ARTEFACT npm
         -X PUT --data "{\"name\": \"$NPM_USERNAME\", \"password\": \"$NPM_PASSWORD\"}" \
         http://localhost:$NPM_PORT/-/user/org.couchdb.user:$NPM_USERNAME 2>&1 | jq '.token' -r)
       
-      npm set @pongle:registry "http://your_registry"
+      if [[ "$TOKEN" == "null" ]]; then
+        echo "failed to get npm token, try restarting"
+        exit 1
+      fi
+
+      npm set @pongle:registry "http://localhost:$NPM_PORT"
       npm set //localhost:$NPM_PORT/:_authToken $TOKEN
 
 ARTEFACT npm-stop
@@ -99,3 +104,6 @@ ARTEFACT npm-stop
     COMMAND
       npm config delete @pongle:registry
       npm config delete //localhost:$NPM_PORT/:_authToken
+  
+  STEP clear-docker
+    COMMAND docker system prune --all --volumes --force

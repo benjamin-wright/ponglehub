@@ -1,6 +1,5 @@
 DOCKERFILE image
   FROM node:14.17.1-alpine AS npmrc
-  
   RUN apk add expect
   COPY login.sh login.sh
   RUN ./login.sh

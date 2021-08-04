@@ -13,6 +13,11 @@ DOCKERFILE npm
 ARTEFACT image
   DEPENDS ON ../../../libraries/images/node+image
   DEPENDS ON ../../../libraries/node/eslint-config-ponglehub+publish
+  DEPENDS ON ../../../libraries/node/async+publish
+
+  STEP gen-lock
+    CONDITION [[ ! -f package-lock.json ]]
+    COMMAND npm install
 
   STEP build
     DOCKERFILE npm

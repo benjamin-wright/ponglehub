@@ -2,8 +2,11 @@
 
 set -o errexit -o pipefail
 
-npm version $(npm view . version)
-npm version patch
-npm publish
+echo "getting npm version"
+npm version $(npm view . version) --allow-same-version
 
-jq '.version' package.json -r > marker
+echo "patching version"
+npm version patch
+
+echo "publishing"
+npm publish

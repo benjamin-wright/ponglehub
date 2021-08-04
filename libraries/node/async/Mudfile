@@ -9,6 +9,12 @@ ARTEFACT publish
       echo "checksum: $CURRENT = $PUBLISHED"
       [[ "$CURRENT" != "$PUBLISHED" ]]
     COMMAND npm install
+
+  STEP test
+    CONDITION [[ "$DEPS_SKIPPED" != "true" ]]
+    COMMAND
+      npm run lint
+      npm run test
   
   STEP publish
     CONDITION [[ "$DEPS_SKIPPED" != "true" ]]
