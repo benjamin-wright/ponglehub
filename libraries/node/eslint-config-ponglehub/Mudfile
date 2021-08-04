@@ -1,0 +1,15 @@
+ARTEFACT publish
+  DEPENDS ON ../../images/node+image
+
+  STEP build
+    DOCKERFILE npm
+
+DOCKERFILE npm
+  FROM node-base
+
+  COPY package*.json ./
+  RUN npm ci
+
+  COPY ./lib ./lib
+
+  RUN patch

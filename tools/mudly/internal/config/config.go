@@ -38,4 +38,5 @@ type Step struct {
 	Dockerfile string
 	Context    string
 	Tag        string
+	WaitFor    []string
 }

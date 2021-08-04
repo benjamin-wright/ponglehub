@@ -1,6 +1,10 @@
 ENV CLUSTER_NAME=pongle
 ENV REGISTRY_NAME=pongle-registry.localhost
 ENV REGISTRY_PORT=5000
+ENV NPM_CONTAINER=pongle-npm
+ENV NPM_PORT=4873
+ENV NPM_USERNAME=admin
+ENV NPM_PASSWORD=djsafnAJFNsaFNJSADNfkjsA
 
 ARTEFACT generate
   STEP istio
@@ -64,3 +68,34 @@ ARTEFACT stop
   STEP registry
     CONDITION k3d registry list | grep -w k3d-$REGISTRY_NAME
     COMMAND k3d registry delete $REGISTRY_NAME
+
+ARTEFACT npm
+  STEP deploy
+    CONDITION ! docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER
+    COMMAND docker run -d --restart always -p $NPM_PORT:4873 --name $NPM_CONTAINER verdaccio/verdaccio:4 2>&1
+
+  STEP login
+    WAIT FOR npm ping --registry http://localhost:$NPM_PORT
+    COMMAND
+      TOKEN=$(curl -s \
+        -H "Accept: application/json" \
+        -H "Content-Type:application/json" \
+        -X PUT --data "{\"name\": \"$NPM_USERNAME\", \"password\": \"$NPM_PASSWORD\"}" \
+        http://localhost:$NPM_PORT/-/user/org.couchdb.user:$NPM_USERNAME 2>&1 | jq '.token' -r)
+      
+      npm set @pongle:registry "http://your_registry"
+      npm set //localhost:$NPM_PORT/:_authToken $TOKEN
+
+ARTEFACT npm-stop
+  STEP stop-container
+    CONDITION docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER
+    COMMAND docker stop $NPM_CONTAINER 2>&1
+  
+  STEP remove-container
+    CONDITION docker ps -a --format '{{ .Names }}' | grep -q $NPM_CONTAINER
+    COMMAND docker rm $NPM_CONTAINER 2>&1
+  
+  STEP clear-npmrc
+    COMMAND
+      npm config delete @pongle:registry
+      npm config delete //localhost:$NPM_PORT/:_authToken

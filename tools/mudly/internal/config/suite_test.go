@@ -71,6 +71,7 @@ func TestLoadConfig(t *testing.T) {
 					Content: dedent(`
                         ARTEFACT not-referenced
                           STEP do-something-else
+						  	WAIT FOR something that exits with a zero eventually
                             COMMAND echo "ho"
                         
                         ARTEFACT other-artefact
@@ -203,6 +204,9 @@ func TestLoadConfig(t *testing.T) {
 								{
 									Name:    "do-something-else",
 									Command: "echo \"ho\"",
+									WaitFor: []string{
+										"something that exits with a zero eventually",
+									},
 								},
 							},
 						},

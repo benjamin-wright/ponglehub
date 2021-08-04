@@ -60,6 +60,7 @@ const (
 	DOCKER_LINE
 	CONTEXT_LINE
 	TAG_LINE
+	WAIT_FOR_LINE
 	UNKNOWN_LINE
 	READER_ERROR
 )
@@ -109,6 +110,10 @@ func (r *reader) getLineType() lineType {
 
 	if strings.HasPrefix(trimmed, "TAG") {
 		return TAG_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "WAIT FOR") {
+		return WAIT_FOR_LINE
 	}
 
 	if strings.HasPrefix(trimmed, "PIPELINE") {

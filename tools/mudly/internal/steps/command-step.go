@@ -10,11 +10,12 @@ import (
 )
 
 type CommandStep struct {
-	Name      string            `yaml:"name"`
-	Condition string            `yaml:"condition"`
-	Watch     []string          `yaml:"watch"`
-	Command   string            `yaml:"cmd"`
-	Env       map[string]string `yaml:"env"`
+	Name      string
+	Condition string
+	Watch     []string
+	Command   string
+	Env       map[string]string
+	WaitFor   []string
 }
 
 type Checker interface {
@@ -65,6 +66,27 @@ func (c CommandStep) Run(dir string, artefact string, env map[string]string) run
 		if !test {
 			logrus.Debugf("%s[%s (test)]: Skipping step, condition not met", artefact, c.Name)
 			return runner.COMMAND_SKIPPED
+		}
+	}
+
+	for idx, waitFor := range c.WaitFor {
+		for {
+			test := runShellCommand(&shellCommand{
+				dir:      dir,
+				artefact: artefact,
+				step:     fmt.Sprintf("%s (wait:%d)", c.Name, idx),
+				command:  "/bin/bash",
+				args:     []string{"-c", waitFor},
+				env:      merged,
+				test:     true,
+			})
+
+			if test {
+				break
+			} else {
+				time.Sleep(time.Millisecond * 500)
+				logrus.Debugf("%s[%s (wait:%d)]: Wait for failed, trying again...", artefact, c.Name, idx)
+			}
 		}
 	}
 

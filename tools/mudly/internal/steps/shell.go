@@ -3,9 +3,11 @@ package steps
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -18,9 +20,12 @@ type shellCommand struct {
 	args     []string
 	env      map[string]string
 	test     bool
+	stdin    string
 }
 
 func runShellCommand(command *shellCommand) bool {
+	logrus.Debugf("%s[%s]: Running command %s %s", command.artefact, command.step, command.command, strings.Join(command.args, " "))
+
 	cmd := exec.Command(command.command, command.args...)
 	cmd.Dir = path.Clean(command.dir)
 
@@ -41,23 +46,39 @@ func runShellCommand(command *shellCommand) bool {
 		return false
 	}
 
+	if command.stdin != "" {
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			logrus.Errorf("%s[%s]: Failed to get command stdin pipe: %+v", command.artefact, command.step, err)
+		}
+
+		go func() {
+			defer stdin.Close()
+			io.WriteString(stdin, command.stdin)
+		}()
+	}
+
 	err = cmd.Start()
 	if err != nil {
 		logrus.Errorf("%s[%s]: Command couldn't run: %+v", command.artefact, command.step, err)
 		return false
 	}
 
-	stdoutScanner := bufio.NewScanner(stdout)
-	stdoutScanner.Split(bufio.ScanLines)
-	for stdoutScanner.Scan() {
-		logrus.Infof("%s[%s]: %s", command.artefact, command.step, stdoutScanner.Text())
-	}
+	go func() {
+		stdoutScanner := bufio.NewScanner(stdout)
+		stdoutScanner.Split(bufio.ScanLines)
+		for stdoutScanner.Scan() {
+			logrus.Infof("%s[%s]: %s", command.artefact, command.step, stdoutScanner.Text())
+		}
+	}()
 
-	stderrScanner := bufio.NewScanner(stderr)
-	stderrScanner.Split(bufio.ScanLines)
-	for stderrScanner.Scan() {
-		logrus.Warnf("%s[%s]: %s", command.artefact, command.step, stderrScanner.Text())
-	}
+	go func() {
+		stderrScanner := bufio.NewScanner(stderr)
+		stderrScanner.Split(bufio.ScanLines)
+		for stderrScanner.Scan() {
+			logrus.Warnf("%s[%s]: %s", command.artefact, command.step, stderrScanner.Text())
+		}
+	}()
 
 	err = cmd.Wait()
 	if err != nil {

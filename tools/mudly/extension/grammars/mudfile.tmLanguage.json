@@ -117,7 +117,8 @@
 				{ "include": "#docker-link" },
 				{ "include": "#env" },
 				{ "include": "#watch" },
-				{ "include": "#tag" }
+				{ "include": "#tag" },
+				{ "include": "#wait-for" }
 			]
 		},
 		"watch": {
@@ -138,6 +139,18 @@
 					"name": "variable.parameter"
 				}
 			]
+		},
+		"wait-for": {
+			"match": "^\\s{4}(WAIT\\sFOR)\\s(.+)$",
+			"captures": {
+				"1": { "name": "keyword.control" },
+				"2": {
+					"name": "meta.embedded.block.shellscript",
+					"patterns": [
+						{ "include": "source.shell" }
+					]
+				}
+			}
 		},
 		"command": {
 			"patterns": [

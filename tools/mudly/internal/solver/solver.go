@@ -168,6 +168,7 @@ func createRunnable(step config.Step) (runner.Runnable, error) {
 			Watch:     step.Watch,
 			Command:   step.Command,
 			Env:       step.Env,
+			WaitFor:   step.WaitFor,
 		}, nil
 	}
 
@@ -197,6 +198,21 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 			return &nodes, err
 		}
 		for _, step := range pipeline.Steps {
+			if step.Dockerfile != "" {
+				content := ""
+				for _, dockerfile := range cfg.Dockerfile {
+					if dockerfile.Name == step.Dockerfile {
+						content = dockerfile.Content
+					}
+				}
+
+				if content != "" {
+					step.Dockerfile = content
+				} else {
+					return &nodes, fmt.Errorf("failed to get dockerfile for reference: %s", step.Dockerfile)
+				}
+			}
+
 			runnable, err := createRunnable(step)
 			if err != nil {
 				return &nodes, err

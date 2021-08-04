@@ -1,0 +1,19 @@
+DOCKERFILE npm
+  FROM node-base
+
+  COPY package*.json ./
+  RUN npm ci --production
+
+  COPY ./.eslintrc ./.eslintrc
+  COPY ./src ./src
+  
+  ENTRYPOINT [ "npm" ]
+  CMD [ "start" ]
+
+ARTEFACT image
+  DEPENDS ON ../../../libraries/images/node+image
+  DEPENDS ON ../../../libraries/node/eslint-config-ponglehub+publish
+
+  STEP build
+    DOCKERFILE npm
+    TAG auth-operator

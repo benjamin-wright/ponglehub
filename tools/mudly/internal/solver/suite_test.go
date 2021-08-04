@@ -57,6 +57,9 @@ func TestSolver(t *testing.T) {
 			Configs: []config.Config{
 				{
 					Path: ".",
+					Dockerfile: []config.Dockerfile{
+						{Name: "my-image", Content: "dockerfile contents"},
+					},
 					Artefacts: []config.Artefact{
 						{
 							Name: "image",
@@ -67,7 +70,7 @@ func TestSolver(t *testing.T) {
 								},
 								{
 									Name:       "docker",
-									Dockerfile: "./Dockerfile",
+									Dockerfile: "my-image",
 									Context:    ".",
 								},
 							},
@@ -91,7 +94,7 @@ func TestSolver(t *testing.T) {
 					Artefact: "image",
 					Step: steps.DockerStep{
 						Name:       "docker",
-						Dockerfile: "./Dockerfile",
+						Dockerfile: "dockerfile contents",
 						Context:    ".",
 					},
 					State:     runner.STATE_PENDING,
@@ -105,6 +108,9 @@ func TestSolver(t *testing.T) {
 			Configs: []config.Config{
 				{
 					Path: ".",
+					Dockerfile: []config.Dockerfile{
+						{Name: "my-image", Content: "my dockerfile contents"},
+					},
 					Artefacts: []config.Artefact{
 						{
 							Name: "image",
@@ -115,7 +121,7 @@ func TestSolver(t *testing.T) {
 								},
 								{
 									Name:       "docker",
-									Dockerfile: "./Dockerfile",
+									Dockerfile: "my-image",
 									Context:    ".",
 								},
 							},
@@ -152,7 +158,7 @@ func TestSolver(t *testing.T) {
 					Artefact: "image",
 					Step: steps.DockerStep{
 						Name:       "docker",
-						Dockerfile: "./Dockerfile",
+						Dockerfile: "my dockerfile contents",
 						Context:    ".",
 					},
 					State:     runner.STATE_PENDING,
@@ -189,6 +195,9 @@ func TestSolver(t *testing.T) {
 					Env: map[string]string{
 						"GLOBAL_ENV": "value3",
 					},
+					Dockerfile: []config.Dockerfile{
+						{Name: "image-1", Content: "image 1 content"},
+					},
 					Pipelines: []config.Pipeline{
 						{
 							Name: "my-pipeline",
@@ -205,7 +214,7 @@ func TestSolver(t *testing.T) {
 								},
 								{
 									Name:       "docker",
-									Dockerfile: "./Dockerfile",
+									Dockerfile: "image-1",
 									Context:    ".",
 								},
 							},
@@ -267,7 +276,7 @@ func TestSolver(t *testing.T) {
 					},
 					Step: steps.DockerStep{
 						Name:       "docker",
-						Dockerfile: "./Dockerfile",
+						Dockerfile: "image 1 content",
 						Context:    ".",
 					},
 					State:     runner.STATE_PENDING,

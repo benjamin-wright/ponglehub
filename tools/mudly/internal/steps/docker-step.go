@@ -3,21 +3,20 @@ package steps
 import "ponglehub.co.uk/tools/mudly/internal/runner"
 
 type DockerStep struct {
-	Name       string `yaml:"name"`
-	Dockerfile string `yaml:"dockerfile"`
-	Context    string `yaml:"context"`
-	Tag        string `yaml:"tag"`
+	Name       string
+	Dockerfile string
+	Context    string
+	Tag        string
 }
 
 func (d DockerStep) args() []string {
-	args := []string{}
-	if d.Dockerfile != "" {
-		args = append(args, "-f", d.Dockerfile)
-	}
+	args := []string{"build"}
 
 	if d.Tag != "" {
 		args = append(args, "-t", d.Tag)
 	}
+
+	args = append(args, "-f", "-")
 
 	if d.Context != "" {
 		args = append(args, d.Context)
@@ -35,6 +34,7 @@ func (d DockerStep) Run(dir string, artefact string, env map[string]string) runn
 		step:     d.Name,
 		command:  "docker",
 		args:     d.args(),
+		stdin:    d.Dockerfile,
 	})
 
 	if success {

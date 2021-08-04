@@ -399,26 +399,40 @@ func getStep(r *reader) (Step, error) {
 
 			step.Command = command
 		case DOCKER_LINE:
-			dockerfile, err := getStringArg(r)
+			dockerfile, err := getStringArg(r, nil)
 			if err != nil {
 				return step, err
 			}
 
 			step.Dockerfile = dockerfile
 		case CONTEXT_LINE:
-			context, err := getStringArg(r)
+			context, err := getStringArg(r, nil)
 			if err != nil {
 				return step, err
 			}
 
 			step.Context = context
 		case TAG_LINE:
-			tag, err := getStringArg(r)
+			tag, err := getStringArg(r, nil)
 			if err != nil {
 				return step, err
 			}
 
 			step.Tag = tag
+		case WAIT_FOR_LINE:
+			waitFor, err := getStringArg(r, &getStringArgInputs{
+				expectedLength:  3,
+				acceptExtraArgs: true,
+			})
+			if err != nil {
+				return step, err
+			}
+
+			if step.WaitFor == nil {
+				step.WaitFor = []string{}
+			}
+
+			step.WaitFor = append(step.WaitFor, waitFor)
 		default:
 			return step, fmt.Errorf("unknown line type: %s", r.line())
 		}
@@ -439,16 +453,34 @@ func getWatchPaths(r *reader) ([]string, error) {
 	return parts[1:], nil
 }
 
-func getStringArg(r *reader) (string, error) {
-	trimmed := strings.TrimSpace(r.line())
+type getStringArgInputs struct {
+	expectedLength  int
+	acceptExtraArgs bool
+}
 
-	parts := strings.Split(trimmed, " ")
-
-	if len(parts) != 2 {
-		return "", fmt.Errorf("unknown syntax error for line \"%s\"", r.line())
+func getStringArg(r *reader, args *getStringArgInputs) (string, error) {
+	if args == nil {
+		args = &getStringArgInputs{
+			expectedLength: 2,
+		}
 	}
 
-	return parts[1], nil
+	trimmed := strings.TrimSpace(r.line())
+	parts := strings.Split(trimmed, " ")
+
+	if args.acceptExtraArgs {
+		if len(parts) < args.expectedLength {
+			return "", fmt.Errorf("unknown syntax error for line \"%s\"", r.line())
+		}
+
+		return strings.Join(parts[args.expectedLength-1:], " "), nil
+	} else {
+		if len(parts) != args.expectedLength {
+			return "", fmt.Errorf("unknown syntax error for line \"%s\"", r.line())
+		}
+
+		return parts[args.expectedLength-1], nil
+	}
 }
 
 func getStringOrMultiline(r *reader, ignoreFirstLine bool) (string, error) {
