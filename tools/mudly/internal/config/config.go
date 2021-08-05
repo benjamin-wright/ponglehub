@@ -27,6 +27,7 @@ type Artefact struct {
 	Env       map[string]string
 	Steps     []Step
 	Pipeline  string
+	Condition string
 }
 
 type Step struct {

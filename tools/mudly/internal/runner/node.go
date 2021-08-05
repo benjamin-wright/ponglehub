@@ -16,6 +16,7 @@ const (
 	COMMAND_SUCCESS CommandResult = iota
 	COMMAND_ERROR
 	COMMAND_SKIPPED
+	COMMAND_SKIP_ARTEFACT
 )
 
 type Runnable interface {

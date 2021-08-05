@@ -7,8 +7,8 @@ import (
 )
 
 type runResult struct {
-	node    *Node
-	success bool
+	node   *Node
+	result CommandResult
 }
 
 func Run(nodes []*Node) (err error) {
@@ -30,8 +30,15 @@ func Run(nodes []*Node) (err error) {
 
 		result := <-outputChan
 
-		if !result.success {
+		switch result.result {
+		case COMMAND_ERROR:
 			return fmt.Errorf("error running step %s:%s", result.node.Artefact, result.node.Step)
+		case COMMAND_SKIP_ARTEFACT:
+			for _, node := range nodes {
+				if node.Artefact == result.node.Artefact {
+					node.State = STATE_SKIPPED
+				}
+			}
 		}
 
 		numRunning -= 1
@@ -58,30 +65,9 @@ func getRunnableNodes(nodes []*Node) []*Node {
 	return runnables
 }
 
-func depsSkipped(node *Node) bool {
-	skipped := node.DependsOn != nil && len(node.DependsOn) > 0
-
-	for _, dep := range node.DependsOn {
-		if dep.State != STATE_SKIPPED {
-			skipped = false
-		}
-	}
-
-	return skipped
-}
-
 func runNode(node *Node, outputChan chan<- runResult) {
-	if depsSkipped(node) {
-		if node.SharedEnv == nil {
-			node.SharedEnv = map[string]string{}
-		}
-
-		node.SharedEnv["DEPS_SKIPPED"] = "true"
-	}
-
-	logrus.Infof("Running steps %s:%s", node.Artefact, node.Step)
+	logrus.Infof("Running step %s:%s", node.Artefact, node.Step)
 	result := node.Step.Run(node.Path, node.Artefact, node.SharedEnv)
-	success := true
 
 	switch result {
 	case COMMAND_SUCCESS:
@@ -90,14 +76,16 @@ func runNode(node *Node, outputChan chan<- runResult) {
 	case COMMAND_SKIPPED:
 		logrus.Infof("Finished step %s:%s -> SKIPPED", node.Artefact, node.Step)
 		node.State = STATE_SKIPPED
+	case COMMAND_SKIP_ARTEFACT:
+		logrus.Infof("Finished step %s:%s -> SKIPPED ARTEFACT", node.Artefact, node.Step)
+		node.State = STATE_SKIPPED
 	case COMMAND_ERROR:
 		logrus.Infof("Finished step %s:%s -> ERROR", node.Artefact, node.Step)
 		node.State = STATE_ERROR
-		success = false
 	}
 
 	outputChan <- runResult{
-		node:    node,
-		success: success,
+		node:   node,
+		result: result,
 	}
 }

@@ -56,7 +56,8 @@
 				{ "include": "#steps" },
 				{ "include": "#depends-on" },
 				{ "include": "#env" },
-				{ "include": "#pipeline-ref" }
+				{ "include": "#pipeline-ref" },
+				{ "include": "#artefact-condition" }
 			]
 		},
 		"env": {
@@ -169,6 +170,37 @@
 					"match": "^\\s{4}(COMMAND)\\s(.+)$",
 					"captures": {
 						"1": { "name": "keyword.control" },
+						"2": {
+							"name": "meta.embedded.block.shellscript",
+							"patterns": [
+								{ "include": "source.shell" }
+							]
+						}
+					}
+				}
+			]
+		},
+		"artefact-condition": {
+			"patterns": [
+				{
+					"begin": "^\\s{2}(CONDITION)$",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.control"
+						}
+					},
+					"end": "(?x)(?= ^\\s{0,2}\\S)",
+					"name": "meta.embedded.block.shellscript",
+					"patterns": [
+						{ "include": "source.shell" }
+					]
+				},
+				{
+					"match": "^\\s{2}(CONDITION)\\s(.+)$",
+					"captures": {
+						"1": {
+							"name": "keyword.control"
+						},
 						"2": {
 							"name": "meta.embedded.block.shellscript",
 							"patterns": [

@@ -193,6 +193,17 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 			return &nodes, err
 		}
 
+		if artefact.Condition != "" {
+			nodes.AddNode(cfg.Path, artefact.Name, &runner.Node{
+				SharedEnv: utils.MergeMaps(cfg.Env, artefact.Env),
+				Path:      cfg.Path,
+				Artefact:  artefact.Name,
+				Step:      steps.ArtefactStep{Condition: artefact.Condition},
+				State:     runner.STATE_PENDING,
+				DependsOn: []*runner.Node{},
+			})
+		}
+
 		pipeline, err := getPipeline(cfg, artefact)
 		if err != nil {
 			return &nodes, err

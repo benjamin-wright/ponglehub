@@ -50,7 +50,6 @@ ARTEFACT start
         --wait
   
   STEP kubeconfig
-    CONDITION [[ "$DEPS_SKIPPED" != "true" ]]
     COMMAND
       mkdir -p .scratch
       k3d kubeconfig get $CLUSTER_NAME > .scratch/kubeconfig

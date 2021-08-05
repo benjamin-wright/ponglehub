@@ -1,17 +1,17 @@
 ENV NPM_REGISTRY=http://localhost:4873
 
 ARTEFACT publish
-  STEP install
-    CONDITION
-      CURRENT=$(npm pack --dry-run 2>&1 | grep shasum | awk '{print $NF}' | tr -d '\n')
-      PUBLISHED=$(npm view . dist.shasum)
+  CONDITION
+    CURRENT=$(npm pack --dry-run 2>&1 | grep shasum | awk '{print $NF}' | tr -d '\n')
+    PUBLISHED=$(npm view . dist.shasum)
 
-      echo "checksum: $CURRENT = $PUBLISHED"
-      [[ "$CURRENT" != "$PUBLISHED" ]]
+    echo "checksum: $CURRENT = $PUBLISHED"
+    [[ "$CURRENT" !=  "$PUBLISHED" ]]
+
+  STEP install
     COMMAND npm install
   
   STEP publish
-    CONDITION [[ "$DEPS_SKIPPED" != "true" ]]
     COMMAND
       npm version $(npm view . version) --allow-same-version
       npm version patch

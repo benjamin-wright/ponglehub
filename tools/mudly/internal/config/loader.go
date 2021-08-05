@@ -216,6 +216,13 @@ func getArtefact(r *reader) (Artefact, error) {
 			}
 
 			artefact.DependsOn = append(artefact.DependsOn, t)
+		case CONDITION_LINE:
+			condition, err := getStringOrMultiline(r, false)
+			if err != nil {
+				return artefact, err
+			}
+
+			artefact.Condition = condition
 		case STEP_LINE:
 			step, err := getStep(r)
 			if err != nil {

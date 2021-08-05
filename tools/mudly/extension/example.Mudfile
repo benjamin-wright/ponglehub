@@ -25,6 +25,7 @@ DOCKERFILE go-image
 
 ARTEFACT image
   DEPENDS ON +mudly
+  CONDITION [[ ! "$SOMETHING" == "true" ]]
   STEP image
     DOCKERFILE go-image
 

@@ -48,7 +48,6 @@ artefacts:
           -p "80:80@loadbalancer" \
           --wait
     - name: kubeconfig
-      condition: '[[ "$DEPS_SKIPPED" != "true" ]]'
       cmd: |-
         mkdir -p .scratch
         k3d kubeconfig get $CLUSTER_NAME > .scratch/kubeconfig

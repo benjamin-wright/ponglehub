@@ -88,6 +88,7 @@ func TestLoadConfig(t *testing.T) {
                         ARTEFACT my-artefact
                           ENV ART_VAL=value2
                           DEPENDS ON ../somedir+other-artefact
+						  CONDITION echo "inline artefact script"
 
                           STEP test
                             ENV STEP_VAR=value3
@@ -113,6 +114,10 @@ func TestLoadConfig(t *testing.T) {
                         ENV G_2_VAR=var2
                         
                         ARTEFACT local-pipeline
+						  CONDITION
+						    echo "multiline"
+							echo "artefact"
+							echo "script"
                           PIPELINE my-pipeline
                         
                         PIPELINE my-pipeline
@@ -138,7 +143,8 @@ func TestLoadConfig(t *testing.T) {
 					},
 					Artefacts: []config.Artefact{
 						{
-							Name: "my-artefact",
+							Name:      "my-artefact",
+							Condition: "echo \"inline artefact script\"",
 							Env: map[string]string{
 								"ART_VAL": "value2",
 							},
@@ -172,8 +178,9 @@ func TestLoadConfig(t *testing.T) {
 							},
 						},
 						{
-							Name:     "local-pipeline",
-							Pipeline: "my-pipeline",
+							Name:      "local-pipeline",
+							Condition: "echo \"multiline\"\necho \"artefact\"\necho \"script\"",
+							Pipeline:  "my-pipeline",
 						},
 					},
 					Dockerfile: []config.Dockerfile{
