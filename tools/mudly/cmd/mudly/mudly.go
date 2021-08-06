@@ -71,4 +71,8 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Error in runner: %+v", err)
 	}
+
+	for _, node := range nodes {
+		logrus.Debugf("%s:%s[%s] - %d", node.Path, node.Artefact, node.Step, node.State)
+	}
 }

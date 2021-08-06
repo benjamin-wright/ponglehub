@@ -35,7 +35,7 @@ func Run(nodes []*Node) (err error) {
 			return fmt.Errorf("error running step %s:%s", result.node.Artefact, result.node.Step)
 		case COMMAND_SKIP_ARTEFACT:
 			for _, node := range nodes {
-				if node.Artefact == result.node.Artefact {
+				if node.Path == result.node.Path && node.Artefact == result.node.Artefact {
 					node.State = STATE_SKIPPED
 				}
 			}

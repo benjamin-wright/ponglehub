@@ -9,6 +9,8 @@ DOCKERFILE image
   COPY patch.sh /usr/local/bin/patch
 
 ARTEFACT image
+  CONDITION ! docker inspect node-base > /dev/null
+
   STEP image
     DOCKERFILE image
     TAG node-base
