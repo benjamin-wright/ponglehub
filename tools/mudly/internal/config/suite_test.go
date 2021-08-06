@@ -67,6 +67,14 @@ func TestLoadConfig(t *testing.T) {
 			Name: "all-in-one",
 			Files: []ConfigFile{
 				{
+					Path: "../other/Mudfile",
+					Content: dedent(`
+                        PIPELINE remote-pipeline
+						  STEP remote-step
+						    COMMAND echo "hello shared"
+                    `),
+				},
+				{
 					Path: "../somedir/Mudfile",
 					Content: dedent(`
                         ARTEFACT not-referenced
@@ -126,6 +134,9 @@ func TestLoadConfig(t *testing.T) {
                             COMMAND do the thing
                           STEP step-2
                             COMMAND do the other thing
+						
+						ARTEFACT remote-pipeline
+						  PIPELINE ../other remote-pipeline
                         
                         DOCKERFILE file-name
                           FROM something
@@ -182,6 +193,10 @@ func TestLoadConfig(t *testing.T) {
 							Condition: "echo \"multiline\"\necho \"artefact\"\necho \"script\"",
 							Pipeline:  "my-pipeline",
 						},
+						{
+							Name:     "remote-pipeline",
+							Pipeline: "../other remote-pipeline",
+						},
 					},
 					Dockerfile: []config.Dockerfile{
 						{
@@ -226,6 +241,128 @@ func TestLoadConfig(t *testing.T) {
 								{
 									Name:    "do-something",
 									Command: "echo \"hi\"",
+								},
+							},
+						},
+					},
+				},
+				{
+					Path: "../other",
+					Pipelines: []config.Pipeline{
+						{
+							Name: "remote-pipeline",
+							Steps: []config.Step{
+								{
+									Name:    "remote-step",
+									Command: "echo \"hello shared\"",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "nested",
+			Files: []ConfigFile{
+				{
+					Path: "./other/deeper/Mudfile",
+					Content: dedent(`
+                        ARTEFACT remote-call-3
+						  STEP do-something
+                    `),
+				},
+				{
+					Path: "./other/Mudfile",
+					Content: dedent(`
+                        ARTEFACT remote-call-2
+						  DEPENDS ON ./deeper+remote-call-3
+                    `),
+				},
+				{
+					Path: "./subdir/Mudfile",
+					Content: dedent(`
+						ARTEFACT remote-call-1
+						  DEPENDS ON ../other+remote-call-2
+                    `),
+				},
+			},
+			Targets: []target.Target{{Dir: "subdir"}},
+			Expected: []config.Config{
+				{
+					Path: "subdir",
+					Artefacts: []config.Artefact{
+						{
+							Name: "remote-call-1",
+							DependsOn: []target.Target{{
+								Dir:      "../other",
+								Artefact: "remote-call-2",
+							}},
+						},
+					},
+				},
+				{
+					Path: "other",
+					Artefacts: []config.Artefact{
+						{
+							Name: "remote-call-2",
+							DependsOn: []target.Target{{
+								Dir:      "deeper",
+								Artefact: "remote-call-3",
+							}},
+						},
+					},
+				},
+				{
+					Path: "other/deeper",
+					Artefacts: []config.Artefact{
+						{
+							Name:  "remote-call-3",
+							Steps: []config.Step{{Name: "do-something"}},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "remote pipeline rebase test",
+			Files: []ConfigFile{
+				{
+					Path: "./other/Mudfile",
+					Content: dedent(`
+                        PIPELINE remote-pipeline
+						  STEP remote-step
+						    COMMAND echo "hello shared"
+                    `),
+				},
+				{
+					Path: "./subdir/Mudfile",
+					Content: dedent(`
+						ARTEFACT remote-pipeline
+						  PIPELINE ../other remote-pipeline
+                    `),
+				},
+			},
+			Targets: []target.Target{{Dir: "subdir"}},
+			Expected: []config.Config{
+				{
+					Path: "subdir",
+					Artefacts: []config.Artefact{
+						{
+							Name:     "remote-pipeline",
+							Pipeline: "../other remote-pipeline",
+						},
+					},
+				},
+				{
+					Path: "other",
+					Pipelines: []config.Pipeline{
+						{
+							Name: "remote-pipeline",
+							Steps: []config.Step{
+								{
+									Name:    "remote-step",
+									Command: "echo \"hello shared\"",
 								},
 							},
 						},

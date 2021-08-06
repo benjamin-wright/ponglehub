@@ -39,6 +39,12 @@ func getDependencyTargets(config Config) []target.Target {
 		for _, target := range artefact.DependsOn {
 			newTargets = append(newTargets, target.Rebase(root))
 		}
+
+		parts := strings.Split(artefact.Pipeline, " ")
+		if len(parts) == 2 {
+			pipelineTarget := target.Target{Dir: parts[0], Artefact: "pipeline"}
+			newTargets = append(newTargets, pipelineTarget.Rebase(root))
+		}
 	}
 
 	return newTargets
@@ -301,11 +307,11 @@ func getPipelineLink(r *reader) (string, error) {
 
 	parts := strings.Split(trimmed, " ")
 
-	if len(parts) != 2 {
+	if len(parts) < 2 || len(parts) > 3 {
 		return "", fmt.Errorf("pipeline unknown syntax error for line \"%s\"", r.line())
 	}
 
-	return parts[1], nil
+	return strings.Join(parts[1:], " "), nil
 }
 
 var envRegex *regexp.Regexp = regexp.MustCompile(`^(?:\s*)ENV (\S+)\=(\S+)$`)

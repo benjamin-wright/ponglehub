@@ -141,6 +141,7 @@ func TestGetArtefact(t *testing.T) {
 func TestGetPipeline(t *testing.T) {
 	for _, test := range []struct {
 		Name     string
+		Configs  []config.Config
 		Config   *config.Config
 		Artefact *config.Artefact
 		Expected *config.Pipeline
@@ -170,6 +171,34 @@ func TestGetPipeline(t *testing.T) {
 			Expected: &config.Pipeline{Name: "pipeline-name", Steps: []config.Step{{Name: "ho"}}},
 		},
 		{
+			Name: "take pipeline steps from remote reference",
+			Configs: []config.Config{
+				{
+					Path: "subdir",
+					Pipelines: []config.Pipeline{
+						{Name: "pipeline-name", Steps: []config.Step{{Name: "not me"}}},
+					},
+				},
+				{
+					Path: "otherdir",
+					Pipelines: []config.Pipeline{
+						{Name: "wrong-one", Steps: []config.Step{{Name: "hi"}}},
+						{Name: "pipeline-name", Steps: []config.Step{{Name: "ho"}}},
+					},
+				},
+			},
+			Config: &config.Config{
+				Path: "subdir",
+				Pipelines: []config.Pipeline{
+					{Name: "pipeline-name", Steps: []config.Step{{Name: "not me"}}},
+				},
+			},
+			Artefact: &config.Artefact{
+				Pipeline: "../otherdir pipeline-name",
+			},
+			Expected: &config.Pipeline{Name: "pipeline-name", Steps: []config.Step{{Name: "ho"}}},
+		},
+		{
 			Name: "error if pipeline not found",
 			Config: &config.Config{
 				Path: "some-dir",
@@ -185,7 +214,7 @@ func TestGetPipeline(t *testing.T) {
 		},
 	} {
 		t.Run(test.Name, func(u *testing.T) {
-			pipeline, err := getPipeline(test.Config, test.Artefact)
+			_, pipeline, err := getPipeline(test.Configs, test.Config, test.Artefact)
 
 			if test.Error != "" {
 				assert.EqualError(u, err, test.Error)

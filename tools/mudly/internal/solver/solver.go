@@ -3,6 +3,7 @@ package solver
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	"ponglehub.co.uk/tools/mudly/internal/config"
 	"ponglehub.co.uk/tools/mudly/internal/runner"
@@ -52,21 +53,37 @@ func getArtefact(target target.Target, configs []config.Config) (*config.Config,
 	return &cfg, &artefact, nil
 }
 
-func getPipeline(cfg *config.Config, artefact *config.Artefact) (*config.Pipeline, error) {
+func getPipeline(configs []config.Config, cfg *config.Config, artefact *config.Artefact) (*config.Config, *config.Pipeline, error) {
 	if artefact.Steps != nil && len(artefact.Steps) > 0 {
-		return &config.Pipeline{
+		return cfg, &config.Pipeline{
 			Name:  "",
 			Steps: artefact.Steps,
 		}, nil
 	} else if artefact.Pipeline != "" {
-		for _, pipeline := range cfg.Pipelines {
-			if pipeline.Name == artefact.Pipeline {
-				return &pipeline, nil
+		if strings.Contains(artefact.Pipeline, " ") {
+			parts := strings.Split(artefact.Pipeline, " ")
+			pipelineTarget := target.Target{Dir: parts[0], Artefact: parts[1]}
+			pipelineTarget = pipelineTarget.Rebase(target.Target{Dir: cfg.Path})
+
+			for _, c := range configs {
+				if c.Path == pipelineTarget.Dir {
+					for _, pipeline := range c.Pipelines {
+						if pipeline.Name == pipelineTarget.Artefact {
+							return &c, &pipeline, nil
+						}
+					}
+				}
+			}
+		} else {
+			for _, pipeline := range cfg.Pipelines {
+				if pipeline.Name == artefact.Pipeline {
+					return cfg, &pipeline, nil
+				}
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("failed to get pipeline from artefact %s (%s)", artefact.Name, cfg.Path)
+	return nil, nil, fmt.Errorf("failed to get pipeline from artefact %s (%s)", artefact.Name, cfg.Path)
 }
 
 func collectDependencies(targets []target.Target, configs []config.Config) ([]link, error) {
@@ -204,14 +221,14 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 			})
 		}
 
-		pipeline, err := getPipeline(cfg, artefact)
+		pipelineConfig, pipeline, err := getPipeline(configs, cfg, artefact)
 		if err != nil {
 			return &nodes, err
 		}
 		for _, step := range pipeline.Steps {
 			if step.Dockerfile != "" {
 				content := ""
-				for _, dockerfile := range cfg.Dockerfile {
+				for _, dockerfile := range pipelineConfig.Dockerfile {
 					if dockerfile.Name == step.Dockerfile {
 						content = dockerfile.Content
 					}

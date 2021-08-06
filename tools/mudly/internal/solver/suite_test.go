@@ -310,6 +310,66 @@ func TestSolver(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:    "remote-pipeline",
+			Targets: []target.Target{{Dir: "subdir", Artefact: "image"}},
+			Configs: []config.Config{
+				{
+					Path: "subdir",
+					Artefacts: []config.Artefact{
+						{
+							Name:     "image",
+							Pipeline: "../otherdir remote-pipeline",
+						},
+					},
+				},
+				{
+					Path: "otherdir",
+					Dockerfile: []config.Dockerfile{
+						{Name: "my-image", Content: "dockerfile contents"},
+					},
+					Pipelines: []config.Pipeline{
+						{
+							Name: "remote-pipeline",
+							Steps: []config.Step{
+								{
+									Name:    "build",
+									Command: "go build -o ./bin/mudly ./cmd/mudly",
+								},
+								{
+									Name:       "docker",
+									Dockerfile: "my-image",
+									Context:    ".",
+								},
+							},
+						},
+					},
+				},
+			},
+			Expected: []testNode{
+				{
+					Path:     "subdir",
+					Artefact: "image",
+					Step: steps.CommandStep{
+						Name:    "build",
+						Command: "go build -o ./bin/mudly ./cmd/mudly",
+					},
+					State:     runner.STATE_PENDING,
+					DependsOn: []int{},
+				},
+				{
+					Path:     "subdir",
+					Artefact: "image",
+					Step: steps.DockerStep{
+						Name:       "docker",
+						Dockerfile: "dockerfile contents",
+						Context:    ".",
+					},
+					State:     runner.STATE_PENDING,
+					DependsOn: []int{0},
+				},
+			},
+		},
 	} {
 		t.Run(test.Name, func(u *testing.T) {
 			nodes, err := solver.Solve(test.Targets, test.Configs)
