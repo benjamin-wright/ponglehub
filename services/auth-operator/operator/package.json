@@ -16,6 +16,7 @@
     "axios": "^0.21.1",
     "nodemon": "^2.0.7"
   },
+  "this": "that",
   "devDependencies": {
     "@pongle/async": "^1.0.0",
     "jest": "^27.0.4"

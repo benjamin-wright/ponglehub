@@ -185,9 +185,7 @@
 				{
 					"begin": "^\\s{2}(CONDITION)$",
 					"beginCaptures": {
-						"1": {
-							"name": "keyword.control"
-						}
+						"1": { "name": "keyword.control" }
 					},
 					"end": "(?x)(?= ^\\s{0,2}\\S)",
 					"name": "meta.embedded.block.shellscript",
@@ -198,9 +196,7 @@
 				{
 					"match": "^\\s{2}(CONDITION)\\s(.+)$",
 					"captures": {
-						"1": {
-							"name": "keyword.control"
-						},
+						"1": { "name": "keyword.control" },
 						"2": {
 							"name": "meta.embedded.block.shellscript",
 							"patterns": [
@@ -216,9 +212,7 @@
 				{
 					"begin": "^\\s{4}(CONDITION)$",
 					"beginCaptures": {
-						"1": {
-							"name": "keyword.control"
-						}
+						"1": { "name": "keyword.control" }
 					},
 					"end": "(?x)(?= ^\\s{0,4}\\S)",
 					"name": "meta.embedded.block.shellscript",
@@ -229,9 +223,7 @@
 				{
 					"match": "^\\s{4}(CONDITION)\\s(.+)$",
 					"captures": {
-						"1": {
-							"name": "keyword.control"
-						},
+						"1": { "name": "keyword.control" },
 						"2": {
 							"name": "meta.embedded.block.shellscript",
 							"patterns": [
@@ -245,29 +237,41 @@
 		"docker-link": {
 			"match": "^\\s{4}(DOCKERFILE)\\s(.+)$",
 			"captures": {
-				"1": {
-					"name": "keyword.control"
-				},
-				"2": {
-					"name": "entity.name.type.class"
-				}
+				"1": { "name": "keyword.control" },
+				"2": { "name": "entity.name.type.class" }
 			}
 		},
 		"docker-include": {
 			"begin": "^(DOCKERFILE) (\\S*)$",
 			"beginCaptures": {
-				"1": {
-					"name": "keyword.control"
-				},
-				"2": {
-					"name": "variable.parameter"
-				}
+				"1": { "name": "keyword.control" },
+				"2": { "name": "variable.parameter" }
 			},
 			"end": "(?x)(?= ^\\S)",
+			"name": "custom.mudfile.dockerfile",
+			"patterns": [
+				{ "include": "#docker-file" },
+				{ "include": "#docker-ignore" }
+			]
+		},
+		"docker-file": {
+			"begin": "^\\s{2}(FILE)$",
+			"beginCaptures": {
+				"1": { "name": "keyword.control" }
+			},
+			"end": "(?x)(?= ^\\s{0,2}\\S)",
 			"contentName": "meta.embedded.block.dockerfile",
 			"patterns": [
 				{ "include": "source.dockerfile" }
 			]
+		},
+		"docker-ignore": {
+			"begin": "^\\s{2}(IGNORE)$",
+			"beginCaptures": {
+				"1": { "name": "keyword.control" }
+			},
+			"end": "(?x)(?= ^\\s{0,2}\\S)",
+			"contentName": "custom.mudly.ignore"
 		}
 	}
 }

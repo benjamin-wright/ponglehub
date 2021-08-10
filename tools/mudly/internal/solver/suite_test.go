@@ -58,7 +58,7 @@ func TestSolver(t *testing.T) {
 				{
 					Path: ".",
 					Dockerfile: []config.Dockerfile{
-						{Name: "my-image", Content: "dockerfile contents"},
+						{Name: "my-image", File: "dockerfile contents"},
 					},
 					Artefacts: []config.Artefact{
 						{
@@ -109,7 +109,7 @@ func TestSolver(t *testing.T) {
 				{
 					Path: ".",
 					Dockerfile: []config.Dockerfile{
-						{Name: "my-image", Content: "my dockerfile contents"},
+						{Name: "my-image", File: "my dockerfile contents"},
 					},
 					Artefacts: []config.Artefact{
 						{
@@ -196,7 +196,7 @@ func TestSolver(t *testing.T) {
 						"GLOBAL_ENV": "value3",
 					},
 					Dockerfile: []config.Dockerfile{
-						{Name: "image-1", Content: "image 1 content"},
+						{Name: "image-1", File: "image 1 content"},
 					},
 					Pipelines: []config.Pipeline{
 						{
@@ -326,7 +326,7 @@ func TestSolver(t *testing.T) {
 				{
 					Path: "otherdir",
 					Dockerfile: []config.Dockerfile{
-						{Name: "my-image", Content: "dockerfile contents"},
+						{Name: "my-image", File: "dockerfile contents"},
 					},
 					Pipelines: []config.Pipeline{
 						{

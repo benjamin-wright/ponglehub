@@ -1,15 +1,18 @@
 DOCKERFILE image
-  FROM node:14.17.1-alpine AS npmrc
-  RUN apk add expect
-  COPY login.sh login.sh
-  RUN ./login.sh
+  FILE
+    FROM node:14.17.1-alpine AS npmrc
+    RUN apk add expect
+    COPY login.sh login.sh
+    RUN ./login.sh
 
-  FROM node:14.17.1-alpine
-  COPY --from=npmrc /root/.npmrc /root/.npmrc
-  COPY patch.sh /usr/local/bin/patch
+    FROM node:14.17.1-alpine
+    COPY --from=npmrc /root/.npmrc /root/.npmrc
+    COPY patch.sh /usr/local/bin/patch
 
 ARTEFACT image
   CONDITION ! docker inspect node-base > /dev/null
+
+  DEPENDS ON ../../../+npm
 
   STEP image
     DOCKERFILE image

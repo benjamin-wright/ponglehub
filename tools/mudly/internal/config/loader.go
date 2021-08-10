@@ -128,7 +128,7 @@ func getConfigData(filepath string) (Config, error) {
 
 			cfg.Env[name] = value
 		case DOCKER_LINE:
-			dockerfile, err := getDockerfile(r)
+			dockerfile, err := getDockerData(r)
 			if err != nil {
 				return cfg, err
 			}
@@ -146,7 +146,7 @@ func getConfigData(filepath string) (Config, error) {
 	return cfg, nil
 }
 
-func getDockerfile(r *reader) (Dockerfile, error) {
+func getDockerData(r *reader) (Dockerfile, error) {
 	dockerfile := Dockerfile{}
 	firstLine := r.line()
 
@@ -159,12 +159,35 @@ func getDockerfile(r *reader) (Dockerfile, error) {
 
 	dockerfile.Name = parts[1]
 
-	content, err := getStringOrMultiline(r, true)
-	if err != nil {
-		return dockerfile, fmt.Errorf("failed to parse dockerfile: %+v", err)
-	}
+	targetIndent := r.indent()
 
-	dockerfile.Content = content
+	for r.nextLine() {
+		indent := r.indent()
+
+		if indent <= targetIndent {
+			r.previousLine()
+			break
+		}
+
+		switch r.getLineType() {
+		case FILE_LINE:
+			f, err := getStringOrMultiline(r, true)
+			if err != nil {
+				return dockerfile, fmt.Errorf("failed to parse dockerfile: %+v", err)
+			}
+
+			dockerfile.File = f
+		case IGNORE_LINE:
+			ignore, err := getStringOrMultiline(r, true)
+			if err != nil {
+				return dockerfile, fmt.Errorf("failed to parse dockerignore: %+v", err)
+			}
+
+			dockerfile.Ignore = ignore
+		default:
+			return dockerfile, fmt.Errorf("unknown line type: %s", r.line())
+		}
+	}
 
 	return dockerfile, nil
 }

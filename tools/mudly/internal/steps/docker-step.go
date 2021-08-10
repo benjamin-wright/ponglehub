@@ -1,12 +1,20 @@
 package steps
 
-import "ponglehub.co.uk/tools/mudly/internal/runner"
+import (
+	"io/ioutil"
+	"os"
+	"path"
+
+	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/tools/mudly/internal/runner"
+)
 
 type DockerStep struct {
-	Name       string
-	Dockerfile string
-	Context    string
-	Tag        string
+	Name         string
+	Dockerfile   string
+	Dockerignore string
+	Context      string
+	Tag          string
 }
 
 func (d DockerStep) args() []string {
@@ -28,6 +36,19 @@ func (d DockerStep) args() []string {
 }
 
 func (d DockerStep) Run(dir string, artefact string, env map[string]string) runner.CommandResult {
+	if d.Dockerignore != "" {
+		if err := ioutil.WriteFile(path.Join(dir, ".dockerignore"), []byte(d.Dockerignore), 0644); err != nil {
+			logrus.Errorf("%s[%s]: Failed to write .dockerignore: %+v", artefact, d.Name, err)
+			return runner.COMMAND_ERROR
+		}
+
+		defer func() {
+			if err := os.Remove(path.Join(dir, ".dockerignore")); err != nil {
+				logrus.Errorf("%s[%s]: Failed to clean up .dockerignore: %+v", artefact, d.Name, err)
+			}
+		}()
+	}
+
 	success := runShellCommand(&shellCommand{
 		dir:      dir,
 		artefact: artefact,

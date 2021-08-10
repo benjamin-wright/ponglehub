@@ -1,14 +1,17 @@
 DOCKERFILE npm
-  FROM node-base
+  FILE
+    FROM node-base
 
-  COPY package.json ./
-  RUN npm install
+    COPY package.json ./
+    RUN npm install
 
-  COPY ./.eslintrc ./.eslintrc
-  COPY ./src ./src
-  
-  ENTRYPOINT [ "npm" ]
-  CMD [ "start" ]
+    COPY ./.eslintrc ./.eslintrc
+    COPY ./src ./src
+    
+    ENTRYPOINT [ "npm" ]
+    CMD [ "start" ]
+  IGNORE
+    node_modules
 
 ARTEFACT image
   DEPENDS ON ../../../libraries/images/node+image

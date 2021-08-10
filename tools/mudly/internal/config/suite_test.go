@@ -139,8 +139,9 @@ func TestLoadConfig(t *testing.T) {
 						  PIPELINE ../other remote-pipeline
                         
                         DOCKERFILE file-name
-                          FROM something
-                          RUN hello there
+						  FILE
+                            FROM something
+                            RUN hello there
                     `),
 				},
 			},
@@ -200,8 +201,8 @@ func TestLoadConfig(t *testing.T) {
 					},
 					Dockerfile: []config.Dockerfile{
 						{
-							Name:    "file-name",
-							Content: "FROM something\nRUN hello there",
+							Name: "file-name",
+							File: "FROM something\nRUN hello there",
 						},
 					},
 					Pipelines: []config.Pipeline{

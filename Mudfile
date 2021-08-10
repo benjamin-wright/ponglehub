@@ -69,8 +69,9 @@ ARTEFACT stop
     COMMAND k3d registry delete $REGISTRY_NAME
 
 ARTEFACT npm
+  CONDITION ! docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER
+  
   STEP deploy
-    CONDITION ! docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER
     COMMAND docker run -d --restart always -p $NPM_PORT:4873 --name $NPM_CONTAINER verdaccio/verdaccio:4 2>&1
 
   STEP login
@@ -91,12 +92,12 @@ ARTEFACT npm
       npm set //localhost:$NPM_PORT/:_authToken $TOKEN
 
 ARTEFACT npm-stop
+  CONDITION docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER
+  
   STEP stop-container
-    CONDITION docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER
     COMMAND docker stop $NPM_CONTAINER 2>&1
   
   STEP remove-container
-    CONDITION docker ps -a --format '{{ .Names }}' | grep -q $NPM_CONTAINER
     COMMAND docker rm $NPM_CONTAINER 2>&1
   
   STEP clear-npmrc

@@ -58,6 +58,8 @@ const (
 	CONDITION_LINE
 	COMMAND_LINE
 	DOCKER_LINE
+	FILE_LINE
+	IGNORE_LINE
 	CONTEXT_LINE
 	TAG_LINE
 	WAIT_FOR_LINE
@@ -102,6 +104,14 @@ func (r *reader) getLineType() lineType {
 
 	if strings.HasPrefix(trimmed, "DOCKERFILE") {
 		return DOCKER_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "FILE") {
+		return FILE_LINE
+	}
+
+	if strings.HasPrefix(trimmed, "IGNORE") {
+		return IGNORE_LINE
 	}
 
 	if strings.HasPrefix(trimmed, "CONTEXT") {

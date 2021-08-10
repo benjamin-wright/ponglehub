@@ -3,8 +3,9 @@ package config
 import "ponglehub.co.uk/tools/mudly/internal/target"
 
 type Dockerfile struct {
-	Name    string
-	Content string
+	Name   string
+	File   string
+	Ignore string
 }
 
 type Config struct {
@@ -37,6 +38,7 @@ type Step struct {
 	Command    string
 	Watch      []string
 	Dockerfile string
+	Ignore     string
 	Context    string
 	Tag        string
 	WaitFor    []string
