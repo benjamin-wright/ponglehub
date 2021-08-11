@@ -1,3 +1,4 @@
+ENV DEV_CLUSTER=pongle-dev
 ENV CLUSTER_NAME=pongle
 ENV REGISTRY_NAME=pongle-registry.localhost
 ENV REGISTRY_PORT=5000
@@ -107,3 +108,27 @@ ARTEFACT npm-stop
   
   STEP clear-docker
     COMMAND docker system prune --all --volumes --force
+
+ARTEFACT dev
+  CONDITION ! k3d cluster list | grep -w $DEV_CLUSTER
+  
+  STEP start-cluster
+    COMMAND
+      k3d cluster create $DEV_CLUSTER \
+      --registry-create \
+      --k3s-server-arg "--no-deploy=traefik" \
+      --kubeconfig-update-default=false \
+      -p "80:80@loadbalancer" \
+      --wait
+  
+  STEP kubeconfig
+    COMMAND
+      mkdir -p .scratch \
+        && k3d kubeconfig get $DEV_CLUSTER > .scratch/dev-kubeconfig \
+        && KUBECONFIG=.scratch/dev-kubeconfig kubectl config use-context k3d-$DEV_CLUSTER
+
+ARTEFACT dev-stop
+  STEP stop
+    COMMAND
+      k3d cluster delete $DEV_CLUSTER \
+        && rm .scratch/dev-kubeconfig

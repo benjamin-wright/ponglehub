@@ -177,6 +177,24 @@ func getDedupedTargets(targets []target.Target, links []link) []target.Target {
 	return output
 }
 
+func getStrippedTargets(deduped []target.Target, stripTargets []target.Target) []target.Target {
+	stripped := []target.Target{}
+	for _, d := range deduped {
+		keep := true
+		for _, t := range stripTargets {
+			if d.Dir == t.Dir && d.Artefact == t.Artefact {
+				keep = false
+			}
+		}
+
+		if keep {
+			stripped = append(stripped, d)
+		}
+	}
+
+	return stripped
+}
+
 func createRunnable(step config.Step) (runner.Runnable, error) {
 	if step.Command != "" {
 		return steps.CommandStep{
@@ -266,15 +284,33 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 	return &nodes, nil
 }
 
-func linkNodes(links []link, nodes *NodeList) error {
+func isStripTarget(dir string, artefact string, stripTargets []target.Target) bool {
+	for _, t := range stripTargets {
+		if t.Dir == dir && t.Artefact == artefact {
+			return true
+		}
+	}
+
+	return false
+}
+
+func linkNodes(links []link, nodes *NodeList, stripTargets []target.Target) error {
 	for _, link := range links {
 		sourceNode := nodes.getFirstElement(link.Source.Dir, link.Source.Artefact)
 		if sourceNode == nil {
+			if isStripTarget(link.Source.Dir, link.Source.Artefact, stripTargets) {
+				continue
+			}
+
 			return fmt.Errorf("failed to generate link for %+v, couldn't find source element", link)
 		}
 
 		targetNode := nodes.getLastElement(link.Target.Dir, link.Target.Artefact)
 		if targetNode == nil {
+			if isStripTarget(link.Source.Dir, link.Source.Artefact, stripTargets) {
+				continue
+			}
+
 			return fmt.Errorf("failed to generate link for %+v, couldn't find target element", link)
 		}
 
@@ -284,7 +320,7 @@ func linkNodes(links []link, nodes *NodeList) error {
 	return nil
 }
 
-func Solve(targets []target.Target, configs []config.Config) ([]*runner.Node, error) {
+func Solve(targets []target.Target, configs []config.Config, stripTargets []target.Target) ([]*runner.Node, error) {
 	// Recursively compile the chain of dependency links between the input targets and their references
 	// and their references references.
 	links, err := collectDependencies(targets, configs)
@@ -295,14 +331,17 @@ func Solve(targets []target.Target, configs []config.Config) ([]*runner.Node, er
 	// Reduce the target and dependency list down to just unique config and artefact combinations
 	deduped := getDedupedTargets(targets, links)
 
+	// Remove any targets that were only meant for dependency gathering
+	stripped := getStrippedTargets(deduped, stripTargets)
+
 	// Create the solver node list for all the unique config and artefact combinations
-	nodes, err := createNodes(deduped, configs)
+	nodes, err := createNodes(stripped, configs)
 	if err != nil {
 		return nil, err
 	}
 
 	// Decorate the node list with the dependency links, so that we can figure out the build order
-	err = linkNodes(links, nodes)
+	err = linkNodes(links, nodes, stripTargets)
 	if err != nil {
 		return nil, err
 	}
