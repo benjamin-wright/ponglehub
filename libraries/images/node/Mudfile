@@ -1,11 +1,11 @@
 DOCKERFILE image
   FILE
-    FROM node:14.17.1-alpine AS npmrc
+    FROM node:15.5.1-alpine AS npmrc
     RUN apk add expect
     COPY login.sh login.sh
     RUN ./login.sh
 
-    FROM node:14.17.1-alpine
+    FROM node:15.5.1-alpine
     COPY --from=npmrc /root/.npmrc /root/.npmrc
     COPY patch.sh /usr/local/bin/patch
 

@@ -1,4 +1,4 @@
-ARTEFACT deps
+ARTEFACT dev
   DEPENDS ON ../..+dev
   DEPENDS ON operator+image
   DEPENDS ON mock+image

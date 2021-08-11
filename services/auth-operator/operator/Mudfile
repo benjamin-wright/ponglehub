@@ -8,8 +8,8 @@ DOCKERFILE npm
     COPY ./.eslintrc ./.eslintrc
     COPY ./src ./src
     
-    ENTRYPOINT [ "npm" ]
-    CMD [ "start" ]
+    ENTRYPOINT [ "npx" ]
+    CMD [ "node", "src/index.js" ]
   IGNORE
     node_modules
 

@@ -1,0 +1,50 @@
+PIPELINE auth-endpoints
+  STEP download
+    COMMAND go mod download
+
+  STEP build
+    COMMAND
+      mkdir -p dist
+
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/${APPLICATION_NAME} \
+        ./cmd/${APPLICATION_NAME}/${APPLICATION_NAME}.go
+
+
+ARTEFACT all
+  DEPENDS ON +migrations
+  DEPENDS ON +users-delete
+  DEPENDS ON +users-get
+  DEPENDS ON +users-list
+  DEPENDS ON +users-post
+  DEPENDS ON +users-put
+
+
+ARTEFACT migrations
+  ENV APPLICATION_NAME=migrations
+  PIPELINE auth-endpoints
+
+ARTEFACT users-delete
+  ENV APPLICATION_NAME=users-delete
+  PIPELINE auth-endpoints
+  
+ARTEFACT users-get
+  ENV APPLICATION_NAME=users-get
+  PIPELINE auth-endpoints
+  
+ARTEFACT users-list
+  ENV APPLICATION_NAME=users-list
+  PIPELINE auth-endpoints
+
+ARTEFACT users-post
+  ENV APPLICATION_NAME=users-post
+  PIPELINE auth-endpoints
+
+ARTEFACT users-put
+  ENV APPLICATION_NAME=users-put
+  PIPELINE auth-endpoints
+  
+ARTEFACT test
+  STEP test
+    COMMAND
+      DB_HOST=localhost DB_USER=root go test ./cmd/...

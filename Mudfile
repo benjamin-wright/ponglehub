@@ -110,7 +110,8 @@ ARTEFACT npm-stop
     COMMAND docker system prune --all --volumes --force
   
   STEP clear-checksums
-    COMMAND rm **/.last-checksum
+    COMMAND
+      rm **/.last-checksum
 
 ARTEFACT dev
   CONDITION ! k3d cluster list | grep -w $DEV_CLUSTER
