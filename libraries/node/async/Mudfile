@@ -8,7 +8,6 @@ ARTEFACT publish
     echo "checksum: $CURRENT = $PUBLISHED"
     [[ "$CURRENT" != "$PUBLISHED" ]]
 
-  DEPENDS ON ../../../+npm
   DEPENDS ON ../eslint-config-ponglehub+publish
 
   STEP install

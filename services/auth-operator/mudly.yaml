@@ -1,6 +1,0 @@
-artefacts:
-- name: image
-  pipeline:
-    steps:
-    - name: install
-      cmd: npm install

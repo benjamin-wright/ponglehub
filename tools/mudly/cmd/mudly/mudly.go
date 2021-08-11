@@ -35,6 +35,7 @@ type CommandType int
 const (
 	NONE_COMMAND CommandType = iota
 	DEPS_COMMAND
+	NO_DEPS_COMMAND
 )
 
 func getCommand(args []string) (CommandType, []string) {
@@ -49,6 +50,8 @@ func getCommand(args []string) (CommandType, []string) {
 	switch args[0] {
 	case "deps", "dependencies":
 		return DEPS_COMMAND, args[1:]
+	case "no-deps", "no-dependencies":
+		return NO_DEPS_COMMAND, args[1:]
 	default:
 		logrus.Fatalf("must provide a valid build target or command")
 		panic("logrus fatal should exit")
@@ -87,7 +90,12 @@ func main() {
 		stripTargets = targets
 	}
 
-	nodes, err := solver.Solve(targets, configs, stripTargets)
+	nodes, err := solver.Solve(&solver.SolveInputs{
+		Targets:      targets,
+		Configs:      configs,
+		StripTargets: stripTargets,
+		NoDeps:       command == NO_DEPS_COMMAND,
+	})
 	if err != nil {
 		logrus.Fatalf("Error in solver: %+v", err)
 	}

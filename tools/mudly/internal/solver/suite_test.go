@@ -50,6 +50,7 @@ func TestSolver(t *testing.T) {
 		Targets      []target.Target
 		StripTargets []target.Target
 		Configs      []config.Config
+		NoDeps       bool
 		Expected     []testNode
 	}{
 		{
@@ -403,6 +404,74 @@ func TestSolver(t *testing.T) {
 			},
 		},
 		{
+			Name:         "stepless artefact",
+			Targets:      []target.Target{{Dir: ".", Artefact: "image"}},
+			StripTargets: []target.Target{{Dir: ".", Artefact: "image"}},
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Env: map[string]string{
+						"GLOBAL_ENV": "value3",
+					},
+					Dockerfile: []config.Dockerfile{
+						{Name: "image-1", File: "image 1 content"},
+					},
+					Artefacts: []config.Artefact{
+						{
+							Name: "image",
+							Env: map[string]string{
+								"ARTEFACT_ENV": "value2",
+							},
+							DependsOn: []target.Target{
+								{Dir: ".", Artefact: "something"},
+							},
+						},
+						{
+							Name: "something",
+							Steps: []config.Step{
+								{
+									Name:    "echo",
+									Command: "echo \"hi\"",
+								},
+								{
+									Name:    "build",
+									Command: "whatevs",
+								},
+							},
+						},
+					},
+				},
+			},
+			Expected: []testNode{
+				{
+					Path:     ".",
+					Artefact: "something",
+					SharedEnv: map[string]string{
+						"GLOBAL_ENV": "value3",
+					},
+					Step: steps.CommandStep{
+						Name:    "echo",
+						Command: "echo \"hi\"",
+					},
+					State:     runner.STATE_PENDING,
+					DependsOn: []int{},
+				},
+				{
+					Path:     ".",
+					Artefact: "something",
+					SharedEnv: map[string]string{
+						"GLOBAL_ENV": "value3",
+					},
+					Step: steps.CommandStep{
+						Name:    "build",
+						Command: "whatevs",
+					},
+					State:     runner.STATE_PENDING,
+					DependsOn: []int{0},
+				},
+			},
+		},
+		{
 			Name:    "remote-pipeline",
 			Targets: []target.Target{{Dir: "subdir", Artefact: "image"}},
 			Configs: []config.Config{
@@ -462,9 +531,112 @@ func TestSolver(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:    "no deps",
+			Targets: []target.Target{{Dir: ".", Artefact: "image"}},
+			NoDeps:  true,
+			Configs: []config.Config{
+				{
+					Path: ".",
+					Env: map[string]string{
+						"GLOBAL_ENV": "value3",
+					},
+					Dockerfile: []config.Dockerfile{
+						{Name: "image-1", File: "image 1 content"},
+					},
+					Pipelines: []config.Pipeline{
+						{
+							Name: "my-pipeline",
+							Env: map[string]string{
+								"PIPELINE_ENV": "value1",
+							},
+							Steps: []config.Step{
+								{
+									Name:    "build",
+									Command: "go build -o ./bin/mudly ./cmd/mudly",
+									Env: map[string]string{
+										"STEP_ENV": "value0",
+									},
+								},
+								{
+									Name:       "docker",
+									Dockerfile: "image-1",
+									Context:    ".",
+								},
+							},
+						},
+					},
+					Artefacts: []config.Artefact{
+						{
+							Name: "image",
+							Env: map[string]string{
+								"ARTEFACT_ENV": "value2",
+							},
+							DependsOn: []target.Target{
+								{Dir: ".", Artefact: "something"},
+							},
+							Pipeline: "my-pipeline",
+						},
+						{
+							Name: "something",
+							Steps: []config.Step{
+								{
+									Name:    "echo",
+									Command: "echo \"hi\"",
+								},
+								{
+									Name:    "build",
+									Command: "whatevs",
+								},
+							},
+						},
+					},
+				},
+			},
+			Expected: []testNode{
+				{
+					Path:     ".",
+					Artefact: "image",
+					SharedEnv: map[string]string{
+						"PIPELINE_ENV": "value1",
+						"ARTEFACT_ENV": "value2",
+						"GLOBAL_ENV":   "value3",
+					},
+					Step: steps.CommandStep{
+						Name:    "build",
+						Command: "go build -o ./bin/mudly ./cmd/mudly",
+						Env: map[string]string{
+							"STEP_ENV": "value0",
+						},
+					},
+					State: runner.STATE_PENDING,
+				},
+				{
+					Path:     ".",
+					Artefact: "image",
+					SharedEnv: map[string]string{
+						"PIPELINE_ENV": "value1",
+						"ARTEFACT_ENV": "value2",
+						"GLOBAL_ENV":   "value3",
+					},
+					Step: steps.DockerStep{
+						Name:       "docker",
+						Dockerfile: "image 1 content",
+						Context:    ".",
+					},
+					State:     runner.STATE_PENDING,
+					DependsOn: []int{0},
+				},
+			},
+		},
 	} {
 		t.Run(test.Name, func(u *testing.T) {
-			nodes, err := solver.Solve(test.Targets, test.Configs, test.StripTargets)
+			nodes, err := solver.Solve(&solver.SolveInputs{
+				Targets:      test.Targets,
+				Configs:      test.Configs,
+				StripTargets: test.StripTargets,
+				NoDeps:       test.NoDeps,
+			})
 
 			assert.NoError(u, err, "didn't expect an error")
 

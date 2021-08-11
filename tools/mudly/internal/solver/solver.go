@@ -81,9 +81,11 @@ func getPipeline(configs []config.Config, cfg *config.Config, artefact *config.A
 				}
 			}
 		}
+
+		return nil, nil, fmt.Errorf("failed to get pipeline from artefact %s (%s)", artefact.Name, cfg.Path)
 	}
 
-	return nil, nil, fmt.Errorf("failed to get pipeline from artefact %s (%s)", artefact.Name, cfg.Path)
+	return nil, nil, nil
 }
 
 func collectDependencies(targets []target.Target, configs []config.Config) ([]link, error) {
@@ -177,6 +179,26 @@ func getDedupedTargets(targets []target.Target, links []link) []target.Target {
 	return output
 }
 
+func pruneLinks(links []link, configs []config.Config) []link {
+	keepers := []link{}
+
+	for _, l := range links {
+		for _, c := range configs {
+			if c.Path == l.Source.Dir {
+				for _, a := range c.Artefacts {
+					if a.Name == l.Source.Artefact {
+						if len(a.Steps) > 0 || a.Pipeline != "" {
+							keepers = append(keepers, l)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return keepers
+}
+
 func getStrippedTargets(deduped []target.Target, stripTargets []target.Target) []target.Target {
 	stripped := []target.Target{}
 	for _, d := range deduped {
@@ -244,6 +266,10 @@ func createNodes(targets []target.Target, configs []config.Config) (*NodeList, e
 		if err != nil {
 			return &nodes, err
 		}
+		if pipeline == nil {
+			continue
+		}
+
 		for _, step := range pipeline.Steps {
 			if step.Dockerfile != "" {
 				content := ""
@@ -320,28 +346,42 @@ func linkNodes(links []link, nodes *NodeList, stripTargets []target.Target) erro
 	return nil
 }
 
-func Solve(targets []target.Target, configs []config.Config, stripTargets []target.Target) ([]*runner.Node, error) {
+type SolveInputs struct {
+	Targets      []target.Target
+	Configs      []config.Config
+	StripTargets []target.Target
+	NoDeps       bool
+}
+
+func Solve(inputs *SolveInputs) ([]*runner.Node, error) {
 	// Recursively compile the chain of dependency links between the input targets and their references
 	// and their references references.
-	links, err := collectDependencies(targets, configs)
+	links, err := collectDependencies(inputs.Targets, inputs.Configs)
 	if err != nil {
 		return nil, err
 	}
 
 	// Reduce the target and dependency list down to just unique config and artefact combinations
-	deduped := getDedupedTargets(targets, links)
+	deduped := getDedupedTargets(inputs.Targets, links)
 
 	// Remove any targets that were only meant for dependency gathering
-	stripped := getStrippedTargets(deduped, stripTargets)
+	stripped := getStrippedTargets(deduped, inputs.StripTargets)
+
+	pruned := pruneLinks(links, inputs.Configs)
+
+	if inputs.NoDeps {
+		stripped = inputs.Targets
+		pruned = nil
+	}
 
 	// Create the solver node list for all the unique config and artefact combinations
-	nodes, err := createNodes(stripped, configs)
+	nodes, err := createNodes(stripped, inputs.Configs)
 	if err != nil {
 		return nil, err
 	}
 
 	// Decorate the node list with the dependency links, so that we can figure out the build order
-	err = linkNodes(links, nodes, stripTargets)
+	err = linkNodes(pruned, nodes, inputs.StripTargets)
 	if err != nil {
 		return nil, err
 	}

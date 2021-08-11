@@ -1,0 +1,9 @@
+ARTEFACT deps
+  DEPENDS ON ../..+dev
+  DEPENDS ON operator+image
+  DEPENDS ON mock+image
+  DEPENDS ON int-test+image
+
+ARTEFACT stop
+  DEPENDS ON ../../+dev-stop
+  DEPENDS ON ../../+npm-stop

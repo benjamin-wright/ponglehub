@@ -45,10 +45,10 @@ spec:
           {{- toYaml $mock.resources | nindent 10 }}
         {{- else }}
           requests:
-            memory: 32Mi
+            memory: 512Mi
             cpu: 0.1
           limits:
-            memory: 32Mi
+            memory: 512Mi
             cpu: 0.1
         {{- end }}
         terminationMessagePath: /dev/termination-log

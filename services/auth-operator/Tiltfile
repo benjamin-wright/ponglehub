@@ -11,7 +11,7 @@ local_resource(
 
 custom_build(
   'auth-operator-tests',
-  'earthly ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
+  'mudly no-deps ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
   ['./int-test'],
   live_update=[
     sync('./int-test/tests', '/src/tests'),
@@ -20,20 +20,14 @@ custom_build(
 
 custom_build(
   'auth-operator',
-  'earthly ./operator+image && docker tag auth-operator $EXPECTED_REF',
-  ['./operator'],
-  live_update=[
-    sync('./operator/src', '/src/src'),
-  ]
+  'mudly no-deps ./operator+image && docker tag auth-operator $EXPECTED_REF',
+  ['./operator']
 )
 
 custom_build(
   'mock',
-  'earthly ./mock+image && docker tag mock $EXPECTED_REF',
-  ['./mock'],
-  live_update=[
-    sync('./mock/src', '/src/src'),
-  ]
+  'mudly no-deps ./mock+image && docker tag mock $EXPECTED_REF',
+  ['./mock']
 )
 
 k8s_yaml('crds/user.crd.yaml')
@@ -62,6 +56,8 @@ k8s_yaml(helm(
     'servers.app.rbac.resources={authusers,authusers/status}',
     'servers.app.rbac.verbs={get,list,watch,patch,update}',
     'servers.app.rbac.clusterWide=true',
+    'servers.app.resources.limits.memory=512Mi',
+    'servers.app.resources.requests.memory=512Mi',
   ]
 ))
 

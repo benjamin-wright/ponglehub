@@ -1,4 +1,5 @@
-{{- range $name, $server := .Values.servers }}
+{{- $name := "app" }}
+{{- $server := .Values.servers.app }}
 {{ $root := . }}
 {{- if $server.enabled }}
 apiVersion: v1
