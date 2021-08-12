@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon --inspect src/index.js",
     "lint": "eslint .",
     "unit": "jest ."
   },
@@ -12,12 +11,12 @@
   "license": "ISC",
   "dependencies": {
     "@kubernetes/client-node": "^0.14.3",
-    "@pongle/eslint-config-ponglehub": "^1.0.1",
+    "@pongle/eslint-config-ponglehub": "^1.0.0",
     "axios": "^0.21.1",
     "nodemon": "^2.0.7"
   },
   "devDependencies": {
-    "@pongle/async": "^1.0.2",
+    "@pongle/async": "^1.0.0",
     "jest": "^27.0.4"
   }
 }

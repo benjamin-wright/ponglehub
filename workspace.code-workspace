@@ -4,6 +4,10 @@
 			"path": "."
 		},
 		{
+			"path": "tools/mudly",
+			"name": "mudly"
+		},
+		{
 			"path": "services/db-init",
 			"name": "db-init"
 		},

@@ -1,0 +1,32 @@
+devEnv:
+  compose:
+    version: '3.9'
+    services:
+      cockroachdb:
+        image: cockroachdb/cockroach:v20.2.8
+        command: start-single-node --insecure
+        ports:
+        - "26257:26257"
+        - "8080:8080"
+
+artefacts:
+- name: login
+  pipeline: server
+- name: users-delete
+  pipeline: server
+- name: migrations
+  depends:
+  - ../db-init
+  pipeline:
+    steps:
+    - name: build
+      cmd: go build -o=bin/migrations ./cmd/migrations
+
+pipelines:
+- name: server
+  steps:
+  - name: build
+    cmd: go build -o=bin/${APP_NAME} ./cmd/${APP_NAME}
+  - name: image
+    context: ./bin
+    dockerfile: ../../dockerfiles/golang

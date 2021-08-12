@@ -1,0 +1,22 @@
+ENV NPM_REGISTRY=http://localhost:4873
+
+ARTEFACT publish
+  CONDITION
+    CURRENT=$(npm pack --dry-run 2>&1 | grep shasum | awk '{print $NF}' | tr -d '\n')
+    PUBLISHED=$(cat .last-checksum)
+
+    echo "checksum: $CURRENT = $PUBLISHED"
+    [[ "$CURRENT" != "$PUBLISHED" ]]
+  
+  DEPENDS ON ../../../+npm
+
+  STEP install
+    COMMAND npm install
+  
+  STEP publish
+    COMMAND
+      npm version $(npm view . version) --allow-same-version
+      npm version patch
+      npm publish --registry $NPM_REGISTRY
+
+      npm pack --dry-run 2>&1 | grep shasum | awk '{print $NF}' | tr -d '\n' > .last-checksum

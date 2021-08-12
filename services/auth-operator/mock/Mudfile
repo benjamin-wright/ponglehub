@@ -1,0 +1,23 @@
+DOCKERFILE npm
+  FILE
+    FROM node-base
+
+    COPY package.json ./
+    RUN npm install
+
+    COPY ./.eslintrc ./.eslintrc
+    COPY ./src ./src
+    
+    ENTRYPOINT [ "npx" ]
+    CMD [ "node", "src/server.js" ]
+  IGNORE
+    node_modules
+
+ARTEFACT image
+  DEPENDS ON ../../../libraries/images/node+image
+  DEPENDS ON ../../../libraries/node/eslint-config-ponglehub+publish
+  DEPENDS ON ../../../libraries/node/async+publish
+
+  STEP build
+    DOCKERFILE npm
+    TAG mock
