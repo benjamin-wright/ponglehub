@@ -16,3 +16,7 @@ ARTEFACT image
 ARTEFACT watch
   STEP try
     COMMAND cat go.mod
+
+ARTEFACT long
+  STEP timeout
+    COMMAND sleep 10

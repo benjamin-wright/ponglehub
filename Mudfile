@@ -108,10 +108,9 @@ ARTEFACT npm-stop
   
   STEP clear-docker
     COMMAND docker system prune --all --volumes --force
-  
+
   STEP clear-checksums
-    COMMAND
-      rm **/.last-checksum
+    COMMAND find . -name '.last-checksum' -delete
 
 ARTEFACT dev
   CONDITION ! k3d cluster list | grep -w $DEV_CLUSTER
@@ -132,6 +131,7 @@ ARTEFACT dev
         && KUBECONFIG=.scratch/dev-kubeconfig kubectl config use-context k3d-$DEV_CLUSTER
 
 ARTEFACT dev-stop
+  CONDITION k3d cluster list | grep -w $DEV_CLUSTER
   STEP stop
     COMMAND
       k3d cluster delete $DEV_CLUSTER \
