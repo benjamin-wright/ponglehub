@@ -12,6 +12,7 @@ package-lock.json.*
 ssl/
 k3s/
 dashboards/
+bin/
 
 node_modules
 build

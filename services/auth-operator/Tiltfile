@@ -11,7 +11,7 @@ local_resource(
 
 custom_build(
   'auth-operator-tests',
-  'mudly no-deps ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
+  'mudly --no-deps ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
   ['./int-test'],
   live_update=[
     sync('./int-test/tests', '/src/tests'),
@@ -20,13 +20,13 @@ custom_build(
 
 custom_build(
   'auth-operator',
-  'mudly no-deps ./operator+image && docker tag auth-operator $EXPECTED_REF',
+  'mudly --no-deps ./operator+image && docker tag auth-operator $EXPECTED_REF',
   ['./operator']
 )
 
 custom_build(
   'mock',
-  'mudly no-deps ./mock+image && docker tag mock $EXPECTED_REF',
+  'mudly --no-deps ./mock+image && docker tag mock $EXPECTED_REF',
   ['./mock']
 )
 

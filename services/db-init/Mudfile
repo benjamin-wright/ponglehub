@@ -1,28 +1,18 @@
+DEVENV db
+  COMPOSE
+    version: '3.9'
+    services:
+      cockroachdb:
+        image: cockroachdb/cockroach:v20.2.8
+        command: start-single-node --insecure
+        ports:
+        - "26257:26257"
+        - "8080:8080"
 
-test:
-  FROM +deps
-  BUILD +db
-
-  ARG DB_HOST
-  RUN --mount=type=cache,target=/root/.cache CGO_ENABLED=0 \
-      GOOS=linux \
-      GOARCH=amd64 \
-      DB_HOST=$DB_HOST \
+ARTEFACT test
+  STEP test
+    DEVENV db
+    COMMAND
+      DB_HOST=localhost \
       DB_USER=root \
       go test -v ./pkg/...
-
-db:
-  LOCALLY
-  RUN if ! docker ps | grep -q cockroachdb; then \
-        docker run --rm -d --name cockroachdb cockroachdb/cockroach:v20.2.8 start-single-node --insecure; \
-        direnv reload; \
-      fi
-
-db-stop:
-  LOCALLY
-  RUN docker stop cockroachdb || true
-
-module:
-  FROM +deps
-
-  SAVE ARTIFACT ./*
