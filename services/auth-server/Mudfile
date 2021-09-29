@@ -1,3 +1,14 @@
+DEVENV db
+  COMPOSE
+    version: '3.9'
+    services:
+      cockroachdb:
+        image: cockroachdb/cockroach:v20.2.8
+        command: start-single-node --insecure
+        ports:
+        - "26257:26257"
+        - "8080:8080"
+
 PIPELINE auth-endpoints
   STEP download
     COMMAND go mod download
@@ -46,5 +57,6 @@ ARTEFACT users-put
   
 ARTEFACT test
   STEP test
+    DEVENV db
     COMMAND
       DB_HOST=localhost DB_USER=root go test ./cmd/...
