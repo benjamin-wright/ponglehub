@@ -3,16 +3,38 @@ package migrate
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/auth/db-init/internal/database"
-	"ponglehub.co.uk/auth/db-init/internal/migrations"
 )
+
+type Migration struct {
+	Query string
+}
 
 type MigrationConfig struct {
 	Host       string
 	Port       int
 	Username   string
 	Database   string
-	Migrations string
+	Migrations []Migration
+}
+
+func Clean(config *MigrationConfig) error {
+	db, err := database.Admin(config.Host, config.Port)
+	if err != nil {
+		return fmt.Errorf("failed to connect to db: %+v", err)
+	}
+	defer db.Stop()
+
+	if err := db.DropDatabase(config.Database); err != nil {
+		return fmt.Errorf("error dropping database: %+v", err)
+	}
+
+	if err := db.DropUser(config.Username); err != nil {
+		return fmt.Errorf("error dropping username: %+v", err)
+	}
+
+	return nil
 }
 
 func Migrate(config *MigrationConfig) error {
@@ -30,12 +52,23 @@ func Migrate(config *MigrationConfig) error {
 		return fmt.Errorf("failed to ensure migration table: %+v", err)
 	}
 
-	files, err := migrations.Load(config.Migrations)
-	if err != nil {
-		return err
+	for id, migration := range config.Migrations {
+		if db.HasMigration(id) {
+			logrus.Infof("Migration %d already done: skipping", id)
+			continue
+		}
+
+		logrus.Infof("Migration %d running...", id)
+		if err := db.RunMigration(migration.Query); err != nil {
+			return err
+		}
+
+		if err := db.AddMigration(id); err != nil {
+			return err
+		}
 	}
 
-	return fmt.Errorf("%+v", files)
+	return nil
 }
 
 func initialize(config *MigrationConfig) error {

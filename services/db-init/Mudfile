@@ -14,5 +14,5 @@ ARTEFACT test
     DEVENV db
     COMMAND
       DB_HOST=localhost \
-      DB_USER=root \
+      DB_USER=test_user \
       go test -v ./pkg/...

@@ -106,6 +106,36 @@ func (d *Database) CreateUser(username string) error {
 	return nil
 }
 
+func (d *Database) DropUser(username string) error {
+	if !d.admin {
+		return errors.New("cannot call DropUser on non-admin connection")
+	}
+
+	rows, err := d.conn.Query(context.Background(), "SHOW USERS")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var existing string
+		if err := rows.Scan(&existing, nil, nil); err != nil {
+			return err
+		}
+
+		if existing == username {
+			rows.Close()
+
+			logrus.Infof("Deleting user %s!", username)
+			_, err := d.conn.Exec(context.Background(), "DROP USER $1", username)
+			return err
+		}
+	}
+
+	logrus.Infof("User %s doesn't exist!", username)
+	return nil
+}
+
 func (d *Database) CreateDatabase(database string) error {
 	if !d.admin {
 		return errors.New("cannot call CreateDatabase on non-admin connection")
@@ -137,6 +167,36 @@ func (d *Database) CreateDatabase(database string) error {
 	return nil
 }
 
+func (d *Database) DropDatabase(database string) error {
+	if !d.admin {
+		return errors.New("cannot call DropDatabase on non-admin connection")
+	}
+
+	rows, err := d.conn.Query(context.Background(), "SELECT datname FROM pg_database")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var existing string
+		if err := rows.Scan(&existing); err != nil {
+			return err
+		}
+
+		if existing == database {
+			rows.Close()
+
+			logrus.Infof("Dropping database %s!", database)
+			_, err := d.conn.Exec(context.Background(), fmt.Sprintf("DROP DATABASE %s", database))
+			return err
+		}
+	}
+
+	logrus.Infof("Database %s didn't exist!", database)
+	return nil
+}
+
 func (d *Database) GrantPermissions(username string, database string) error {
 	if !d.admin {
 		return errors.New("cannot call GrantPermissions on non-admin connection")
@@ -149,6 +209,40 @@ func (d *Database) GrantPermissions(username string, database string) error {
 
 	logrus.Infof("Granted '%s' permission to read/write to '%s'!", username, database)
 
+	return nil
+}
+
+func (d *Database) RevokePermissions(username string, database string) error {
+	if !d.admin {
+		return errors.New("cannot call RevokePermissions on non-admin connection")
+	}
+
+	rows, err := d.conn.Query(context.Background(), "SHOW USERS")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var existing string
+		if err := rows.Scan(&existing, nil, nil); err != nil {
+			return err
+		}
+
+		if existing == username {
+			rows.Close()
+
+			query := fmt.Sprintf("REVOKE ALL ON DATABASE %s FROM %s", database, username)
+			if _, err := d.conn.Exec(context.Background(), query); err != nil {
+				return err
+			}
+
+			logrus.Infof("Revoked '%s' permission to read/write from '%s'!", username, database)
+			return nil
+		}
+	}
+
+	logrus.Infof("User '%s' doesn't exist!", username)
 	return nil
 }
 
@@ -169,6 +263,23 @@ func (d *Database) EnsureMigrationTable() error {
 			COMMIT;
 		`,
 	)
+
+	return err
+}
+
+func (d *Database) HasMigration(id int) bool {
+	var found int
+	err := d.conn.QueryRow(context.Background(), "SELECT id FROM migrations WHERE id == $1", id).Scan(&found)
+	return err == nil
+}
+
+func (d *Database) AddMigration(id int) error {
+	_, err := d.conn.Exec(context.Background(), "INSERT INTO migrations (id) VALUES ($1)", id)
+	return err
+}
+
+func (d *Database) RunMigration(query string) error {
+	_, err := d.conn.Exec(context.TODO(), query)
 
 	return err
 }
