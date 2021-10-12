@@ -1,19 +1,25 @@
 package migrate_test
 
 import (
+	"io"
 	"os"
 	"testing"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/auth/db-init/pkg/migrate"
 )
 
 func TestMigrations(t *testing.T) {
+	logrus.SetOutput(io.Discard)
+
 	t.Run("TestCase", func(u *testing.T) {
 		config := migrate.MigrationConfig{
 			Host:     os.Getenv("DB_HOST"),
 			Port:     26257,
 			Username: os.Getenv("DB_USER"),
+			Password: os.Getenv("DB_PASSWORD"),
+			CertsDir: os.Getenv("DB_CERTS"),
 			Database: "test_db",
 			Migrations: []migrate.Migration{
 				{

@@ -2,8 +2,12 @@ package database
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
@@ -14,12 +18,43 @@ type Database struct {
 	admin bool
 }
 
-func New(host string, port int, username string, database string) (*Database, error) {
-	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://%s@%s:%d/%s", username, host, port, database))
+func getTlsConfig(certsDir string, username string) (*tls.Config, error) {
+	clientCrt := path.Join(certsDir, fmt.Sprintf("client.%s.crt", username))
+	clientKey := path.Join(certsDir, fmt.Sprintf("client.%s.key", username))
+	caCrt := path.Join(certsDir, "ca.crt")
+
+	cert, err := tls.LoadX509KeyPair(clientCrt, clientKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load client certificate: %v", err)
+	}
+
+	CACert, err := ioutil.ReadFile(caCrt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load server certificate: %v", err)
+	}
+
+	CACertPool := x509.NewCertPool()
+	CACertPool.AppendCertsFromPEM(CACert)
+
+	return &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            CACertPool,
+		InsecureSkipVerify: true,
+	}, nil
+}
+
+func New(host string, port int, username string, password string, database string, certsDir string) (*Database, error) {
+	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", username, password, host, port, database))
 	if err != nil {
 		return nil, err
 	}
 
+	tlsConfig, err := getTlsConfig(certsDir, username)
+	if err != nil {
+		return nil, err
+	}
+
+	pgxConfig.TLSConfig = tlsConfig
 	conn := getConnection(pgxConfig)
 	if conn == nil {
 		return nil, errors.New("failed to create connection, exiting")
@@ -31,12 +66,18 @@ func New(host string, port int, username string, database string) (*Database, er
 	}, nil
 }
 
-func Admin(host string, port int) (*Database, error) {
-	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://root@%s:%d", host, port))
+func Admin(host string, port int, certsDir string) (*Database, error) {
+	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgresql://%s@%s:%d", "root", host, port))
 	if err != nil {
 		return nil, err
 	}
 
+	tlsConfig, err := getTlsConfig(certsDir, "root")
+	if err != nil {
+		return nil, err
+	}
+
+	pgxConfig.TLSConfig = tlsConfig
 	conn := getConnection(pgxConfig)
 	if conn == nil {
 		return nil, errors.New("failed to create connection, exiting")
@@ -75,7 +116,7 @@ func (d *Database) Stop() {
 	d.conn.Close(context.Background())
 }
 
-func (d *Database) CreateUser(username string) error {
+func (d *Database) CreateUser(username string, password string) error {
 	if !d.admin {
 		return errors.New("cannot call CreateUser on non-admin connection")
 	}
@@ -99,7 +140,7 @@ func (d *Database) CreateUser(username string) error {
 	}
 
 	logrus.Infof("Creating user %s!", username)
-	if _, err := d.conn.Exec(context.Background(), "CREATE USER $1", username); err != nil {
+	if _, err := d.conn.Exec(context.Background(), "CREATE USER $1 WITH PASSWORD $2", username, password); err != nil {
 		return err
 	}
 

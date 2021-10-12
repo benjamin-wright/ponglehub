@@ -15,12 +15,14 @@ type MigrationConfig struct {
 	Host       string
 	Port       int
 	Username   string
+	Password   string
 	Database   string
+	CertsDir   string
 	Migrations []Migration
 }
 
 func Clean(config *MigrationConfig) error {
-	db, err := database.Admin(config.Host, config.Port)
+	db, err := database.Admin(config.Host, config.Port, config.CertsDir)
 	if err != nil {
 		return fmt.Errorf("failed to connect to db: %+v", err)
 	}
@@ -43,7 +45,7 @@ func Migrate(config *MigrationConfig) error {
 		return err
 	}
 
-	db, err := database.New(config.Host, config.Port, config.Username, config.Database)
+	db, err := database.New(config.Host, config.Port, config.Username, config.Password, config.Database, config.CertsDir)
 	if err != nil {
 		return fmt.Errorf("failed to connect to db: %+v", err)
 	}
@@ -72,13 +74,13 @@ func Migrate(config *MigrationConfig) error {
 }
 
 func initialize(config *MigrationConfig) error {
-	db, err := database.Admin(config.Host, config.Port)
+	db, err := database.Admin(config.Host, config.Port, config.CertsDir)
 	if err != nil {
 		return fmt.Errorf("failed to connect to db: %+v", err)
 	}
 	defer db.Stop()
 
-	if err := db.CreateUser(config.Username); err != nil {
+	if err := db.CreateUser(config.Username, config.Password); err != nil {
 		return fmt.Errorf("error creating user: %+v", err)
 	}
 
