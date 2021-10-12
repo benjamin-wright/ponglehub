@@ -324,3 +324,23 @@ func (d *Database) RunMigration(query string) error {
 
 	return err
 }
+
+func (d *Database) GetTables() ([]string, error) {
+	rows, err := d.conn.Query(context.TODO(), "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'")
+	if err != nil {
+		return nil, err
+	}
+
+	names := []string{}
+
+	for rows.Next() {
+		name := ""
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+
+		names = append(names, name)
+	}
+
+	return names, nil
+}
