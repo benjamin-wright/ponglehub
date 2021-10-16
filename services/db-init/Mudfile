@@ -49,9 +49,12 @@ ARTEFACT test-cert
   ENV USERNAME=test_user
   PIPELINE user-certs
 
-ARTEFACT test
+ARTEFACT certs
   DEPENDS ON +root-cert
   DEPENDS ON +test-cert
+
+ARTEFACT test
+  DEPENDS ON +certs
 
   STEP test
     DEVENV db

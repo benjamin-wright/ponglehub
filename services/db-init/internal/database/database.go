@@ -344,3 +344,45 @@ func (d *Database) GetTables() ([]string, error) {
 
 	return names, nil
 }
+
+func (d *Database) GetTableSchema(tableName string) (map[string]string, error) {
+	rows, err := d.conn.Query(context.TODO(), "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1", tableName)
+	if err != nil {
+		return nil, err
+	}
+
+	columns := map[string]string{}
+
+	for rows.Next() {
+		var column string
+		var dataType string
+
+		if err = rows.Scan(&column, &dataType); err != nil {
+			return nil, err
+		}
+
+		columns[column] = dataType
+	}
+
+	return columns, err
+}
+
+func (d *Database) GetContents(tableName string) ([][]interface{}, error) {
+	rows, err := d.conn.Query(context.TODO(), fmt.Sprintf("SELECT * FROM %s", pgx.Identifier{tableName}.Sanitize()))
+	if err != nil {
+		return nil, err
+	}
+
+	contents := [][]interface{}{}
+
+	for rows.Next() {
+		row, err := rows.Values()
+		if err != nil {
+			return nil, err
+		}
+
+		contents = append(contents, row)
+	}
+
+	return contents, err
+}

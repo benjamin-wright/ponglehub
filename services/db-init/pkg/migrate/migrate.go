@@ -3,25 +3,12 @@ package migrate
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/auth/db-init/internal/database"
+	"ponglehub.co.uk/auth/db-init/internal/migrations"
+	"ponglehub.co.uk/auth/db-init/pkg/types"
 )
 
-type Migration struct {
-	Query string
-}
-
-type MigrationConfig struct {
-	Host       string
-	Port       int
-	Username   string
-	Password   string
-	Database   string
-	CertsDir   string
-	Migrations []Migration
-}
-
-func Clean(config *MigrationConfig) error {
+func Clean(config *types.MigrationConfig) error {
 	db, err := database.Admin(config.Host, config.Port, config.CertsDir)
 	if err != nil {
 		return fmt.Errorf("failed to connect to db: %+v", err)
@@ -39,58 +26,11 @@ func Clean(config *MigrationConfig) error {
 	return nil
 }
 
-func Migrate(config *MigrationConfig) error {
-	err := initialize(config)
+func Migrate(config *types.MigrationConfig) error {
+	err := migrations.Initialize(config)
 	if err != nil {
 		return err
 	}
 
-	db, err := database.New(config.Host, config.Port, config.Username, config.Password, config.Database, config.CertsDir)
-	if err != nil {
-		return fmt.Errorf("failed to connect to db: %+v", err)
-	}
-
-	if err = db.EnsureMigrationTable(); err != nil {
-		return fmt.Errorf("failed to ensure migration table: %+v", err)
-	}
-
-	for id, migration := range config.Migrations {
-		if db.HasMigration(id) {
-			logrus.Infof("Migration %d already done: skipping", id)
-			continue
-		}
-
-		logrus.Infof("Migration %d running...", id)
-		if err := db.RunMigration(migration.Query); err != nil {
-			return err
-		}
-
-		if err := db.AddMigration(id); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func initialize(config *MigrationConfig) error {
-	db, err := database.Admin(config.Host, config.Port, config.CertsDir)
-	if err != nil {
-		return fmt.Errorf("failed to connect to db: %+v", err)
-	}
-	defer db.Stop()
-
-	if err := db.CreateUser(config.Username, config.Password); err != nil {
-		return fmt.Errorf("error creating user: %+v", err)
-	}
-
-	if err := db.CreateDatabase(config.Database); err != nil {
-		return fmt.Errorf("error creating user: %+v", err)
-	}
-
-	if err := db.GrantPermissions(config.Username, config.Database); err != nil {
-		return fmt.Errorf("error granting permissions: %+v", err)
-	}
-
-	return nil
+	return migrations.Migrate(config)
 }
