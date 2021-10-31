@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/auth/auth-server/internal/client"
 	"ponglehub.co.uk/auth/auth-server/internal/server"
 )
 
@@ -14,7 +13,7 @@ type UserResponse struct {
 	Verified bool   `json:"verified"`
 }
 
-func RouteBuilder(cli client.AuthClient, r *gin.Engine) {
+func RouteBuilder(cli server.AuthClient, r *gin.Engine) {
 	r.GET("/", func(c *gin.Context) {
 		users, err := cli.ListUsers(c.Request.Context())
 		if err != nil {

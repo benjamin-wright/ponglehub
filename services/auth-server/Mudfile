@@ -1,18 +1,4 @@
-DEVENV db
-  COMPOSE
-    version: '3.9'
-    services:
-      cockroachdb:
-        image: cockroachdb/cockroach:v20.2.8
-        command: start-single-node --insecure
-        ports:
-        - "26257:26257"
-        - "8080:8080"
-
 PIPELINE auth-endpoints
-  STEP download
-    COMMAND go mod download
-
   STEP build
     COMMAND
       mkdir -p dist
@@ -21,6 +7,9 @@ PIPELINE auth-endpoints
         go build -v -o dist/${APPLICATION_NAME} \
         ./cmd/${APPLICATION_NAME}/${APPLICATION_NAME}.go
 
+ARTEFACT deps
+  STEP download
+    COMMAND go mod download
 
 ARTEFACT all
   DEPENDS ON +migrations
@@ -32,31 +21,40 @@ ARTEFACT all
 
 
 ARTEFACT migrations
+  DEPENDS ON +deps
   ENV APPLICATION_NAME=migrations
   PIPELINE auth-endpoints
 
 ARTEFACT users-delete
+  DEPENDS ON +deps
   ENV APPLICATION_NAME=users-delete
   PIPELINE auth-endpoints
   
 ARTEFACT users-get
+  DEPENDS ON +deps
   ENV APPLICATION_NAME=users-get
   PIPELINE auth-endpoints
   
 ARTEFACT users-list
+  DEPENDS ON +deps
   ENV APPLICATION_NAME=users-list
   PIPELINE auth-endpoints
 
 ARTEFACT users-post
+  DEPENDS ON +deps
   ENV APPLICATION_NAME=users-post
   PIPELINE auth-endpoints
 
 ARTEFACT users-put
+  DEPENDS ON +deps
   ENV APPLICATION_NAME=users-put
   PIPELINE auth-endpoints
   
 ARTEFACT test
+  DEPENDS ON +deps
+  DEPENDS ON ../../libraries/mudfiles/cockroachdb+certs
+
   STEP test
-    DEVENV db
+    DEVENV ../../libraries/mudfiles/cockroachdb db
     COMMAND
       DB_HOST=localhost DB_USER=root go test ./cmd/...

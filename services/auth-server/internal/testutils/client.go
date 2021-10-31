@@ -7,24 +7,43 @@ import (
 	"os"
 
 	pgx "github.com/jackc/pgx/v4"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"ponglehub.co.uk/auth/auth-server/internal/client"
+	"ponglehub.co.uk/auth/auth-server/internal/migrations"
 )
 
 type TestClient struct {
 	conn     *pgx.Conn
+	admin    *pgx.Conn
 	database string
 }
 
 // New - Create a new AuthClient instance
 func NewClient(database string) (*TestClient, error) {
-	if err := migrate(database); err != nil {
-		return nil, fmt.Errorf("Failed to migrate database: %+v", err)
-	}
-
 	host, ok := os.LookupEnv("DB_HOST")
 	if !ok {
-		return nil, errors.New("DB_HOST env var must be provided")
+		logrus.Fatal("Environment Variable DB_HOST not found")
+	}
+
+	username, ok := os.LookupEnv("DB_USER")
+	if !ok {
+		username = "authserver"
+	}
+
+	password, ok := os.LookupEnv("DB_PASS")
+	if !ok {
+		logrus.Fatal("Enrivonment Variable DB_PASS not found")
+	}
+
+	certsDir, ok := os.LookupEnv("DB_CERTS")
+	if !ok {
+		logrus.Fatal("Enrivonment Variable DB_CERTS not found")
+	}
+
+	err := migrations.Migrate(host, username, password, database, certsDir)
+	if err != nil {
+		return nil, err
 	}
 
 	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://root@%s:26257/%s", host, database))
@@ -62,69 +81,6 @@ func (c *TestClient) Drop() error {
 	_, err = conn.Exec(
 		context.TODO(),
 		fmt.Sprintf("DROP DATABASE %s;", c.database),
-	)
-
-	return err
-}
-
-func migrate(database string) error {
-	host, ok := os.LookupEnv("DB_HOST")
-	if !ok {
-		return errors.New("DB_HOST env var must be provided")
-	}
-
-	config, err := pgx.ParseConfig(fmt.Sprintf("postgres://root@%s:26257", host))
-	if err != nil {
-		return err
-	}
-
-	finished := make(chan *pgx.Conn, 1)
-
-	go func(finished chan<- *pgx.Conn) {
-		attempts := 0
-		limit := 10
-		var connection *pgx.Conn
-		for attempts < limit {
-			connection, err = pgx.ConnectConfig(context.Background(), config)
-			if err != nil {
-				fmt.Printf("error connecting to the database: %+v\n", err)
-				attempts += 1
-			} else {
-				break
-			}
-		}
-
-		finished <- connection
-		return
-	}(finished)
-
-	conn := <-finished
-	if conn == nil {
-		return errors.New("Failed to create connection, exiting.")
-	}
-	defer conn.Close(context.Background())
-
-	_, err = conn.Exec(
-		context.TODO(),
-		fmt.Sprintf(`
-			CREATE DATABASE %s;
-
-			BEGIN;
-
-			SAVEPOINT migration_1_restart;
-
-			CREATE TABLE %s.users (
-					id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-					name VARCHAR(100) NOT NULL UNIQUE,
-					email VARCHAR(100) NOT NULL UNIQUE,
-					password VARCHAR(100),
-					verified BOOLEAN NOT NULL
-			);
-
-			RELEASE SAVEPOINT migration_1_restart;
-
-			COMMIT;
-		`, database, database),
 	)
 
 	return err
@@ -170,7 +126,7 @@ func (a *TestClient) GetUser(id string) (*client.User, error) {
 	defer rows.Close()
 
 	if hasResult := rows.Next(); !hasResult {
-		return nil, errors.New("Failed to fetch user, returned less than one row")
+		return nil, errors.New("failed to fetch user, returned less than one row")
 	}
 
 	rows.Scan(&user.Name, &user.Email, &user.Password, &user.Verified)

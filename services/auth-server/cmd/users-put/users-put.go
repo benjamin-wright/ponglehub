@@ -20,7 +20,7 @@ func (u UserPut) HasValues() bool {
 	return u.Name != "" || u.Email != "" || u.Password != "" || u.Verified != nil
 }
 
-func RouteBuilder(cli client.AuthClient, r *gin.Engine) {
+func RouteBuilder(cli server.AuthClient, r *gin.Engine) {
 	r.PUT("/:id", func(c *gin.Context) {
 		id := c.Param("id")
 		if _, err := uuid.Parse(id); err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	pgx "github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/lib/postgres/pkg/database"
 )
 
 type PostgresClient struct {
@@ -21,18 +22,21 @@ type PostgresClientConfig struct {
 	Username string
 	Password string
 	Host     string
-	Port     int16
+	Port     int
 	Database string
+	CertsDir string
 }
 
 // New - Create a new AuthClient instance
 func NewPostgresClient(ctx context.Context, config *PostgresClientConfig) (*PostgresClient, error) {
-	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://%s:%s@%s:%d/%s", config.Username, config.Password, config.Host, config.Port, config.Database))
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := pgx.ConnectConfig(ctx, pgxConfig)
+	conn, err := database.Connect(database.ConnectConfig{
+		Host:     config.Host,
+		Port:     config.Port,
+		Username: config.Username,
+		Password: config.Password,
+		Database: config.Database,
+		CertsDir: config.CertsDir,
+	})
 	if err != nil {
 		return nil, err
 	}

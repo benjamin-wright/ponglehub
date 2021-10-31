@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	"ponglehub.co.uk/auth/auth-server/internal/client"
 	"ponglehub.co.uk/auth/auth-server/internal/server"
 )
 
@@ -13,7 +12,7 @@ type LoginPost struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func routeBuilder(cli client.AuthClient, r *gin.Engine) {
+func routeBuilder(cli server.AuthClient, r *gin.Engine) {
 	r.POST("/", func(c *gin.Context) {
 		var body LoginPost
 		if err := c.ShouldBindJSON(&body); err != nil {

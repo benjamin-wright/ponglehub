@@ -21,7 +21,6 @@ func TestLoginRoute(t *testing.T) {
 		t.Fail()
 		return
 	}
-	defer cli.Drop()
 
 	for _, test := range []struct {
 		name     string

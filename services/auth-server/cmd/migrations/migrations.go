@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/auth/db-init/pkg/migrate"
+	"ponglehub.co.uk/auth/auth-server/internal/migrations"
 )
 
 func main() {
@@ -23,11 +23,17 @@ func main() {
 		logrus.Fatal("Failed to lookup DB_NAME env var")
 	}
 
-	migrate.Migrate(&migrate.MigrationConfig{
-		Host:       host,
-		Port:       26257,
-		Username:   user,
-		Database:   database,
-		Migrations: "/migrations",
-	})
+	password, ok := os.LookupEnv("DB_PASS")
+	if !ok {
+		logrus.Fatal("Enrivonment Variable DB_PASS not found")
+	}
+
+	certsDir, ok := os.LookupEnv("DB_CERTS")
+	if !ok {
+		logrus.Fatal("Enrivonment Variable DB_CERTS not found")
+	}
+
+	if err := migrations.Migrate(host, user, password, database, certsDir); err != nil {
+		logrus.Fatalf("Failed to run migrations: %+v", err)
+	}
 }

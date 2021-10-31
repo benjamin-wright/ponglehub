@@ -4,12 +4,12 @@
 			"path": "."
 		},
 		{
-			"path": "services/db-init",
-			"name": "db-init"
+			"path": "libraries/golang/postgres",
+			"name": "lib: postgres"
 		},
 		{
 			"path": "services/auth-server",
-			"name": "auth-server"
+			"name": "srv: auth-server"
 		}
 	],
 	"settings": {}
