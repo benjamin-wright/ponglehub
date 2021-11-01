@@ -36,7 +36,7 @@ func TestPutRoute(t *testing.T) {
 		t.Fail()
 		return
 	}
-	defer cli.Drop()
+	defer cli.Close()
 
 	oldUser := client.User{
 		ID:       "123e4567-e89b-12d3-a456-426614174001",
@@ -127,7 +127,7 @@ func TestPutRoute(t *testing.T) {
 		t.Run(test.name, func(u *testing.T) {
 			loadUsers(u, cli, test.existing)
 
-			r := server.GetRouter(TEST_DB, main.RouteBuilder)
+			r := server.GetRouter(cli.TargetConfig(), main.RouteBuilder)
 
 			data, _ := json.Marshal(test.args)
 

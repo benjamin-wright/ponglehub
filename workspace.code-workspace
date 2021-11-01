@@ -8,6 +8,10 @@
 			"name": "lib: postgres"
 		},
 		{
+			"path": "services/go-auth-operator",
+			"name": "srv: auth-operator"
+		},
+		{
 			"path": "services/auth-server",
 			"name": "srv: auth-server"
 		}

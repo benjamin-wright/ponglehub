@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/auth/postgres/internal/database"
-	"ponglehub.co.uk/auth/postgres/pkg/connect"
-	"ponglehub.co.uk/auth/postgres/pkg/types"
+	"ponglehub.co.uk/lib/postgres/internal/database"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
+	"ponglehub.co.uk/lib/postgres/pkg/types"
 )
 
 func Migrate(config connect.ConnectConfig, migrations []types.Migration) error {

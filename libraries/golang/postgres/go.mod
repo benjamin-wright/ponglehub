@@ -1,4 +1,4 @@
-module ponglehub.co.uk/auth/postgres
+module ponglehub.co.uk/lib/postgres
 
 go 1.16
 

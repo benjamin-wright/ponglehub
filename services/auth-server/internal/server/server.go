@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/auth/auth-server/internal/client"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
 type AuthClient interface {
@@ -23,7 +24,7 @@ type AuthClient interface {
 	DeleteUser(ctx context.Context, id string) (bool, error)
 }
 
-func GetRouter(config *client.PostgresClientConfig, builder func(cli AuthClient, r *gin.Engine)) *gin.Engine {
+func GetRouter(config connect.ConnectConfig, builder func(cli AuthClient, r *gin.Engine)) *gin.Engine {
 	cli, err := client.NewPostgresClient(context.Background(), config)
 
 	if err != nil {
@@ -68,7 +69,7 @@ func Run(builder func(cli AuthClient, r *gin.Engine)) {
 		logrus.Fatal("Environment Variable DB_NAME not found")
 	}
 
-	r := GetRouter(&client.PostgresClientConfig{
+	r := GetRouter(connect.ConnectConfig{
 		Username: username,
 		Password: password,
 		Host:     host,
@@ -91,7 +92,7 @@ func Run(builder func(cli AuthClient, r *gin.Engine)) {
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 

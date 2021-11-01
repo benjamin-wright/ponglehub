@@ -57,4 +57,10 @@ ARTEFACT test
   STEP test
     DEVENV ../../libraries/mudfiles/cockroachdb db
     COMMAND
-      DB_HOST=localhost DB_USER=root go test ./cmd/...
+      POSTGRES_HOST=localhost \
+      POSTGRES_PORT=26257 \
+      POSTGRES_USER=test_user \
+      POSTGRES_PASS=test_password \
+      POSTGRES_ADMIN_USER=root \
+      POSTGRES_CERTS=$(pwd)/../../libraries/mudfiles/ssl/certs \
+      go test -p=1 ./cmd/...

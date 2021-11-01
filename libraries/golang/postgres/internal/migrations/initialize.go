@@ -3,8 +3,8 @@ package migrations
 import (
 	"fmt"
 
-	"ponglehub.co.uk/auth/postgres/internal/database"
-	"ponglehub.co.uk/auth/postgres/pkg/types"
+	"ponglehub.co.uk/lib/postgres/internal/database"
+	"ponglehub.co.uk/lib/postgres/pkg/types"
 )
 
 func Initialize(config *types.MigrationConfig) error {

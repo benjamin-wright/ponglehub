@@ -13,10 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	gopkg.in/yaml.v2 v2.4.0
-	ponglehub.co.uk/auth/db-init v1.0.0
 	ponglehub.co.uk/lib/postgres v1.0.0
 )
 
 replace ponglehub.co.uk/lib/postgres => ./../../libraries/golang/postgres
-
-replace ponglehub.co.uk/auth/db-init => ./../../libraries/golang/db-init

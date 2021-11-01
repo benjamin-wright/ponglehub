@@ -1,39 +1,23 @@
 package main
 
 import (
-	"os"
-
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/auth/auth-server/internal/migrations"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
 func main() {
-	host, ok := os.LookupEnv("DB_HOST")
-	if !ok {
-		logrus.Fatalf("Failed to lookup DB_HOST env var")
+	targetCfg, err := connect.ConfigFromEnv()
+	if err != nil {
+		logrus.Fatalf("Failed to load target config from environment: %+v", err)
 	}
 
-	user, ok := os.LookupEnv("DB_USER")
-	if !ok {
-		logrus.Fatalf("Failed to lookup DB_USER env var")
+	adminCfg, err := connect.AdminFromEnv()
+	if err != nil {
+		logrus.Fatalf("Failed to load admin config from environment: %+v", err)
 	}
 
-	database, ok := os.LookupEnv("DB_NAME")
-	if !ok {
-		logrus.Fatal("Failed to lookup DB_NAME env var")
-	}
-
-	password, ok := os.LookupEnv("DB_PASS")
-	if !ok {
-		logrus.Fatal("Enrivonment Variable DB_PASS not found")
-	}
-
-	certsDir, ok := os.LookupEnv("DB_CERTS")
-	if !ok {
-		logrus.Fatal("Enrivonment Variable DB_CERTS not found")
-	}
-
-	if err := migrations.Migrate(host, user, password, database, certsDir); err != nil {
+	if err := migrations.Migrate(targetCfg, adminCfg); err != nil {
 		logrus.Fatalf("Failed to run migrations: %+v", err)
 	}
 }

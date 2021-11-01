@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 
-	"ponglehub.co.uk/auth/postgres/pkg/connect"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
 type MigrationConn struct {
@@ -49,7 +49,7 @@ func (d *MigrationConn) EnsureMigrationTable() error {
 
 func (d *MigrationConn) HasMigration(id int) bool {
 	var found int
-	err := d.conn.QueryRow(context.Background(), "SELECT id FROM migrations WHERE id == $1", id).Scan(&found)
+	err := d.conn.QueryRow(context.Background(), "SELECT id FROM migrations WHERE id = $1", id).Scan(&found)
 	return err == nil
 }
 

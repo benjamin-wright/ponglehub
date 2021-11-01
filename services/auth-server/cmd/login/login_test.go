@@ -21,6 +21,7 @@ func TestLoginRoute(t *testing.T) {
 		t.Fail()
 		return
 	}
+	defer cli.Close()
 
 	for _, test := range []struct {
 		name     string
@@ -47,7 +48,7 @@ func TestLoginRoute(t *testing.T) {
 				return
 			}
 
-			r := server.GetRouter(TEST_DB, routeBuilder)
+			r := server.GetRouter(cli.TargetConfig(), routeBuilder)
 
 			payload := struct {
 				Email    string `json:"email"`

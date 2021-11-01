@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
 
-	"ponglehub.co.uk/auth/postgres/pkg/connect"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
 type AdminConn struct {
@@ -30,14 +30,14 @@ func (d *AdminConn) Stop() {
 func (d *AdminConn) CreateUser(username string, password string) error {
 	rows, err := d.conn.Query(context.Background(), "SHOW USERS")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch existing user: %+v", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var existing string
 		if err := rows.Scan(&existing, nil, nil); err != nil {
-			return err
+			return fmt.Errorf("failed to decode existing database user: %+v", err)
 		}
 
 		if existing == username {
@@ -48,7 +48,7 @@ func (d *AdminConn) CreateUser(username string, password string) error {
 
 	logrus.Infof("Creating user %s!", username)
 	if _, err := d.conn.Exec(context.Background(), "CREATE USER $1 WITH PASSWORD $2", username, password); err != nil {
-		return err
+		return fmt.Errorf("failed to create database user: %+v", err)
 	}
 
 	return nil
@@ -57,22 +57,25 @@ func (d *AdminConn) CreateUser(username string, password string) error {
 func (d *AdminConn) DropUser(username string) error {
 	rows, err := d.conn.Query(context.Background(), "SHOW USERS")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch existing database user: %+v", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var existing string
 		if err := rows.Scan(&existing, nil, nil); err != nil {
-			return err
+			return fmt.Errorf("failed to decode existing database user: %+v", err)
 		}
 
 		if existing == username {
 			rows.Close()
 
 			logrus.Infof("Deleting user %s!", username)
-			_, err := d.conn.Exec(context.Background(), "DROP USER $1", username)
-			return err
+			if _, err := d.conn.Exec(context.Background(), "DROP USER $1", username); err != nil {
+				return fmt.Errorf("failed to drop database user: %+v", err)
+			}
+
+			return nil
 		}
 	}
 
@@ -83,14 +86,14 @@ func (d *AdminConn) DropUser(username string) error {
 func (d *AdminConn) CreateDatabase(database string) error {
 	rows, err := d.conn.Query(context.Background(), "SELECT datname FROM pg_database")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch existing database: %+v", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var existing string
 		if err := rows.Scan(&existing); err != nil {
-			return err
+			return fmt.Errorf("failed to decode existing database: %+v", err)
 		}
 
 		if existing == database {
@@ -101,7 +104,7 @@ func (d *AdminConn) CreateDatabase(database string) error {
 
 	logrus.Infof("Creating database %s!", database)
 	if _, err := d.conn.Exec(context.Background(), fmt.Sprintf("CREATE DATABASE %s", database)); err != nil {
-		return err
+		return fmt.Errorf("failed to create database: %+v", err)
 	}
 
 	return nil
@@ -110,22 +113,25 @@ func (d *AdminConn) CreateDatabase(database string) error {
 func (d *AdminConn) DropDatabase(database string) error {
 	rows, err := d.conn.Query(context.Background(), "SELECT datname FROM pg_database")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch existing database: %+v", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var existing string
 		if err := rows.Scan(&existing); err != nil {
-			return err
+			return fmt.Errorf("failed to decode existing database: %+v", err)
 		}
 
 		if existing == database {
 			rows.Close()
 
 			logrus.Infof("Dropping database %s!", database)
-			_, err := d.conn.Exec(context.Background(), fmt.Sprintf("DROP DATABASE %s", database))
-			return err
+			if _, err := d.conn.Exec(context.Background(), fmt.Sprintf("DROP DATABASE %s", database)); err != nil {
+				return fmt.Errorf("failed to drop database: %+v", err)
+			}
+
+			return nil
 		}
 	}
 
@@ -136,7 +142,7 @@ func (d *AdminConn) DropDatabase(database string) error {
 func (d *AdminConn) GrantPermissions(username string, database string) error {
 	query := fmt.Sprintf("GRANT ALL ON DATABASE %s TO %s", database, username)
 	if _, err := d.conn.Exec(context.Background(), query); err != nil {
-		return err
+		return fmt.Errorf("failed to grant permissions: %+v", err)
 	}
 
 	logrus.Infof("Granted '%s' permission to read/write to '%s'!", username, database)
@@ -147,14 +153,14 @@ func (d *AdminConn) GrantPermissions(username string, database string) error {
 func (d *AdminConn) RevokePermissions(username string, database string) error {
 	rows, err := d.conn.Query(context.Background(), "SHOW USERS")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch existing users: %+v", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var existing string
 		if err := rows.Scan(&existing, nil, nil); err != nil {
-			return err
+			return fmt.Errorf("failed to decode existing user: %+v", err)
 		}
 
 		if existing == username {
@@ -162,7 +168,7 @@ func (d *AdminConn) RevokePermissions(username string, database string) error {
 
 			query := fmt.Sprintf("REVOKE ALL ON DATABASE %s FROM %s", database, username)
 			if _, err := d.conn.Exec(context.Background(), query); err != nil {
-				return err
+				return fmt.Errorf("failed to revoke permissions: %+v", err)
 			}
 
 			logrus.Infof("Revoked '%s' permission to read/write from '%s'!", username, database)

@@ -3,87 +3,54 @@ package testutils
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
 
 	pgx "github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"ponglehub.co.uk/auth/auth-server/internal/client"
 	"ponglehub.co.uk/auth/auth-server/internal/migrations"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
 type TestClient struct {
-	conn     *pgx.Conn
-	admin    *pgx.Conn
-	database string
+	conn      *pgx.Conn
+	targetCfg connect.ConnectConfig
+	database  string
 }
 
 // New - Create a new AuthClient instance
 func NewClient(database string) (*TestClient, error) {
-	host, ok := os.LookupEnv("DB_HOST")
-	if !ok {
-		logrus.Fatal("Environment Variable DB_HOST not found")
+	targetCfg, err := connect.ConfigFromEnv()
+	if err != nil {
+		logrus.Fatalf("Failed to load target config from environment: %+v", err)
 	}
 
-	username, ok := os.LookupEnv("DB_USER")
-	if !ok {
-		username = "authserver"
+	adminCfg, err := connect.AdminFromEnv()
+	if err != nil {
+		logrus.Fatalf("Failed to load admin config from environment: %+v", err)
 	}
 
-	password, ok := os.LookupEnv("DB_PASS")
-	if !ok {
-		logrus.Fatal("Enrivonment Variable DB_PASS not found")
-	}
+	targetCfg.Database = database
 
-	certsDir, ok := os.LookupEnv("DB_CERTS")
-	if !ok {
-		logrus.Fatal("Enrivonment Variable DB_CERTS not found")
-	}
-
-	err := migrations.Migrate(host, username, password, database, certsDir)
+	err = migrations.Migrate(targetCfg, adminCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgres://root@%s:26257/%s", host, database))
+	conn, err := connect.Connect(targetCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := pgx.ConnectConfig(context.TODO(), pgxConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return &TestClient{conn: conn, database: database}, nil
+	return &TestClient{conn: conn, targetCfg: targetCfg, database: database}, nil
 }
 
-func (c *TestClient) Drop() error {
-	c.conn.Close(context.Background())
+func (c *TestClient) TargetConfig() connect.ConnectConfig {
+	return c.targetCfg
+}
 
-	host, ok := os.LookupEnv("DB_HOST")
-	if !ok {
-		return errors.New("DB_HOST env var must be provided")
-	}
-
-	config, err := pgx.ParseConfig(fmt.Sprintf("postgres://root@%s:26257", host))
-	if err != nil {
-		return err
-	}
-
-	conn, err := pgx.ConnectConfig(context.Background(), config)
-	if err != nil {
-		return fmt.Errorf("error connecting to the database: %+v", err)
-	}
-	defer conn.Close(context.Background())
-
-	_, err = conn.Exec(
-		context.TODO(),
-		fmt.Sprintf("DROP DATABASE %s;", c.database),
-	)
-
-	return err
+func (c *TestClient) Close() error {
+	return c.conn.Close(context.Background())
 }
 
 func (a *TestClient) Reset() error {

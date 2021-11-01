@@ -7,10 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"ponglehub.co.uk/auth/postgres/internal/database"
-	"ponglehub.co.uk/auth/postgres/pkg/connect"
-	"ponglehub.co.uk/auth/postgres/pkg/migrate"
-	"ponglehub.co.uk/auth/postgres/pkg/types"
+	"ponglehub.co.uk/lib/postgres/internal/database"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
+	"ponglehub.co.uk/lib/postgres/pkg/migrate"
+	"ponglehub.co.uk/lib/postgres/pkg/types"
 )
 
 func assertSchemas(u *testing.T, db *database.MigrationConn, expected map[string]map[string]string) {

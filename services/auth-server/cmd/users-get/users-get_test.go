@@ -32,7 +32,7 @@ func TestGetRoute(t *testing.T) {
 		t.Fail()
 		return
 	}
-	defer cli.Drop()
+	defer cli.Close()
 
 	for _, test := range []struct {
 		name     string
@@ -66,7 +66,7 @@ func TestGetRoute(t *testing.T) {
 		t.Run(test.name, func(u *testing.T) {
 			loadUsers(u, cli, []string{"123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174001"})
 
-			r := server.GetRouter(TEST_DB, main.RouteBuilder)
+			r := server.GetRouter(cli.TargetConfig(), main.RouteBuilder)
 
 			req, _ := http.NewRequest("GET", test.path, nil)
 			w := httptest.NewRecorder()

@@ -3,9 +3,9 @@ package migrate
 import (
 	"fmt"
 
-	"ponglehub.co.uk/auth/postgres/internal/database"
-	"ponglehub.co.uk/auth/postgres/internal/migrations"
-	"ponglehub.co.uk/auth/postgres/pkg/types"
+	"ponglehub.co.uk/lib/postgres/internal/database"
+	"ponglehub.co.uk/lib/postgres/internal/migrations"
+	"ponglehub.co.uk/lib/postgres/pkg/types"
 )
 
 func Clean(config *types.MigrationConfig) error {

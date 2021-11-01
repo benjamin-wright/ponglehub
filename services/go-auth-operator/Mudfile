@@ -1,0 +1,5 @@
+ARTEFACT dev
+  DEPENDS ON ../..+dev
+
+ARTEFACT stop
+  DEPENDS ON ../../+dev-stop

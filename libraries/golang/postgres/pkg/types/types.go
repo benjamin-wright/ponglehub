@@ -1,7 +1,7 @@
 package types
 
 import (
-	"ponglehub.co.uk/auth/postgres/pkg/connect"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
 type Migration struct {

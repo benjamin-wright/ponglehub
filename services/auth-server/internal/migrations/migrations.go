@@ -1,26 +1,17 @@
 package migrations
 
 import (
-	m "ponglehub.co.uk/auth/db-init/pkg/migrate"
-	"ponglehub.co.uk/auth/db-init/pkg/types"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
+	m "ponglehub.co.uk/lib/postgres/pkg/migrate"
+	"ponglehub.co.uk/lib/postgres/pkg/types"
 )
 
-func Migrate(host string, user string, password string, database string, certsDir string) error {
+func Migrate(targetConfig connect.ConnectConfig, adminConfig connect.ConnectConfig) error {
 	return m.Migrate(&types.MigrationConfig{
-		Host:     host,
-		Port:     26257,
-		Username: user,
-		Password: password,
-		Database: database,
-		CertsDir: certsDir,
+		TargetConfig: targetConfig,
+		AdminConfig:  adminConfig,
 		Migrations: []types.Migration{
 			{Query: `
-				BEGIN;
-
-				SAVEPOINT migration_1_restart;
-				
-				DROP TABLE IF EXISTS users;
-				
 				CREATE TABLE users (
 					id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 					name VARCHAR(100) NOT NULL UNIQUE,
@@ -28,10 +19,6 @@ func Migrate(host string, user string, password string, database string, certsDi
 					password VARCHAR(100),
 					verified BOOLEAN NOT NULL
 				);
-				
-				RELEASE SAVEPOINT migration_1_restart;
-				
-				COMMIT;
 			`},
 		},
 	})

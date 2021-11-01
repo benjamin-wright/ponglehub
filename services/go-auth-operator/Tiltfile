@@ -1,0 +1,14 @@
+allow_k8s_contexts(['pongle-dev'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+
+default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry:5000')
+
+custom_build(
+  'auth-operator',
+  'mudly --no-deps ./operator+image && docker tag auth-operator $EXPECTED_REF',
+  ['./operator']
+)
+
+k8s_yaml('crds/user.crd.yaml')
+
+k8s_yaml(namespace_yaml('int-auth-operator'))
