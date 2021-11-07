@@ -48,7 +48,7 @@ spec:
       - name: Age
         type: date
         jsonPath: .metadata.creationTimestamp
-  scope: Namespaced
+  scope: Cluster
   names:
     plural: authusers
     singular: authuser

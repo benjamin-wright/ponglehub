@@ -1,7 +1,7 @@
-{{- $name := "app" }}
-{{- $server := .Values.servers.app }}
-{{ $root := . }}
+{{- $root := . }}
+{{- range $name, $server := .Values.servers }}
 {{- if $server.enabled }}
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -100,7 +100,6 @@ spec:
       schedulerName: default-scheduler
       securityContext: {}
       terminationGracePeriodSeconds: 30
-
 ---
 apiVersion: v1
 kind: Service
@@ -110,10 +109,19 @@ metadata:
   name: {{ $name }}
 spec:
   ports:
+  {{- if $server.ports }}
+  {{- range $_, $port := $server.ports }}
+  - name: {{ $port | quote }}
+    port: {{ $port }}
+    protocol: TCP
+    targetPort: {{ $port }}
+  {{- end }}
+  {{- else }}
   - name: http
     port: 80
     protocol: TCP
     targetPort: {{ $server.port | default 80 }}
+  {{- end }}
   selector:
     app: {{ $name }}
   type: ClusterIP
@@ -211,6 +219,7 @@ subjects:
 - kind: ServiceAccount
   name: {{ $name }}
   namespace: {{ $root.Release.Namespace }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

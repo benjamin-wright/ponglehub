@@ -3,3 +3,20 @@ ARTEFACT dev
 
 ARTEFACT stop
   DEPENDS ON ../../+dev-stop
+
+DOCKERFILE go
+  FILE
+    FROM scratch
+    COPY auth-operator /auth-operator
+    ENTRYPOINT [ "/auth-operator" ]
+
+ARTEFACT image
+  STEP build
+    COMMAND
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/auth-operator ./main.go
+
+  STEP image
+    DOCKERFILE go
+    TAG auth-operator
+    CONTEXT ./dist

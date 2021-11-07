@@ -1,3 +1,4 @@
+{{- if .Values.test.image }}
 {{- $test := .Values.test -}}
 {{- $root := . -}}
 apiVersion: v1
@@ -112,5 +113,6 @@ subjects:
 - kind: ServiceAccount
   name: {{ $test.name }}
   namespace: {{ $root.Release.Namespace }}
+{{- end }}
 {{- end }}
 {{- end }}

@@ -5,10 +5,56 @@ default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry
 
 custom_build(
   'auth-operator',
-  'mudly --no-deps ./operator+image && docker tag auth-operator $EXPECTED_REF',
+  'mudly +image && docker tag auth-operator $EXPECTED_REF',
   ['./operator']
 )
 
-k8s_yaml('crds/user.crd.yaml')
+custom_build(
+  'nats',
+  'docker pull nats:scratch && docker tag nats:scratch $EXPECTED_REF',
+  []
+)
 
+k8s_resource(
+  'nats',
+  port_forwards=8222
+)
+
+k8s_yaml('crds/user.crd.yaml')
 k8s_yaml(namespace_yaml('int-auth-operator'))
+
+k8s_yaml(helm(
+  '../../helm',
+  name='auth-operator',
+  namespace='int-auth-operator',
+  set=[
+    'servers.operator.enabled=true',
+    'servers.operator.image=auth-operator',
+    'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
+    'servers.operator.rbac.resources={authusers,authusers/status}',
+    'servers.operator.rbac.verbs={get,list,watch,patch,update}',
+    'servers.operator.rbac.clusterWide=true',
+    'servers.operator.resources.limits.memory=64Mi',
+    'servers.operator.resources.requests.memory=64Mi',
+    'servers.nats.enabled=true',
+    'servers.nats.image=nats',
+    'servers.nats.ports={4222,6222,8222}',
+    'servers.nats.resources.limits.memory=64Mi',
+    'servers.nats.resources.requests.memory=64Mi',
+    'servers.nats.args={--config,nats-server.conf,--debug}'
+  ]
+))
+
+# TEST STUFF
+
+local_resource(
+  'add user',
+  'kubectl apply -f crds/test_user.yaml',
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+local_resource(
+  'delete user',
+  'kubectl delete -f crds/test_user.yaml',
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
