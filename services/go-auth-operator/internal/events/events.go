@@ -17,8 +17,8 @@ type Events struct {
 	sender cloudevents.Client
 }
 
-func New() (*Events, error) {
-	p, err := cenats.NewSender("http://nats:4222", "auth-users", cenats.NatsOptions())
+func New(natsUrl string, subject string) (*Events, error) {
+	p, err := cenats.NewSender(natsUrl, subject, cenats.NatsOptions())
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to NATS: %+v", err)
 	}

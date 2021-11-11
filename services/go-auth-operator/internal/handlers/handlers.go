@@ -10,8 +10,8 @@ type Handler struct {
 	events *events.Events
 }
 
-func New() (*Handler, error) {
-	client, err := events.New()
+func New(natsUrl string, subject string) (*Handler, error) {
+	client, err := events.New(natsUrl, subject)
 	if err != nil {
 		return nil, err
 	}

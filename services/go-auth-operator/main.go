@@ -11,8 +11,20 @@ import (
 	"ponglehub.co.uk/auth/auth-operator/internal/handlers"
 )
 
+func getEnv(key string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		logrus.Fatalf("Environment variable value required: %s", key)
+	}
+
+	return value
+}
+
 func main() {
 	logrus.Infof("Starting operator...")
+
+	natsUrl := getEnv("NATS_URL")
+	natsSubject := getEnv("NATS_SUBJECT")
 
 	client.AddToScheme(scheme.Scheme)
 
@@ -21,7 +33,7 @@ func main() {
 		logrus.Fatalf("Failed to start client: %+v", err)
 	}
 
-	handler, err := handlers.New()
+	handler, err := handlers.New(natsUrl, natsSubject)
 	if err != nil {
 		logrus.Fatalf("Failed to create handler: %+v", err)
 	}

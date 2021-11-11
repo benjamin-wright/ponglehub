@@ -16,6 +16,7 @@ bin/
 
 node_modules
 build
+dist
 tilt_modules
 chart-cache
 

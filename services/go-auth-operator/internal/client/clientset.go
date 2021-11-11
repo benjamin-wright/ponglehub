@@ -92,3 +92,14 @@ func (c *UserClient) Listen(
 
 	return userStore, stopper
 }
+
+func (c *UserClient) Create(user AuthUser, opts metav1.CreateOptions) error {
+	err := c.restClient.
+		Post().
+		Resource("authusers").
+		Body(&user).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do(context.TODO())
+
+	return err.Error()
+}

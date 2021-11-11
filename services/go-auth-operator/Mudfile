@@ -1,4 +1,4 @@
-ARTEFACT dev
+ARTEFACT start
   DEPENDS ON ../..+dev
 
 ARTEFACT stop
@@ -19,4 +19,21 @@ ARTEFACT image
   STEP image
     DOCKERFILE go
     TAG auth-operator
+    CONTEXT ./dist
+
+DOCKERFILE go-test
+  FILE
+    FROM scratch
+    COPY auth-operator-tests /auth-operator-tests
+    ENTRYPOINT [ "/auth-operator-tests" ]
+
+ARTEFACT test-image
+  STEP build
+    COMMAND
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go test -c -o dist/auth-operator-tests ./
+
+  STEP image
+    DOCKERFILE go-test
+    TAG auth-operator-tests
     CONTEXT ./dist

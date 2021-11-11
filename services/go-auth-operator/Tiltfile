@@ -6,7 +6,15 @@ default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry
 custom_build(
   'auth-operator',
   'mudly +image && docker tag auth-operator $EXPECTED_REF',
-  ['./operator']
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'auth-operator-tests',
+  'mudly +test-image && docker tag auth-operator-tests $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
 )
 
 custom_build(
@@ -20,6 +28,16 @@ k8s_resource(
   port_forwards=8222
 )
 
+k8s_resource(
+  'operator',
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_resource(
+  'test',
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
 k8s_yaml('crds/user.crd.yaml')
 k8s_yaml(namespace_yaml('int-auth-operator'))
 
@@ -29,6 +47,8 @@ k8s_yaml(helm(
   namespace='int-auth-operator',
   set=[
     'servers.operator.enabled=true',
+    'servers.operator.env.NATS_URL=http://nats:4222',
+    'servers.operator.env.NATS_SUBJECT=auth-user',
     'servers.operator.image=auth-operator',
     'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
     'servers.operator.rbac.resources={authusers,authusers/status}',
@@ -41,7 +61,14 @@ k8s_yaml(helm(
     'servers.nats.ports={4222,6222,8222}',
     'servers.nats.resources.limits.memory=64Mi',
     'servers.nats.resources.requests.memory=64Mi',
-    'servers.nats.args={--config,nats-server.conf,--debug}'
+    'servers.nats.args={--config,nats-server.conf,--debug}',
+    'test.image=auth-operator-tests',
+    'test.env.NATS_URL=http://nats:4222',
+    'test.env.NATS_SUBJECT=auth-user',
+    'test.rbac.apiGroups={ponglehub.co.uk}',
+    'test.rbac.resources={authusers,authusers/status}',
+    'test.rbac.verbs={create}',
+    'test.rbac.clusterWide=true',
   ]
 ))
 
@@ -50,11 +77,13 @@ k8s_yaml(helm(
 local_resource(
   'add user',
   'kubectl apply -f crds/test_user.yaml',
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False
 )
 
 local_resource(
   'delete user',
   'kubectl delete -f crds/test_user.yaml',
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False
 )
