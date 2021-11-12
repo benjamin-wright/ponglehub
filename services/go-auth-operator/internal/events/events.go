@@ -79,7 +79,7 @@ func (e *Events) NewUser(user *client.AuthUser) error {
 func (e *Events) UpdateUser(user *client.AuthUser) error {
 	logrus.Infof("Sending update user event for %s", user.Name)
 
-	err := sendEvent(e.sender, "ponglehub.auth.user.add", &NewUserData{
+	err := sendEvent(e.sender, "ponglehub.auth.user.update", &NewUserData{
 		MetaName: user.ObjectMeta.Name,
 		Name:     user.Spec.Name,
 		Email:    user.Spec.Email,
@@ -100,7 +100,7 @@ type DeleteUserData struct {
 
 func (e *Events) DeleteUser(user *client.AuthUser) error {
 	logrus.Infof("Sending delete user event for %s", user.Name)
-	err := sendEvent(e.sender, "ponglehub.auth.user.add", &DeleteUserData{
+	err := sendEvent(e.sender, "ponglehub.auth.user.delete", &DeleteUserData{
 		MetaName: user.ObjectMeta.Name,
 		Name:     user.Spec.Name,
 	})

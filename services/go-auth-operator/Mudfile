@@ -26,6 +26,7 @@ DOCKERFILE go-test
     FROM scratch
     COPY auth-operator-tests /auth-operator-tests
     ENTRYPOINT [ "/auth-operator-tests" ]
+    CMD [ "-test.v" ]
 
 ARTEFACT test-image
   STEP build

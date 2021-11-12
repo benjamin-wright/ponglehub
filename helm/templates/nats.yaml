@@ -1,0 +1,73 @@
+{{- if .Values.nats }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nats
+  name: nats
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+      - name: server
+        image: nats
+        imagePullPolicy: Always
+        args: [--config,nats-server.conf,--debug]
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8222
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8222
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 0.1
+          limits:
+            memory: 64Mi
+            cpu: 0.1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nats
+  name: nats
+spec:
+  ports:
+  - name: "4222"
+    port: 4222
+    protocol: TCP
+    targetPort: 4222
+  - name: "6222"
+    port: 6222
+    protocol: TCP
+    targetPort: 6222
+  - name: "8222"
+    port: 8222
+    protocol: TCP
+    targetPort: 8222
+  selector:
+    app: nats
+  type: ClusterIP
+{{- end }}

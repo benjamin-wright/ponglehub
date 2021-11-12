@@ -30,12 +30,15 @@ k8s_resource(
 
 k8s_resource(
   'operator',
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=['nats']
 )
 
 k8s_resource(
   'test',
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  resource_deps=['operator']
 )
 
 k8s_yaml('crds/user.crd.yaml')
@@ -46,6 +49,7 @@ k8s_yaml(helm(
   name='auth-operator',
   namespace='int-auth-operator',
   set=[
+    'nats=true',
     'servers.operator.enabled=true',
     'servers.operator.env.NATS_URL=http://nats:4222',
     'servers.operator.env.NATS_SUBJECT=auth-user',
@@ -56,18 +60,12 @@ k8s_yaml(helm(
     'servers.operator.rbac.clusterWide=true',
     'servers.operator.resources.limits.memory=64Mi',
     'servers.operator.resources.requests.memory=64Mi',
-    'servers.nats.enabled=true',
-    'servers.nats.image=nats',
-    'servers.nats.ports={4222,6222,8222}',
-    'servers.nats.resources.limits.memory=64Mi',
-    'servers.nats.resources.requests.memory=64Mi',
-    'servers.nats.args={--config,nats-server.conf,--debug}',
     'test.image=auth-operator-tests',
     'test.env.NATS_URL=http://nats:4222',
     'test.env.NATS_SUBJECT=auth-user',
     'test.rbac.apiGroups={ponglehub.co.uk}',
     'test.rbac.resources={authusers,authusers/status}',
-    'test.rbac.verbs={create}',
+    'test.rbac.verbs={get,create,delete,deletecollection}',
     'test.rbac.clusterWide=true',
   ]
 ))

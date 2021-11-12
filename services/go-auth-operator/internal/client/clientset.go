@@ -37,6 +37,41 @@ func New() (*UserClient, error) {
 	return &UserClient{restClient: client}, nil
 }
 
+func (c *UserClient) Get(name string, opts metav1.GetOptions) (*AuthUser, error) {
+	result := AuthUser{}
+	err := c.restClient.
+		Get().
+		Resource("authusers").
+		Name(name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do(context.TODO()).
+		Into(&result)
+
+	return &result, err
+}
+
+func (c *UserClient) Delete(name string, opts metav1.DeleteOptions) error {
+	res := c.restClient.
+		Delete().
+		Resource("authusers").
+		Name(name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do(context.TODO())
+
+	return res.Error()
+}
+
+func (c *UserClient) Create(user AuthUser, opts metav1.CreateOptions) error {
+	res := c.restClient.
+		Post().
+		Resource("authusers").
+		Body(&user).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do(context.TODO())
+
+	return res.Error()
+}
+
 func (c *UserClient) List(opts metav1.ListOptions) (*AuthUserList, error) {
 	result := AuthUserList{}
 	err := c.restClient.
@@ -91,15 +126,4 @@ func (c *UserClient) Listen(
 	go userController.Run(stopper)
 
 	return userStore, stopper
-}
-
-func (c *UserClient) Create(user AuthUser, opts metav1.CreateOptions) error {
-	err := c.restClient.
-		Post().
-		Resource("authusers").
-		Body(&user).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do(context.TODO())
-
-	return err.Error()
 }
