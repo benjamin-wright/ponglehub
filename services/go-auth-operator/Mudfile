@@ -9,6 +9,8 @@ DOCKERFILE go
     FROM scratch
     COPY auth-operator /auth-operator
     ENTRYPOINT [ "/auth-operator" ]
+  IGNORE
+    !auth-operator
 
 ARTEFACT image
   STEP build
@@ -21,20 +23,27 @@ ARTEFACT image
     TAG auth-operator
     CONTEXT ./dist
 
-DOCKERFILE go-test
+DOCKERFILE integration
   FILE
     FROM scratch
     COPY auth-operator-tests /auth-operator-tests
     ENTRYPOINT [ "/auth-operator-tests" ]
     CMD [ "-test.v" ]
+  IGNORE
+    !auth-operator-tests
 
-ARTEFACT test-image
+ARTEFACT integration
   STEP build
     COMMAND
       CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-        go test -c -o dist/auth-operator-tests ./
+        go test -c -o dist/auth-operator-tests ./integration
 
   STEP image
-    DOCKERFILE go-test
+    DOCKERFILE integration
     TAG auth-operator-tests
     CONTEXT ./dist
+
+ARTEFACT test
+  STEP test
+    COMMAND
+      go test -p=1 -v ./internal/...

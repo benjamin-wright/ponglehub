@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/auth/auth-operator/internal/client"
+	"ponglehub.co.uk/auth/auth-operator/internal/events"
 	"ponglehub.co.uk/auth/auth-operator/internal/handlers"
 )
 
@@ -28,17 +29,22 @@ func main() {
 
 	client.AddToScheme(scheme.Scheme)
 
-	cli, err := client.New()
+	userClient, err := client.New()
 	if err != nil {
-		logrus.Fatalf("Failed to start client: %+v", err)
+		logrus.Fatalf("Failed to start user client: %+v", err)
 	}
 
-	handler, err := handlers.New(natsUrl, natsSubject)
+	eventClient, err := events.New(natsUrl, natsSubject)
+	if err != nil {
+		logrus.Fatalf("Failed to start event client: %+v", err)
+	}
+
+	handler, err := handlers.New(eventClient, userClient)
 	if err != nil {
 		logrus.Fatalf("Failed to create handler: %+v", err)
 	}
 
-	_, stopper := cli.Listen(handler.AddUser, handler.UpdateUser, handler.DeleteUser)
+	_, stopper := userClient.Listen(handler.AddUser, handler.UpdateUser, handler.DeleteUser)
 
 	logrus.Infof("Running...")
 

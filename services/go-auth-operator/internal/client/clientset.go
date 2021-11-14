@@ -54,19 +54,44 @@ func (c *UserClient) Delete(name string, opts metav1.DeleteOptions) error {
 	res := c.restClient.
 		Delete().
 		Resource("authusers").
-		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Name(name).
 		Do(context.TODO())
 
 	return res.Error()
 }
 
-func (c *UserClient) Create(user AuthUser, opts metav1.CreateOptions) error {
+func (c *UserClient) Create(user *AuthUser, opts metav1.CreateOptions) error {
 	res := c.restClient.
 		Post().
 		Resource("authusers").
-		Body(&user).
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(user).
+		Do(context.TODO())
+
+	return res.Error()
+}
+
+func (c *UserClient) Update(user *AuthUser, opts metav1.UpdateOptions) error {
+	res := c.restClient.
+		Put().
+		Resource("authusers").
+		Name(user.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(user).
+		Do(context.TODO())
+
+	return res.Error()
+}
+
+func (c *UserClient) SetStatus(user *AuthUser, opts metav1.UpdateOptions) error {
+	res := c.restClient.
+		Put().
+		Resource("authusers").
+		Name(user.Name).
+		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(user).
 		Do(context.TODO())
 
 	return res.Error()

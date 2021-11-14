@@ -12,7 +12,7 @@ custom_build(
 
 custom_build(
   'auth-operator-tests',
-  'mudly +test-image && docker tag auth-operator-tests $EXPECTED_REF',
+  'mudly +integration && docker tag auth-operator-tests $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
@@ -65,23 +65,7 @@ k8s_yaml(helm(
     'test.env.NATS_SUBJECT=auth-user',
     'test.rbac.apiGroups={ponglehub.co.uk}',
     'test.rbac.resources={authusers,authusers/status}',
-    'test.rbac.verbs={get,create,delete,deletecollection}',
+    'test.rbac.verbs={get,create,update,delete,deletecollection}',
     'test.rbac.clusterWide=true',
   ]
 ))
-
-# TEST STUFF
-
-local_resource(
-  'add user',
-  'kubectl apply -f crds/test_user.yaml',
-  trigger_mode=TRIGGER_MODE_MANUAL,
-  auto_init=False
-)
-
-local_resource(
-  'delete user',
-  'kubectl delete -f crds/test_user.yaml',
-  trigger_mode=TRIGGER_MODE_MANUAL,
-  auto_init=False
-)

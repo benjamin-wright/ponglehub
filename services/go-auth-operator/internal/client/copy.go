@@ -12,6 +12,10 @@ func (in *AuthUser) DeepCopyInto(out *AuthUser) {
 		Email:    in.Spec.Email,
 		Password: in.Spec.Password,
 	}
+	out.Status = AuthUserStatus{
+		ID:      in.Status.ID,
+		Pending: in.Status.Pending,
+	}
 }
 
 // DeepCopyObject returns a generically typed copy of an object

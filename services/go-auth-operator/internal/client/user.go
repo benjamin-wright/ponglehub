@@ -8,11 +8,23 @@ type AuthUserSpec struct {
 	Password string `json:"password"`
 }
 
+type AuthUserStatus struct {
+	ID      string `json:"id"`
+	Pending bool   `json:"pending"`
+}
+
 type AuthUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec AuthUserSpec `json:"spec"`
+	Spec   AuthUserSpec   `json:"spec"`
+	Status AuthUserStatus `json:"status"`
+}
+
+func (a *AuthUser) Equals(user *AuthUser) bool {
+	return a.Spec.Email == user.Spec.Email &&
+		a.Spec.Name == user.Spec.Name &&
+		a.Spec.Password == user.Spec.Password
 }
 
 type AuthUserList struct {
