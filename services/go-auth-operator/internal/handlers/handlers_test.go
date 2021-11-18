@@ -35,6 +35,11 @@ func (m *MockUsers) SetStatus(user *client.AuthUser, opts v1.UpdateOptions) erro
 	return m.Called(user, opts).Error(0)
 }
 
+func (m *MockUsers) Get(name string, opts v1.GetOptions) (*client.AuthUser, error) {
+	args := m.Called(name, opts)
+	return args.Get(0).(*client.AuthUser), args.Error(1)
+}
+
 func makeUser(name string, email string, password string, id string, pending bool) *client.AuthUser {
 	return &client.AuthUser{
 		ObjectMeta: v1.ObjectMeta{
@@ -70,6 +75,16 @@ func TestAddHander(t *testing.T) {
 			Prep: func(events *MockEvents, users *MockUsers) {
 				users.On("SetStatus", makeUser("name", "email", "pass", "", true), v1.UpdateOptions{}).Return(nil)
 				events.On("NewUser", makeUser("name", "email", "pass", "", true)).Return(nil)
+			},
+		},
+		{
+			Name:  "Failed to create user event",
+			Input: makeUser("name", "email", "pass", "", false),
+			Prep: func(events *MockEvents, users *MockUsers) {
+				users.On("SetStatus", makeUser("name", "email", "pass", "", true), v1.UpdateOptions{}).Return(nil)
+				events.On("NewUser", makeUser("name", "email", "pass", "", true)).Return(errors.New("boom"))
+				users.On("Get", "name", v1.GetOptions{}).Return(makeUser("name", "email", "pass", "", true), nil)
+				users.On("SetStatus", makeUser("name", "email", "pass", "", false), v1.UpdateOptions{}).Return(nil)
 			},
 		},
 		{
@@ -128,12 +143,35 @@ func TestUpdateHander(t *testing.T) {
 			},
 		},
 		{
+			Name:    "Failed to send update event",
+			OldUser: makeUser("name", "email", "password", "", false),
+			NewUser: makeUser("name", "new-email", "new-password", "", false),
+			Prep: func(events *MockEvents, users *MockUsers) {
+				users.On("SetStatus", makeUser("name", "new-email", "new-password", "", true), v1.UpdateOptions{}).Return(nil)
+				events.On("UpdateUser", makeUser("name", "new-email", "new-password", "", true)).Return(errors.New("boom"))
+				users.On("Get", "name", v1.GetOptions{}).Return(makeUser("name", "email", "pass", "", true), nil)
+				users.On("SetStatus", makeUser("name", "email", "pass", "", false), v1.UpdateOptions{}).Return(nil)
+			},
+		},
+		{
 			Name:    "fail setting status",
 			OldUser: makeUser("name", "email", "password", "", false),
 			NewUser: makeUser("name", "new-email", "new-password", "", false),
 			Prep: func(events *MockEvents, users *MockUsers) {
 				users.On("SetStatus", makeUser("name", "new-email", "new-password", "", true), v1.UpdateOptions{}).Return(errors.New("oops"))
 			},
+		},
+		{
+			Name:    "No spec change",
+			OldUser: makeUser("name", "email", "password", "", false),
+			NewUser: makeUser("name", "email", "password", "", false),
+			Prep:    func(events *MockEvents, users *MockUsers) {},
+		},
+		{
+			Name:    "Already changing",
+			OldUser: makeUser("name", "email", "password", "", false),
+			NewUser: makeUser("name", "new-email", "new-password", "", true),
+			Prep:    func(events *MockEvents, users *MockUsers) {},
 		},
 	} {
 		t.Run(test.Name, func(u *testing.T) {
@@ -144,6 +182,48 @@ func TestUpdateHander(t *testing.T) {
 			handlers := Handler{events: mockEvents, users: mockUsers}
 
 			handlers.UpdateUser(test.OldUser, test.NewUser)
+
+			mockEvents.AssertExpectations(u)
+			mockUsers.AssertExpectations(u)
+		})
+	}
+}
+
+func TestDeleteHander(t *testing.T) {
+	logrus.SetOutput(io.Discard)
+
+	for _, test := range []struct {
+		Name  string
+		Prep  func(*MockEvents, *MockUsers)
+		Input *client.AuthUser
+	}{
+		{
+			Name: "No input user",
+			Prep: func(events *MockEvents, users *MockUsers) {},
+		},
+		{
+			Name:  "Delete user",
+			Input: makeUser("name", "email", "pass", "", false),
+			Prep: func(events *MockEvents, users *MockUsers) {
+				events.On("DeleteUser", makeUser("name", "email", "pass", "", false)).Return(nil)
+			},
+		},
+		{
+			Name:  "Error deleting user",
+			Input: makeUser("name", "email", "pass", "", false),
+			Prep: func(events *MockEvents, users *MockUsers) {
+				events.On("DeleteUser", makeUser("name", "email", "pass", "", false)).Return(errors.New("boom"))
+			},
+		},
+	} {
+		t.Run(test.Name, func(u *testing.T) {
+			mockEvents := new(MockEvents)
+			mockUsers := new(MockUsers)
+			test.Prep(mockEvents, mockUsers)
+
+			handlers := Handler{events: mockEvents, users: mockUsers}
+
+			handlers.DeleteUser(test.Input)
 
 			mockEvents.AssertExpectations(u)
 			mockUsers.AssertExpectations(u)

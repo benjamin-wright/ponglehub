@@ -93,7 +93,18 @@ func (t *testReceiver) addUser(u *testing.T, name string, email string, password
 func (t *testReceiver) updateUser(u *testing.T, name string, email string, password string) {
 	user, err := t.users.Get(name, v1.GetOptions{})
 	if err != nil {
-		assert.FailNow(u, "failed to get user: %+v", err)
+		assert.FailNow(u, "failed to get user for status update: %+v", err)
+	}
+
+	user.Status.Pending = false
+	err = t.users.SetStatus(user, v1.UpdateOptions{})
+	if err != nil {
+		assert.FailNow(u, "failed to reset user pending status: %+v", err)
+	}
+
+	user, err = t.users.Get(name, v1.GetOptions{})
+	if err != nil {
+		assert.FailNow(u, "failed to get user for value update: %+v", err)
 	}
 
 	user.Spec.Email = email

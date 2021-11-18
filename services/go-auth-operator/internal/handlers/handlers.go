@@ -19,6 +19,7 @@ type Events interface {
 
 type Users interface {
 	SetStatus(user *client.AuthUser, opts v1.UpdateOptions) error
+	Get(name string, opts v1.GetOptions) (*client.AuthUser, error)
 }
 
 func New(eventClient Events, userClient Users) (*Handler, error) {
@@ -54,8 +55,22 @@ func (h *Handler) AddUser(user *client.AuthUser) {
 
 	logrus.Infof("Sending add user event '%s'", user.ObjectMeta.Name)
 	err = h.events.NewUser(user)
+	if err == nil {
+		return
+	}
+
+	logrus.Errorf("Failed to add user %s: %+v", user.Name, err)
+
+	latest, err := h.users.Get(user.Name, v1.GetOptions{})
 	if err != nil {
-		logrus.Errorf("Failed to add user %s: %+v", user.Name, err)
+		logrus.Errorf("Failed to fetch latest user %s: %+v", user.Name, err)
+		return
+	}
+
+	latest.Status.Pending = false
+	err = h.users.SetStatus(latest, v1.UpdateOptions{})
+	if err != nil {
+		logrus.Errorf("Failed to update user status %s: %+v", user.Name, err)
 		return
 	}
 }
@@ -67,7 +82,12 @@ func (h *Handler) UpdateUser(oldUser *client.AuthUser, newUser *client.AuthUser)
 	}
 
 	if oldUser.Equals(newUser) {
-		logrus.Infof("No spec changes for user %s", newUser.Name)
+		logrus.Infof("Not updating using '%s': No spec changes", newUser.Name)
+		return
+	}
+
+	if newUser.Status.Pending {
+		logrus.Infof("Not updating user '%s': Already pending", newUser.Name)
 		return
 	}
 
@@ -80,12 +100,32 @@ func (h *Handler) UpdateUser(oldUser *client.AuthUser, newUser *client.AuthUser)
 
 	logrus.Infof("Sending update user event '%s'", newUser.Name)
 	err = h.events.UpdateUser(newUser)
+	if err == nil {
+		return
+	}
+
+	logrus.Errorf("Failed to update user %s: %+v", newUser.Name, err)
+
+	latest, err := h.users.Get(newUser.Name, v1.GetOptions{})
 	if err != nil {
-		logrus.Errorf("Failed to update user %s: %+v", newUser.Name, err)
+		logrus.Errorf("Failed to fetch latest user %s: %+v", newUser.Name, err)
+		return
+	}
+
+	latest.Status.Pending = false
+	err = h.users.SetStatus(latest, v1.UpdateOptions{})
+	if err != nil {
+		logrus.Errorf("Failed to update user status %s: %+v", newUser.Name, err)
+		return
 	}
 }
 
 func (h *Handler) DeleteUser(user *client.AuthUser) {
+	if user == nil {
+		logrus.Error("Nil passed to DeleteUser handler")
+		return
+	}
+
 	logrus.Infof("Sending delete user event '%s'", user.Name)
 	err := h.events.DeleteUser(user)
 	if err != nil {
