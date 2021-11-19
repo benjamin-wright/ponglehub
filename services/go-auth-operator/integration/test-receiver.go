@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	cenats "github.com/cloudevents/sdk-go/protocol/nats/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/stretchr/testify/assert"
@@ -19,22 +18,24 @@ type testReceiver struct {
 	users  *client.UserClient
 }
 
-func newTestReceiver(u *testing.T, url string, subject string) *testReceiver {
-	p, err := cenats.NewConsumer(url, subject, cenats.NatsOptions())
+func newTestReceiver(u *testing.T) *testReceiver {
+	p, err := cloudevents.NewHTTP(cloudevents.WithPort(80))
 	if err != nil {
-		assert.FailNow(u, "Error creating test receiver: %+v", err)
+		assert.FailNow(u, "failed to create protocol: %s", err.Error())
 	}
 
-	events, err := cloudevents.NewClient(p)
+	c, err := cloudevents.NewClient(p)
 	if err != nil {
-		assert.FailNow(u, "error creating cloudevents instance: %+v", err)
+		assert.FailNow(u, "failed to create client, %v", err)
 	}
 
 	received := make(chan event.Event)
 
 	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
-		err = events.StartReceiver(ctx, func(e event.Event) {
+		err := c.StartReceiver(ctx, func(ctx context.Context, e event.Event) {
+			u.Logf("Received event: %s", e.Type())
 			received <- e
 		})
 

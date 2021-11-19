@@ -24,8 +24,7 @@ func getEnv(key string) string {
 func main() {
 	logrus.Infof("Starting operator...")
 
-	natsUrl := getEnv("NATS_URL")
-	natsSubject := getEnv("NATS_SUBJECT")
+	brokerUrl := getEnv("BROKER_URL")
 
 	client.AddToScheme(scheme.Scheme)
 
@@ -34,7 +33,7 @@ func main() {
 		logrus.Fatalf("Failed to start user client: %+v", err)
 	}
 
-	eventClient, err := events.New(natsUrl, natsSubject)
+	eventClient, err := events.New(brokerUrl)
 	if err != nil {
 		logrus.Fatalf("Failed to start event client: %+v", err)
 	}
@@ -45,6 +44,10 @@ func main() {
 	}
 
 	_, stopper := userClient.Listen(handler.AddUser, handler.UpdateUser, handler.DeleteUser)
+	cancelEventListener, err := events.Listen(handler.SetUser)
+	if err != nil {
+		logrus.Fatalf("Failed to create event listener: %+v", err)
+	}
 
 	logrus.Infof("Running...")
 
@@ -57,6 +60,7 @@ func main() {
 	log.Println("Shutdown Server...")
 
 	stopper <- struct{}{}
+	cancelEventListener()
 
 	log.Println("Stop signal sent")
 }

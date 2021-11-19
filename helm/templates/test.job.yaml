@@ -46,6 +46,22 @@ spec:
             memory: 512Mi
             cpu: 1
         {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ $test.name }}
+  name: {{ $test.name }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: {{ $test.port | default 80 }}
+  selector:
+    app: {{ $test.name }}
+  type: ClusterIP
 {{- if not (empty $test.rbac) }}
 {{- if $test.rbac.clusterWide }}
 ---

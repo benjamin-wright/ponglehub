@@ -17,21 +17,9 @@ custom_build(
   ignore=['Tiltfile', './dist']
 )
 
-custom_build(
-  'nats',
-  'docker pull nats:scratch && docker tag nats:scratch $EXPECTED_REF',
-  []
-)
-
-k8s_resource(
-  'nats',
-  port_forwards=8222
-)
-
 k8s_resource(
   'operator',
-  trigger_mode=TRIGGER_MODE_MANUAL,
-  resource_deps=['nats']
+  trigger_mode=TRIGGER_MODE_MANUAL
 )
 
 k8s_resource(
@@ -49,10 +37,8 @@ k8s_yaml(helm(
   name='auth-operator',
   namespace='int-auth-operator',
   set=[
-    'nats=true',
     'servers.operator.enabled=true',
-    'servers.operator.env.NATS_URL=http://nats:4222',
-    'servers.operator.env.NATS_SUBJECT=auth-user',
+    'servers.operator.env.BROKER_URL="http://test:80"',
     'servers.operator.image=auth-operator',
     'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
     'servers.operator.rbac.resources={authusers,authusers/status}',
@@ -61,8 +47,6 @@ k8s_yaml(helm(
     'servers.operator.resources.limits.memory=64Mi',
     'servers.operator.resources.requests.memory=64Mi',
     'test.image=auth-operator-tests',
-    'test.env.NATS_URL=http://nats:4222',
-    'test.env.NATS_SUBJECT=auth-user',
     'test.rbac.apiGroups={ponglehub.co.uk}',
     'test.rbac.resources={authusers,authusers/status}',
     'test.rbac.verbs={get,create,update,delete,deletecollection}',

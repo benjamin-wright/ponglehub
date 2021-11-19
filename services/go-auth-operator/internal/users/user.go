@@ -1,4 +1,4 @@
-package client
+package users
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -19,12 +19,6 @@ type AuthUser struct {
 
 	Spec   AuthUserSpec   `json:"spec"`
 	Status AuthUserStatus `json:"status"`
-}
-
-func (a *AuthUser) Equals(user *AuthUser) bool {
-	return a.Spec.Email == user.Spec.Email &&
-		a.Spec.Name == user.Spec.Name &&
-		a.Spec.Password == user.Spec.Password
 }
 
 type AuthUserList struct {
