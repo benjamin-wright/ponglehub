@@ -76,8 +76,6 @@ func Listen(handler UserEventHandler) (context.CancelFunc, error) {
 
 	go func() {
 		err := client.StartReceiver(ctx, func(ctx context.Context, e event.Event) {
-			logrus.Infof("Received event: %s", e.Type())
-
 			var user User
 			err = json.Unmarshal(e.Data(), &user)
 			if err != nil {
@@ -163,6 +161,26 @@ func (e *Events) DeleteUser(user User) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to send delete event for %s: %+v", user.Name, err)
+	}
+
+	return nil
+}
+
+func (e *Events) SetUser(user User) error {
+	err := e.sendEvent(e.sender, "ponglehub.auth.user.set", &user)
+
+	if err != nil {
+		return fmt.Errorf("failed to send set user event for %s: %+v", user.Name, err)
+	}
+
+	return nil
+}
+
+func (e *Events) SetUserAck(user User) error {
+	err := e.sendEvent(e.sender, "ponglehub.auth.user.set.ack", &user)
+
+	if err != nil {
+		return fmt.Errorf("failed to send set user ack event for %s: %+v", user.Name, err)
 	}
 
 	return nil

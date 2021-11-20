@@ -26,6 +26,14 @@ func (m *MockEvents) DeleteUser(user events.User) error {
 	return m.Called(user).Error(0)
 }
 
+func (m *MockEvents) SetUser(user events.User) error {
+	return m.Called(user).Error(0)
+}
+
+func (m *MockEvents) SetUserAck(user events.User) error {
+	return m.Called(user).Error(0)
+}
+
 type MockUsers struct {
 	mock.Mock
 }

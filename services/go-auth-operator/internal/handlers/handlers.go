@@ -14,6 +14,7 @@ type Events interface {
 	NewUser(user events.User) error
 	UpdateUser(user events.User) error
 	DeleteUser(user events.User) error
+	SetUserAck(user events.User) error
 }
 
 type Users interface {
@@ -99,6 +100,8 @@ func (h *Handler) UserEvent(event events.UserEvent) {
 
 	user := event.User
 
+	logrus.Infof("Received user set event for '%s'", user.Name)
+
 	currentUser, err := h.users.Get(user.Name)
 	if err != nil {
 		logrus.Errorf("Failed to fetch user %s: %+v", user.Name, err)
@@ -111,9 +114,15 @@ func (h *Handler) UserEvent(event events.UserEvent) {
 	}
 
 	user.Pending = false
-	_, err = h.users.Status(user)
+	updated, err := h.users.Status(user)
 	if err != nil {
 		logrus.Errorf("Failed to update user status %s: %+v", user.Name, err)
+		return
+	}
+
+	err = h.events.SetUserAck(updated)
+	if err != nil {
+		logrus.Errorf("Failed to send set acknowledgement %s: %+v", updated.Name, err)
 		return
 	}
 }
