@@ -1,10 +1,10 @@
-package main
+package routes
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-	"ponglehub.co.uk/auth/auth-server/internal/server"
+	"ponglehub.co.uk/auth/auth-server/internal/client"
 )
 
 type LoginPost struct {
@@ -12,8 +12,8 @@ type LoginPost struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func routeBuilder(cli server.AuthClient, r *gin.Engine) {
-	r.POST("/", func(c *gin.Context) {
+func LoginHandler(cli *client.PostgresClient) func(*gin.Context) {
+	return func(c *gin.Context) {
 		var body LoginPost
 		if err := c.ShouldBindJSON(&body); err != nil {
 			logrus.Errorf("Error reading login data: %+v", err)
@@ -53,9 +53,5 @@ func routeBuilder(cli server.AuthClient, r *gin.Engine) {
 			"id":   user.ID,
 			"name": user.Name,
 		})
-	})
-}
-
-func main() {
-	server.Run(routeBuilder)
+	}
 }

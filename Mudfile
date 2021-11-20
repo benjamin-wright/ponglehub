@@ -136,3 +136,14 @@ ARTEFACT dev-stop
     COMMAND
       k3d cluster delete $DEV_CLUSTER \
         && rm .scratch/dev-kubeconfig
+
+ARTEFACT build
+  DEPENDS ON ./services/auth-operator+image
+  DEPENDS ON ./services/auth-server+images
+
+  STEP retag
+    COMMAND
+      docker tag auth-operator localhost:5000/auth-operator
+      docker tag auth-server localhost:5000/auth-server
+      docker tag auth-server-events localhost:5000/auth-server-events
+      docker tag auth-server-migrations localhost:5000/auth-server-migrations

@@ -1,55 +1,7 @@
-PIPELINE auth-endpoints
-  STEP build
-    COMMAND
-      mkdir -p dist
-
-      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-        go build -v -o dist/${APPLICATION_NAME} \
-        ./cmd/${APPLICATION_NAME}/${APPLICATION_NAME}.go
-
 ARTEFACT deps
   STEP download
     COMMAND go mod download
 
-ARTEFACT all
-  DEPENDS ON +migrations
-  DEPENDS ON +users-delete
-  DEPENDS ON +users-get
-  DEPENDS ON +users-list
-  DEPENDS ON +users-post
-  DEPENDS ON +users-put
-
-
-ARTEFACT migrations
-  DEPENDS ON +deps
-  ENV APPLICATION_NAME=migrations
-  PIPELINE auth-endpoints
-
-ARTEFACT users-delete
-  DEPENDS ON +deps
-  ENV APPLICATION_NAME=users-delete
-  PIPELINE auth-endpoints
-  
-ARTEFACT users-get
-  DEPENDS ON +deps
-  ENV APPLICATION_NAME=users-get
-  PIPELINE auth-endpoints
-  
-ARTEFACT users-list
-  DEPENDS ON +deps
-  ENV APPLICATION_NAME=users-list
-  PIPELINE auth-endpoints
-
-ARTEFACT users-post
-  DEPENDS ON +deps
-  ENV APPLICATION_NAME=users-post
-  PIPELINE auth-endpoints
-
-ARTEFACT users-put
-  DEPENDS ON +deps
-  ENV APPLICATION_NAME=users-put
-  PIPELINE auth-endpoints
-  
 ARTEFACT test
   DEPENDS ON +deps
   DEPENDS ON ../../libraries/mudfiles/cockroachdb+certs
@@ -63,4 +15,59 @@ ARTEFACT test
       POSTGRES_PASS=test_password \
       POSTGRES_ADMIN_USER=root \
       POSTGRES_CERTS=$(pwd)/../../libraries/mudfiles/ssl/certs \
-      go test -p=1 ./cmd/...
+      go test -p=1 -v ./cmd/...
+
+DOCKERFILE go
+  FILE
+    FROM scratch
+    ARG APP
+    COPY ./$APP /entrypoint
+    ENTRYPOINT [ "/entrypoint" ]
+
+ARTEFACT migrations
+  DEPENDS ON +deps
+  
+  STEP build
+    COMMAND
+      mkdir -p dist
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/migrations ./cmd/migrations/main.go
+  STEP image
+    DOCKERFILE go
+    CONTEXT dist
+    ARG APP=migrations
+    TAG auth-server-migrations
+
+ARTEFACT events
+  DEPENDS ON +deps
+
+  STEP build
+    COMMAND
+      mkdir -p dist
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/events ./cmd/events/main.go
+  STEP image
+    DOCKERFILE go
+    CONTEXT dist
+    ARG APP=events
+    TAG auth-server-events
+
+ARTEFACT server
+  DEPENDS ON +deps
+
+  STEP server-build
+    COMMAND
+      mkdir -p dist
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/server ./cmd/server/main.go
+  STEP server-image
+    DOCKERFILE go
+    CONTEXT dist
+    ARG APP=server
+    TAG auth-server
+
+ARTEFACT images
+  DEPENDS ON +migrations
+  DEPENDS ON +events
+  DEPENDS ON +server
+  

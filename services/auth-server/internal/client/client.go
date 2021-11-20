@@ -38,10 +38,11 @@ func (p *PostgresClient) Close(ctx context.Context) error {
 func (p *PostgresClient) AddUser(ctx context.Context, user User) (string, error) {
 	_, err := p.conn.Exec(
 		ctx,
-		"INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, False)",
+		"INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, $4)",
 		user.Name,
 		user.Email,
 		user.Password,
+		user.Verified,
 	)
 
 	if err != nil {
@@ -153,6 +154,11 @@ func (p *PostgresClient) GetUser(ctx context.Context, id string) (*User, error) 
 	}
 
 	return &users[0], nil
+}
+
+func (p *PostgresClient) Clear() error {
+	_, err := p.conn.Exec(context.Background(), "DELETE FROM users")
+	return err
 }
 
 // GetUser - retrieve a user from the database
