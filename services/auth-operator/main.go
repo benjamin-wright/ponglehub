@@ -7,9 +7,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
-	"ponglehub.co.uk/auth/auth-operator/internal/events"
 	"ponglehub.co.uk/auth/auth-operator/internal/handlers"
 	"ponglehub.co.uk/auth/auth-operator/internal/users"
+	"ponglehub.co.uk/lib/user-events/pkg/events"
 )
 
 func getEnv(key string) string {

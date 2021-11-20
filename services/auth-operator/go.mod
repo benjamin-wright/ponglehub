@@ -10,4 +10,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	k8s.io/apimachinery v0.22.3
 	k8s.io/client-go v0.22.3
+	ponglehub.co.uk/lib/user-events v1.0.0
 )
+
+replace ponglehub.co.uk/lib/user-events => ./../../libraries/golang/user-events

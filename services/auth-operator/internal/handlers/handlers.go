@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/auth/auth-operator/internal/events"
+	"ponglehub.co.uk/lib/user-events/pkg/events"
 )
 
 type Handler struct {

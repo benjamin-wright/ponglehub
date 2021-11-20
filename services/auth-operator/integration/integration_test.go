@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
-	"ponglehub.co.uk/auth/auth-operator/internal/events"
 	"ponglehub.co.uk/auth/auth-operator/internal/users"
+	"ponglehub.co.uk/lib/user-events/pkg/events"
 )
 
 func setNoUser(u *testing.T, userClient *users.UserClient, receiver chan events.UserEvent) {

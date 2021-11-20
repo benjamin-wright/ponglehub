@@ -8,7 +8,11 @@
 			"name": "lib: postgres"
 		},
 		{
-			"path": "services/go-auth-operator",
+			"path": "libraries/golang/user-events",
+			"name": "lib: user-events"
+		},
+		{
+			"path": "services/auth-operator",
 			"name": "srv: auth-operator"
 		},
 		{

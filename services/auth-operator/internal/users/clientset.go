@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"ponglehub.co.uk/auth/auth-operator/internal/events"
+	"ponglehub.co.uk/lib/user-events/pkg/events"
 )
 
 type UserClient struct {

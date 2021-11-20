@@ -29,7 +29,7 @@ spec:
               properties:
                 id:
                   type: string
-                verified:
+                pending:
                   type: boolean
                   default: false
       additionalPrinterColumns:
@@ -45,10 +45,16 @@ spec:
         type: string
         description: The generated ID
         jsonPath: .status.id
+      - name: Pending
+        type: boolean
+        description: True if the request is in flight
+        jsonPath: .status.pending
       - name: Age
         type: date
         jsonPath: .metadata.creationTimestamp
-  scope: Namespaced
+      subresources:
+        status: {}
+  scope: Cluster
   names:
     plural: authusers
     singular: authuser
