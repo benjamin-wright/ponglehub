@@ -7,9 +7,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
-	"ponglehub.co.uk/auth/auth-operator/internal/client"
 	"ponglehub.co.uk/auth/auth-operator/internal/events"
 	"ponglehub.co.uk/auth/auth-operator/internal/handlers"
+	"ponglehub.co.uk/auth/auth-operator/internal/users"
 )
 
 func getEnv(key string) string {
@@ -26,9 +26,9 @@ func main() {
 
 	brokerUrl := getEnv("BROKER_URL")
 
-	client.AddToScheme(scheme.Scheme)
+	users.AddToScheme(scheme.Scheme)
 
-	userClient, err := client.New()
+	userClient, err := users.New()
 	if err != nil {
 		logrus.Fatalf("Failed to start user client: %+v", err)
 	}
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	_, stopper := userClient.Listen(handler.AddUser, handler.UpdateUser, handler.DeleteUser)
-	cancelEventListener, err := events.Listen(handler.SetUser)
+	cancelEventListener, err := events.Listen(handler.UserEvent)
 	if err != nil {
 		logrus.Fatalf("Failed to create event listener: %+v", err)
 	}

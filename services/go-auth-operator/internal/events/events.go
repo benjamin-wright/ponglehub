@@ -10,7 +10,6 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/auth/auth-operator/internal/users"
 )
 
 type Events struct {
@@ -18,9 +17,32 @@ type Events struct {
 	sender cloudevents.Client
 }
 
-type UserSetHandler func(user users.User)
+type User struct {
+	Name            string `json:"name"`
+	Username        string `json:"username"`
+	Email           string `json:"email"`
+	Password        string `json:"password"`
+	ID              string `json:"id"`
+	Pending         bool   `json:"pending"`
+	ResourceVersion string `json:"resource_version"`
+}
 
-func writeClient(brokerUrl string) (cloudevents.Client, error) {
+func (a User) Equals(user User) bool {
+	return a.Email == user.Email &&
+		a.Username == user.Username &&
+		a.Password == user.Password
+}
+
+type UserEvent struct {
+	Type string
+	User User
+}
+
+type UserEventHandler func(event UserEvent)
+
+func New(brokerUrl string) (*Events, error) {
+	ctx := cloudevents.ContextWithTarget(context.Background(), brokerUrl)
+
 	p, err := cloudevents.NewHTTP()
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to NATS: %+v", err)
@@ -33,18 +55,21 @@ func writeClient(brokerUrl string) (cloudevents.Client, error) {
 		return nil, fmt.Errorf("error creating cloudevents instance: %+v", err)
 	}
 
-	return client, nil
+	return &Events{
+		ctx:    ctx,
+		sender: client,
+	}, nil
 }
 
-func readClient(setHandler UserSetHandler) (cloudevents.Client, context.CancelFunc, error) {
+func Listen(handler UserEventHandler) (context.CancelFunc, error) {
 	p, err := cloudevents.NewHTTP(cloudevents.WithPort(80))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create protocol: %s", err.Error())
+		return nil, fmt.Errorf("failed to create protocol: %s", err.Error())
 	}
 
 	client, err := cloudevents.NewClient(p)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create client, %v", err)
+		return nil, fmt.Errorf("failed to create client, %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,17 +78,14 @@ func readClient(setHandler UserSetHandler) (cloudevents.Client, context.CancelFu
 		err := client.StartReceiver(ctx, func(ctx context.Context, e event.Event) {
 			logrus.Infof("Received event: %s", e.Type())
 
-			switch e.Type() {
-			case "ponglehub.auth.user.set":
-				var user users.User
-				err = json.Unmarshal(e.Data(), &user)
-
+			var user User
+			err = json.Unmarshal(e.Data(), &user)
+			if err != nil {
 				logrus.Errorf("Error parsing user set data: %+v", err)
-
-				setHandler(user)
-			default:
-				logrus.Warnf("Unrecognised event type: %s", e.Type())
+				return
 			}
+
+			handler(UserEvent{Type: e.Type(), User: user})
 		})
 
 		if err != nil && ctx.Err() == nil {
@@ -72,29 +94,6 @@ func readClient(setHandler UserSetHandler) (cloudevents.Client, context.CancelFu
 			logrus.Infof("Stopped event listener")
 		}
 	}()
-
-	return client, cancel, nil
-}
-
-func New(brokerUrl string) (*Events, error) {
-	ctx := cloudevents.ContextWithTarget(context.Background(), brokerUrl)
-
-	sender, err := writeClient(brokerUrl)
-	if err != nil {
-		return nil, fmt.Errorf("error creating cloudevents sender: %+v", err)
-	}
-
-	return &Events{
-		ctx:    ctx,
-		sender: sender,
-	}, nil
-}
-
-func Listen(setHandler UserSetHandler) (context.CancelFunc, error) {
-	_, cancel, err := readClient(setHandler)
-	if err != nil {
-		return nil, fmt.Errorf("error creating cloudevents listener: %+v", err)
-	}
 
 	return cancel, nil
 }
@@ -139,9 +138,7 @@ func (e *Events) sendEvent(sender cloudevents.Client, eventType string, data int
 	return nil
 }
 
-func (e *Events) NewUser(user users.User) error {
-	logrus.Infof("Sending new user event for %s", user.Name)
-
+func (e *Events) NewUser(user User) error {
 	err := e.sendEvent(e.sender, "ponglehub.auth.user.add", &user)
 
 	if err != nil {
@@ -151,9 +148,7 @@ func (e *Events) NewUser(user users.User) error {
 	return nil
 }
 
-func (e *Events) UpdateUser(user users.User) error {
-	logrus.Infof("Sending update user event for %s", user.Name)
-
+func (e *Events) UpdateUser(user User) error {
 	err := e.sendEvent(e.sender, "ponglehub.auth.user.update", &user)
 
 	if err != nil {
@@ -163,8 +158,7 @@ func (e *Events) UpdateUser(user users.User) error {
 	return nil
 }
 
-func (e *Events) DeleteUser(user users.User) error {
-	logrus.Infof("Sending delete user event for %s", user.Name)
+func (e *Events) DeleteUser(user User) error {
 	err := e.sendEvent(e.sender, "ponglehub.auth.user.delete", &user)
 
 	if err != nil {

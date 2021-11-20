@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/auth/auth-operator/internal/users"
+	"ponglehub.co.uk/auth/auth-operator/internal/events"
 )
 
 type Handler struct {
@@ -11,15 +11,15 @@ type Handler struct {
 }
 
 type Events interface {
-	NewUser(user users.User) error
-	UpdateUser(user users.User) error
-	DeleteUser(user users.User) error
+	NewUser(user events.User) error
+	UpdateUser(user events.User) error
+	DeleteUser(user events.User) error
 }
 
 type Users interface {
-	Update(user users.User) error
-	Status(user users.User) error
-	Get(name string) (users.User, error)
+	Update(user events.User) (events.User, error)
+	Status(user events.User) (events.User, error)
+	Get(name string) (events.User, error)
 }
 
 func New(eventClient Events, userClient Users) (*Handler, error) {
@@ -29,7 +29,7 @@ func New(eventClient Events, userClient Users) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) AddUser(user users.User) {
+func (h *Handler) AddUser(user events.User) {
 	if user.Pending {
 		logrus.Infof("Not adding user '%s', already pending", user.Name)
 		return
@@ -42,7 +42,7 @@ func (h *Handler) AddUser(user users.User) {
 
 	logrus.Infof("Setting status to pending for %s", user.Name)
 	user.Pending = true
-	err := h.users.Status(user)
+	_, err := h.users.Status(user)
 	if err != nil {
 		logrus.Errorf("Failed to update user status %s: %+v", user.Name, err)
 		return
@@ -50,14 +50,15 @@ func (h *Handler) AddUser(user users.User) {
 
 	logrus.Infof("Sending add user event '%s'", user.Name)
 	err = h.events.NewUser(user)
-	if err == nil {
+	if err != nil {
+		logrus.Errorf("Failed to send event %s: %+v", user.Name, err)
 		return
 	}
 }
 
-func (h *Handler) UpdateUser(oldUser users.User, newUser users.User) {
+func (h *Handler) UpdateUser(oldUser events.User, newUser events.User) {
 	if oldUser.Equals(newUser) {
-		logrus.Infof("Not updating using '%s': No spec changes", newUser.Name)
+		logrus.Infof("Not updating user '%s': No spec changes", newUser.Name)
 		return
 	}
 
@@ -67,7 +68,8 @@ func (h *Handler) UpdateUser(oldUser users.User, newUser users.User) {
 	}
 
 	newUser.Pending = true
-	err := h.users.Status(newUser)
+	logrus.Infof("Setting status to pending for %s", newUser.Name)
+	_, err := h.users.Status(newUser)
 	if err != nil {
 		logrus.Errorf("Failed to update user status %s: %+v", newUser.Name, err)
 		return
@@ -75,13 +77,13 @@ func (h *Handler) UpdateUser(oldUser users.User, newUser users.User) {
 
 	logrus.Infof("Sending update user event '%s'", newUser.Name)
 	err = h.events.UpdateUser(newUser)
-	if err == nil {
+	if err != nil {
 		logrus.Errorf("Failed to update user %s: %+v", newUser.Name, err)
 		return
 	}
 }
 
-func (h *Handler) DeleteUser(user users.User) {
+func (h *Handler) DeleteUser(user events.User) {
 	logrus.Infof("Sending delete user event '%s'", user.Name)
 	err := h.events.DeleteUser(user)
 	if err != nil {
@@ -89,18 +91,29 @@ func (h *Handler) DeleteUser(user users.User) {
 	}
 }
 
-func (h *Handler) SetUser(name string, id string) {
-	user, err := h.users.Get(name)
-	if err != nil {
-		logrus.Errorf("Failed to fetch user %s: %+v", name, err)
+func (h *Handler) UserEvent(event events.UserEvent) {
+	if event.Type != "ponglehub.auth.user.set" {
+		logrus.Warnf("Unrecognised event type: %s", event)
 		return
 	}
 
-	user.ID = id
-	user.Pending = false
-	err = h.users.Status(user)
+	user := event.User
+
+	currentUser, err := h.users.Get(user.Name)
 	if err != nil {
-		logrus.Errorf("Failed to update user status %s: %+v", name, err)
+		logrus.Errorf("Failed to fetch user %s: %+v", user.Name, err)
+		return
+	}
+
+	if currentUser.ResourceVersion != user.ResourceVersion {
+		logrus.Infof("Ignoring user set event: resource version %s -> %s", user.ResourceVersion, currentUser.ResourceVersion)
+		return
+	}
+
+	user.Pending = false
+	_, err = h.users.Status(user)
+	if err != nil {
+		logrus.Errorf("Failed to update user status %s: %+v", user.Name, err)
 		return
 	}
 }

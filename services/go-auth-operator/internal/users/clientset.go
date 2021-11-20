@@ -12,33 +12,18 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"ponglehub.co.uk/auth/auth-operator/internal/events"
 )
 
 type UserClient struct {
 	restClient rest.Interface
 }
 
-type User struct {
-	Name       string `json:"name"`
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	ID         string `json:"id"`
-	Pending    bool   `json:"pending"`
-	Generation int64  `json:"generation"`
-}
-
-func (a User) Equals(user User) bool {
-	return a.Email == user.Email &&
-		a.Username == user.Username &&
-		a.Password == user.Password
-}
-
-func fromUser(user User) *AuthUser {
+func fromUser(user events.User) *AuthUser {
 	return &AuthUser{
 		ObjectMeta: v1.ObjectMeta{
-			Name:       user.Name,
-			Generation: user.Generation,
+			Name:            user.Name,
+			ResourceVersion: user.ResourceVersion,
 		},
 		Spec: AuthUserSpec{
 			Name:     user.Username,
@@ -52,15 +37,15 @@ func fromUser(user User) *AuthUser {
 	}
 }
 
-func fromAuthUser(authUser *AuthUser) User {
-	return User{
-		Name:       authUser.Name,
-		Username:   authUser.Spec.Name,
-		Email:      authUser.Spec.Email,
-		Password:   authUser.Spec.Password,
-		ID:         authUser.Status.ID,
-		Pending:    authUser.Status.Pending,
-		Generation: authUser.Generation,
+func fromAuthUser(authUser *AuthUser) events.User {
+	return events.User{
+		Name:            authUser.Name,
+		Username:        authUser.Spec.Name,
+		Email:           authUser.Spec.Email,
+		Password:        authUser.Spec.Password,
+		ID:              authUser.Status.ID,
+		Pending:         authUser.Status.Pending,
+		ResourceVersion: authUser.ResourceVersion,
 	}
 }
 
@@ -83,7 +68,7 @@ func New() (*UserClient, error) {
 	return &UserClient{restClient: client}, nil
 }
 
-func (c *UserClient) Get(name string) (User, error) {
+func (c *UserClient) Get(name string) (events.User, error) {
 	result := AuthUser{}
 	err := c.restClient.
 		Get().
@@ -107,33 +92,42 @@ func (c *UserClient) Delete(name string) error {
 	return res.Error()
 }
 
-func (c *UserClient) Create(user User) error {
+func (c *UserClient) Create(user events.User) (events.User, error) {
 	authUser := fromUser(user)
-	res := c.restClient.
+
+	result := AuthUser{}
+	err := c.restClient.
 		Post().
 		Resource("authusers").
 		VersionedParams(&v1.CreateOptions{}, scheme.ParameterCodec).
 		Body(authUser).
-		Do(context.TODO())
+		Do(context.TODO()).
+		Into(&result)
 
-	return res.Error()
+	return fromAuthUser(&result), err
 }
 
-func (c *UserClient) Update(user User) error {
+func (c *UserClient) Update(user events.User) (events.User, error) {
 	authUser := fromUser(user)
-	return c.restClient.
+
+	result := AuthUser{}
+	err := c.restClient.
 		Put().
 		Resource("authusers").
 		Name(user.Name).
 		VersionedParams(&v1.UpdateOptions{}, scheme.ParameterCodec).
 		Body(authUser).
 		Do(context.TODO()).
-		Error()
+		Into(&result)
+
+	return fromAuthUser(&result), err
 }
 
-func (c *UserClient) Status(user User) error {
+func (c *UserClient) Status(user events.User) (events.User, error) {
 	authUser := fromUser(user)
-	return c.restClient.
+
+	result := AuthUser{}
+	err := c.restClient.
 		Put().
 		Resource("authusers").
 		Name(user.Name).
@@ -141,7 +135,9 @@ func (c *UserClient) Status(user User) error {
 		VersionedParams(&v1.UpdateOptions{}, scheme.ParameterCodec).
 		Body(authUser).
 		Do(context.TODO()).
-		Error()
+		Into(&result)
+
+	return fromAuthUser(&result), err
 }
 
 func (c *UserClient) list(opts v1.ListOptions) (*AuthUserList, error) {
@@ -166,9 +162,9 @@ func (c *UserClient) watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 func (c *UserClient) Listen(
-	addFunc func(user User),
-	updateFunc func(oldUser User, newUser User),
-	deleteFunc func(user User),
+	addFunc func(user events.User),
+	updateFunc func(oldUser events.User, newUser events.User),
+	deleteFunc func(user events.User),
 ) (cache.Store, chan<- struct{}) {
 	userStore, userController := cache.NewInformer(
 		&cache.ListWatch{
@@ -188,10 +184,15 @@ func (c *UserClient) Listen(
 				)
 			},
 			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				updateFunc(
-					fromAuthUser(oldObj.(*AuthUser)),
-					fromAuthUser(newObj.(*AuthUser)),
-				)
+				oldUser := oldObj.(*AuthUser)
+				newUser := newObj.(*AuthUser)
+
+				if oldUser.Generation != newUser.Generation {
+					updateFunc(
+						fromAuthUser(oldUser),
+						fromAuthUser(newUser),
+					)
+				}
 			},
 			DeleteFunc: func(obj interface{}) {
 				deleteFunc(
