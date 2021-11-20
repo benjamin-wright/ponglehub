@@ -12,25 +12,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/auth/auth-server/internal/client"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
-func GetRouter(database string, builder func(cli client.AuthClient, r *gin.Engine)) *gin.Engine {
-	host, ok := os.LookupEnv("DB_HOST")
-	if !ok {
-		logrus.Fatal("Environment Variable DB_HOST not found")
-	}
+type AuthClient interface {
+	AddUser(ctx context.Context, user client.User) (string, error)
+	UpdateUser(ctx context.Context, id string, user client.User, verified *bool) (bool, error)
+	GetUser(ctx context.Context, id string) (*client.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*client.User, error)
+	ListUsers(ctx context.Context) ([]*client.User, error)
+	DeleteUser(ctx context.Context, id string) (bool, error)
+}
 
-	username, ok := os.LookupEnv("DB_USER")
-	if !ok {
-		username = "authserver"
-	}
-
-	cli, err := client.NewPostgresClient(context.Background(), &client.PostgresClientConfig{
-		Username: username,
-		Host:     host,
-		Port:     26257,
-		Database: database,
-	})
+func GetRouter(config connect.ConnectConfig, builder func(cli AuthClient, r *gin.Engine)) *gin.Engine {
+	cli, err := client.NewPostgresClient(context.Background(), config)
 
 	if err != nil {
 		logrus.Fatalf("Failed to connect to database: %+v", err)
@@ -43,10 +38,30 @@ func GetRouter(database string, builder func(cli client.AuthClient, r *gin.Engin
 	return r
 }
 
-func Run(builder func(cli client.AuthClient, r *gin.Engine)) {
+func Run(builder func(cli AuthClient, r *gin.Engine)) {
 	port, ok := os.LookupEnv("PONGLE_SERVER_PORT")
 	if !ok {
 		logrus.Fatal("Environment Variable PONGLE_SERVER_PORT not found")
+	}
+
+	host, ok := os.LookupEnv("DB_HOST")
+	if !ok {
+		logrus.Fatal("Environment Variable DB_HOST not found")
+	}
+
+	username, ok := os.LookupEnv("DB_USER")
+	if !ok {
+		username = "authserver"
+	}
+
+	password, ok := os.LookupEnv("DB_PASS")
+	if !ok {
+		logrus.Fatal("Enrivonment Variable DB_PASS not found")
+	}
+
+	certsDir, ok := os.LookupEnv("DB_CERTS")
+	if !ok {
+		logrus.Fatal("Enrivonment Variable DB_CERTS not found")
 	}
 
 	database, ok := os.LookupEnv("DB_NAME")
@@ -54,7 +69,14 @@ func Run(builder func(cli client.AuthClient, r *gin.Engine)) {
 		logrus.Fatal("Environment Variable DB_NAME not found")
 	}
 
-	r := GetRouter(database, builder)
+	r := GetRouter(connect.ConnectConfig{
+		Username: username,
+		Password: password,
+		Host:     host,
+		Port:     26257,
+		Database: database,
+		CertsDir: certsDir,
+	}, builder)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%s", port),
@@ -70,7 +92,7 @@ func Run(builder func(cli client.AuthClient, r *gin.Engine)) {
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 

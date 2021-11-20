@@ -4,12 +4,20 @@
 			"path": "."
 		},
 		{
-			"path": "services/db-init",
-			"name": "db-init"
+			"path": "libraries/golang/postgres",
+			"name": "lib: postgres"
+		},
+		{
+			"path": "libraries/golang/user-events",
+			"name": "lib: user-events"
+		},
+		{
+			"path": "services/auth-operator",
+			"name": "srv: auth-operator"
 		},
 		{
 			"path": "services/auth-server",
-			"name": "auth-server"
+			"name": "srv: auth-server"
 		}
 	],
 	"settings": {}

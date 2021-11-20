@@ -1,0 +1,54 @@
+DEVENV db
+  COMPOSE
+    version: '3.9'
+    services:
+      cockroachdb:
+        image: cockroachdb/cockroach:v20.2.8
+        command: start-single-node --certs-dir=/certs --listen-addr=cockroachdb
+        ports:
+        - "26257:26257"
+        - "8080:8080"
+        volumes:
+        - ./ssl/certs:/certs
+
+ARTEFACT ca-cert
+  STEP ca
+    CONDITION [[ ! -f $(pwd)/ssl/keys/ca.key ]]
+    COMMAND
+      docker run -v $(pwd)/ssl/certs:/certs -v $(pwd)/ssl/keys:/keys cockroachdb/cockroach:v20.2.8 \
+        cert create-ca \
+        --certs-dir=/certs \
+        --ca-key=/keys/ca.key
+  
+  STEP node
+    CONDITION [[ ! -f $(pwd)/ssl/certs/node.crt ]]
+    COMMAND
+      docker run -v $(pwd)/ssl/certs:/certs -v $(pwd)/ssl/keys:/keys cockroachdb/cockroach:v20.2.8 \
+        cert create-node \
+        cockroachdb \
+        --certs-dir=/certs \
+        --ca-key=/keys/ca.key
+
+PIPELINE user-certs
+  STEP root
+    CONDITION [[ ! -f $(pwd)/ssl/certs/client.$DB_USER.crt ]]
+    COMMAND
+      docker run -v $(pwd)/ssl/certs:/certs -v $(pwd)/ssl/keys:/keys cockroachdb/cockroach:v20.2.8 \
+        cert create-client \
+        $DB_USER \
+        --certs-dir=/certs \
+        --ca-key=/keys/ca.key
+
+ARTEFACT root-cert
+  DEPENDS ON +ca-cert
+  ENV DB_USER=root
+  PIPELINE user-certs
+
+ARTEFACT test-cert
+  DEPENDS ON +ca-cert
+  ENV DB_USER=test_user
+  PIPELINE user-certs
+
+ARTEFACT certs
+  DEPENDS ON +root-cert
+  DEPENDS ON +test-cert

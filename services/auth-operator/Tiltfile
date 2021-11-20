@@ -1,37 +1,35 @@
-allow_k8s_contexts(['auth-operator'])
+allow_k8s_contexts(['pongle-dev'])
 load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
 default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry:5000')
 
-local_resource(
-  'unit tests',
-  'cd operator && npm run unit',
-  ['./operator/src']
+custom_build(
+  'auth-operator',
+  'mudly +image && docker tag auth-operator $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
 )
 
 custom_build(
   'auth-operator-tests',
-  'mudly --no-deps ./int-test+image && docker tag auth-operator-tests $EXPECTED_REF',
-  ['./int-test'],
-  live_update=[
-    sync('./int-test/tests', '/src/tests'),
-  ]
+  'mudly +integration && docker tag auth-operator-tests $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
 )
 
-custom_build(
-  'auth-operator',
-  'mudly --no-deps ./operator+image && docker tag auth-operator $EXPECTED_REF',
-  ['./operator']
+k8s_resource(
+  'operator',
+  trigger_mode=TRIGGER_MODE_MANUAL
 )
 
-custom_build(
-  'mock',
-  'mudly --no-deps ./mock+image && docker tag mock $EXPECTED_REF',
-  ['./mock']
+k8s_resource(
+  'test',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  resource_deps=['operator']
 )
 
 k8s_yaml('crds/user.crd.yaml')
-
 k8s_yaml(namespace_yaml('int-auth-operator'))
 
 k8s_yaml(helm(
@@ -39,28 +37,20 @@ k8s_yaml(helm(
   name='auth-operator',
   namespace='int-auth-operator',
   set=[
+    'servers.operator.enabled=true',
+    'servers.operator.env.BROKER_URL="http://test:80"',
+    'servers.operator.image=auth-operator',
+    'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
+    'servers.operator.rbac.resources={authusers,authusers/status}',
+    'servers.operator.rbac.verbs={get,list,watch,patch,update}',
+    'servers.operator.rbac.clusterWide=true',
+    'servers.operator.resources.limits.memory=64Mi',
+    'servers.operator.resources.requests.memory=64Mi',
     'test.image=auth-operator-tests',
-    'test.env.NAMESPACE="{{ .Release.Namespace }}"',
+    'test.env.BROKER_URL="http://operator:80"',
     'test.rbac.apiGroups={ponglehub.co.uk}',
     'test.rbac.resources={authusers,authusers/status}',
-    'test.rbac.verbs={create,get,update,list,delete,deletecollection}',
+    'test.rbac.verbs={get,create,update,delete,deletecollection}',
     'test.rbac.clusterWide=true',
-
-    'mock.image=mock',
-
-    'servers.app.enabled=true',
-    'servers.app.image=auth-operator',
-    'servers.app.env.NAMESPACE="{{ .Release.Namespace }}"',
-    'servers.app.env.AUTH_ENDPOINT="http://mock"',
-    'servers.app.rbac.apiGroups={ponglehub.co.uk}',
-    'servers.app.rbac.resources={authusers,authusers/status}',
-    'servers.app.rbac.verbs={get,list,watch,patch,update}',
-    'servers.app.rbac.clusterWide=true',
-    'servers.app.resources.limits.memory=512Mi',
-    'servers.app.resources.requests.memory=512Mi',
   ]
 ))
-
-k8s_resource('test', resource_deps=['app', 'mock'])
-k8s_resource('app', port_forwards=["9229:9229"])
-k8s_resource('mock', port_forwards=["3001:80"])

@@ -1,0 +1,13 @@
+ARTEFACT test
+  DEPENDS ON ../../mudfiles/cockroachdb+certs
+
+  STEP test
+    DEVENV ../../mudfiles/cockroachdb db
+    COMMAND
+      POSTGRES_HOST=localhost \
+      POSTGRES_PORT=26257 \
+      POSTGRES_USER=test_user \
+      POSTGRES_PASS=test_password \
+      POSTGRES_ADMIN_USER=root \
+      POSTGRES_CERTS=$(pwd)/../../mudfiles/ssl/certs \
+      go test -v ./pkg/...

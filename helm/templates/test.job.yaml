@@ -1,0 +1,132 @@
+{{- if .Values.test.image }}
+{{- $test := .Values.test -}}
+{{- $root := . -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $test.name }}
+automountServiceAccountToken: true
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: {{ required "must enter a name property!" $test.name }}
+  name: {{ required "must enter a name property!" $test.name }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: {{ required "must enter a name property!" $test.name }}
+      annotations:
+        linkerd.io/inject: disabled
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ $test.name }}
+      containers:
+      - name: {{ $test.name | default "job" }}
+        image: {{ required "must enter an image property!" $test.image}}
+        imagePullPolicy: {{ $test.pullPolicy | default "Always" }}
+        {{- if $test.env }}
+        env:
+        {{- range $key, $value := $test.env }}
+        - name: {{ $key }}
+          value: {{ tpl $value $root }}
+        {{- end }}
+        {{- end }}
+        resources:
+        {{- if $test.resources }}
+          {{- toYaml $test.resources | nindent 10 }}
+        {{- else }}
+          requests:
+            memory: 512Mi
+            cpu: 1
+          limits:
+            memory: 512Mi
+            cpu: 1
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ $test.name }}
+  name: {{ $test.name }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: {{ $test.port | default 80 }}
+  selector:
+    app: {{ $test.name }}
+  type: ClusterIP
+{{- if not (empty $test.rbac) }}
+{{- if $test.rbac.clusterWide }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $test.name }}
+rules:
+- apiGroups:
+  {{- range $test.rbac.apiGroups }}
+  - {{ . }}
+  {{- end }}
+  resources:
+  {{- range $test.rbac.resources }}
+  - {{ . }}
+  {{- end }}
+  verbs:
+  {{- range $test.rbac.verbs }}
+  - {{ . }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $test.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $test.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ $test.name }}
+  namespace: {{ $root.Release.Namespace }}
+{{- else }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $test.name }}
+rules:
+- apiGroups:
+  {{- range $test.rbac.apiGroups }}
+  - {{ . }}
+  {{- end }}
+  resources:
+  {{- range $test.rbac.resources }}
+  - {{ . }}
+  {{- end }}
+  verbs:
+  {{- range $test.rbac.verbs }}
+  - {{ . }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $test.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $test.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ $test.name }}
+  namespace: {{ $root.Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}

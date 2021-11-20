@@ -1,9 +1,0 @@
-apiVersion: ponglehub.co.uk/v1alpha1
-kind: AuthUser
-metadata:
-  name: my-user
-  namespace: int-auth-operator
-spec:
-  name: test-user
-  email: test@user.com
-  password: whatever man

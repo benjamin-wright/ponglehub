@@ -54,7 +54,7 @@ func TestDeleteRoute(t *testing.T) {
 		t.Fail()
 		return
 	}
-	defer cli.Drop()
+	defer cli.Close()
 
 	for _, test := range []struct {
 		name     string
@@ -95,7 +95,7 @@ func TestDeleteRoute(t *testing.T) {
 		t.Run(test.name, func(u *testing.T) {
 			loadUsers(u, cli, test.ids)
 
-			r := server.GetRouter(TEST_DB, main.RouteBuilder)
+			r := server.GetRouter(cli.TargetConfig(), main.RouteBuilder)
 
 			req, _ := http.NewRequest("DELETE", test.path, nil)
 			w := httptest.NewRecorder()
