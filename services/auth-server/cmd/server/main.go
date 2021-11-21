@@ -19,7 +19,7 @@ import (
 func main() {
 	port, ok := os.LookupEnv("PONGLE_SERVER_PORT")
 	if !ok {
-		logrus.Fatal("Environment Variable PONGLE_SERVER_PORT not found")
+		port = "8080"
 	}
 
 	config, err := connect.ConfigFromEnv()

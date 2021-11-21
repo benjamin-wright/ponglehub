@@ -32,6 +32,19 @@ ARTEFACT generate
         '. |= (select(.kind=="Service" and .metadata.name=="knative-local-gateway") | .metadata.labels["experimental.istio.io/disable-gateway-port-translation"]="true")' \
         infra/manifests/generated/knative-net-istio.yaml
 
+  STEP cert-manager
+    CONDITION
+      [[ ! -f infra/manifests/generated/cert-manager.yaml ]]
+    COMMAND
+      curl -L https://github.com/jetstack/cert-manager/releases/download/v1.6.0/cert-manager.yaml -o infra/manifests/generated/cert-manager.yaml
+
+  STEP cockroachdb
+    CONDITION
+      [[ ! -f infra/manifests/generated/cockroachdb-crds.yaml ]]
+    COMMAND
+      curl -L https://raw.githubusercontent.com/cockroachdb/cockroach-operator/v2.4.0/install/crds.yaml -o infra/manifests/generated/cockroachdb-crds.yaml
+      curl -L https://raw.githubusercontent.com/cockroachdb/cockroach-operator/v2.4.0/install/operator.yaml -o infra/manifests/generated/cockroachdb-operator.yaml
+
 ARTEFACT start
   DEPENDS ON +generate
   
@@ -68,6 +81,10 @@ ARTEFACT stop
   STEP registry
     CONDITION k3d registry list | grep -w k3d-$REGISTRY_NAME
     COMMAND k3d registry delete $REGISTRY_NAME
+  
+  STEP scratch
+    CONDITION [[ -f .scratch/kubeconfig ]]
+    COMMAND rm .scratch/kubeconfig
 
 ARTEFACT npm
   CONDITION ! docker ps --format '{{ .Names }}' | grep -q $NPM_CONTAINER

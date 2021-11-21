@@ -1,5 +1,5 @@
 {{ $functions := .Values.functions }}
-{{ $top := . }}
+{{ $root := . }}
 
 {{- range $name, $function := $functions }}
 ---
@@ -14,7 +14,11 @@ spec:
     spec:
       containers:
         - image: {{ $function.image }}
+          {{- if $function.env }}
           env:
-          - name: PONGLE_SERVER_PORT
-            value: "8080"
+          {{- range $key, $value := $function.env }}
+          - name: {{ $key }}
+            value: {{ tpl $value $root }}
+          {{- end }}
+          {{- end }}
 {{- end }}
