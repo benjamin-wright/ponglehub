@@ -1,86 +1,9 @@
 {{- if .Values.db }}
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: ca
-spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: cockroachdb-ca
-spec:
-  isCA: true
-  commonName: cockroachdb
-  secretName: cockroachdb-ca
-  privateKey:
-    algorithm: RSA
-    size: 2048
-  issuerRef:
-    name: ca
-    kind: Issuer
-    group: cert-manager.io
----
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: client
-spec:
-  ca:
-    secretName: cockroachdb-ca
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: cockroachdb-node
-spec:
-  commonName: node
-  secretName: cockroachdb-node
-  dnsNames:
-  - 'cockroachdb-public'
-  - 'cockroachdb-public.{{ .Release.Namespace }}'
-  - 'cockroachdb-public.{{ .Release.Namespace }}.svc.cluster.local'
-  - '*.cockroachdb'
-  - '*.cockroachdb.{{ .Release.Namespace }}'
-  - '*.cockroachdb.{{ .Release.Namespace }}.svc.cluster.local'
-  privateKey:
-    algorithm: RSA
-    size: 2048
-  issuerRef:
-    name: client
-    kind: Issuer
-    group: cert-manager.io
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: cockroachdb-root
-spec:
-  commonName: root
-  secretName: cockroachdb-root
-  dnsNames:
-  - 'cockroachdb-public'
-  - 'cockroachdb-public.{{ .Release.Namespace }}'
-  - 'cockroachdb-public.{{ .Release.Namespace }}.svc.cluster.local'
-  - '*.cockroachdb'
-  - '*.cockroachdb.{{ .Release.Namespace }}'
-  - '*.cockroachdb.{{ .Release.Namespace }}.svc.cluster.local'
-  privateKey:
-    algorithm: ECDSA
-    size: 256
-  issuerRef:
-    name: client
-    kind: Issuer
-    group: cert-manager.io
----
 apiVersion: crdb.cockroachlabs.com/v1alpha1
 kind: CrdbCluster
 metadata:
   name: cockroachdb
 spec:
-  nodeTLSSecret: cockroachdb-node
-  clientTLSSecret: cockroachdb-root
   dataStore:
     pvc:
       spec:
@@ -101,6 +24,4 @@ spec:
   image:
     name: cockroachdb/cockroach:v21.1.11
   nodes: 3
----
-
 {{- end }}

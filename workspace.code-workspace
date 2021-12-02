@@ -12,6 +12,10 @@
 			"name": "lib: user-events"
 		},
 		{
+			"path": "services/db-operator",
+			"name": "srv: db-operator"
+		},
+		{
 			"path": "services/auth-operator",
 			"name": "srv: auth-operator"
 		},

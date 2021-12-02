@@ -32,12 +32,6 @@ ARTEFACT generate
         '. |= (select(.kind=="Service" and .metadata.name=="knative-local-gateway") | .metadata.labels["experimental.istio.io/disable-gateway-port-translation"]="true")' \
         infra/manifests/generated/knative-net-istio.yaml
 
-  STEP cert-manager
-    CONDITION
-      [[ ! -f infra/manifests/generated/cert-manager.yaml ]]
-    COMMAND
-      curl -L https://github.com/jetstack/cert-manager/releases/download/v1.6.0/cert-manager.yaml -o infra/manifests/generated/cert-manager.yaml
-
   STEP cockroachdb
     CONDITION
       [[ ! -f infra/manifests/generated/cockroachdb-crds.yaml ]]

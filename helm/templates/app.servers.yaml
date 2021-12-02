@@ -1,6 +1,60 @@
 {{- $root := . }}
 {{- range $name, $server := .Values.servers }}
 {{- if $server.enabled }}
+{{- if $server.db }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}-cdb
+rules:
+- apiGroups:
+  - certificates.k8s.io 
+  resources:
+  - certificatesigningrequests
+  verbs:
+  - get
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}-cdb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}-cdb
+subjects:
+- kind: ServiceAccount
+  name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}-cdb
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}-cdb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}-cdb
+subjects:
+- kind: ServiceAccount
+  name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -31,8 +85,10 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ $name }}
-      {{- if $server.initContainers }}
+      {{- if (or $server.initContainers $server.db) }}
       initContainers:
+      {{- end }}
+      {{- if $server.initContainers }}
       {{- range $key, $container := $server.initContainers }}
       - name: {{ $container.name }}
         image: {{ required "must enter an image property!" $container.image}}
@@ -58,7 +114,28 @@ spec:
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
       {{- end }}
-      {{- end}}
+      {{- end }}
+      {{- if  $server.db }}
+      - name: init-certs
+        command:
+        - /bin/ash
+        - -ecx
+        - /request-cert -namespace=${POD_NAMESPACE} -certs-dir=/cockroach-certs/ -symlink-ca-from=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt -type=node -addresses=localhost,127.0.0.1,$(hostname -f),$(hostname -f|cut -f 1-2 -d '.'),cockroachdb-public,cockroachdb-public.$(hostname -f|cut -f 3- -d '.')
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        image: cockroachdb/cockroach-k8s-request-cert:0.4
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /cockroach-certs/
+          name: certs
+      {{- end }}
       containers:
       - name: server
         image: {{ required "must enter an image property!" $server.image}}
@@ -75,12 +152,28 @@ spec:
         - {{ . | quote }}
           {{- end }}
         {{- end }}
-        {{- if $server.env }}
+        {{- if (or $server.env $server.db) }}
         env:
+        {{- end }}
+        {{- if $server.env }}
         {{- range $key, $value := $server.env }}
         - name: {{ $key }}
           value: {{ tpl $value $root }}
         {{- end }}
+        {{- end }}
+        {{- if $server.db }}
+        - name: POSTGRES_HOST
+          value: cockroachdb
+        - name: POSTGRES_PORT
+          value: "26257"
+        - name: POSTGRES_USER
+          value: {{ $server.db.user }}
+        - name: POSTGRES_PASS
+          value: test_password
+        - name: POSTGRES_CERTS
+          value: /certs
+        - name: POSTGRES_NAME
+          value: {{ $server.db.database }}
         {{- end }}
         resources:
         {{- if $server.resources }}
@@ -93,8 +186,19 @@ spec:
             memory: 32Mi
             cpu: 0.1
         {{- end }}
+        {{- if $server.db }}
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+        {{- end }}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+
+      {{- if $server.db }}
+      volumes:
+      - name: certs
+        emptyDir: {}
+      {{- end }}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler

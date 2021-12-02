@@ -47,6 +47,7 @@ func getConnection(config *pgx.ConnConfig) *pgx.Conn {
 		var connection *pgx.Conn
 		var err error
 		for attempts < limit {
+			attempts += 1
 			connection, err = pgx.ConnectConfig(context.Background(), config)
 			if err != nil {
 				logrus.Warnf("error connecting to the database: %+v", err)
@@ -83,6 +84,7 @@ func Connect(config ConnectConfig) (*pgx.Conn, error) {
 	}
 
 	pgxConfig.TLSConfig = tlsConfig
+
 	conn := getConnection(pgxConfig)
 	if conn == nil {
 		return nil, errors.New("failed to create connection, exiting")
