@@ -138,15 +138,15 @@ ARTEFACT dev
   STEP kubeconfig
     COMMAND
       mkdir -p .scratch \
-        && k3d kubeconfig get $DEV_CLUSTER > .scratch/dev-kubeconfig \
-        && KUBECONFIG=.scratch/dev-kubeconfig kubectl config use-context k3d-$DEV_CLUSTER
+        && k3d kubeconfig get $DEV_CLUSTER > .scratch/kubeconfig \
+        && KUBECONFIG=.scratch/kubeconfig kubectl config use-context k3d-$DEV_CLUSTER
 
 ARTEFACT dev-stop
   CONDITION k3d cluster list | grep -w $DEV_CLUSTER
   STEP stop
     COMMAND
       k3d cluster delete $DEV_CLUSTER \
-        && rm .scratch/dev-kubeconfig
+        && rm .scratch/kubeconfig
 
 ARTEFACT build
   DEPENDS ON ./services/auth-operator+image

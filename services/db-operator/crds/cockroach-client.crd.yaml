@@ -1,7 +1,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: cockroachclient.ponglehub.co.uk
+  name: cockroachclients.ponglehub.co.uk
 spec:
   group: ponglehub.co.uk
   versions:
@@ -20,7 +20,7 @@ spec:
                 secret:
                   type: string
               required: [ database, secret ]
-  scope: Namespace
+  scope: Namespaced
   names:
     plural: cockroachclients
     singular: cockroachclient

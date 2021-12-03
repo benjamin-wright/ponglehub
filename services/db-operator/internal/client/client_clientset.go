@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
+	"ponglehub.co.uk/operators/db/internal/types"
 )
 
 func (c *DBClient) clientList(opts v1.ListOptions) (*CockroachClientList, error) {
@@ -32,8 +33,21 @@ func (c *DBClient) clientWatch(opts v1.ListOptions) (watch.Interface, error) {
 		Watch(context.TODO())
 }
 
-func (c *DBClient) ClientListen() (cache.Store, chan<- struct{}) {
-	userStore, userController := cache.NewInformer(
+func clientFromApi(old *CockroachClient) types.Client {
+	return types.Client{
+		Name:      old.Name,
+		Namespace: old.Namespace,
+		Database:  old.Spec.Database,
+		Secret:    old.Spec.Secret,
+	}
+}
+
+type ClientAddedHandler func(client types.Client)
+type ClientUpdatedHandler func(oldClient types.Client, newClient types.Client)
+type ClientDeletedHandler func(client types.Client)
+
+func (c *DBClient) ClientListen(added ClientAddedHandler, updated ClientUpdatedHandler, deleted ClientDeletedHandler) (cache.Store, chan<- struct{}) {
+	clientStore, clientController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(lo v1.ListOptions) (result runtime.Object, err error) {
 				return c.clientList(lo)
@@ -45,14 +59,25 @@ func (c *DBClient) ClientListen() (cache.Store, chan<- struct{}) {
 		&CockroachClient{},
 		1*time.Minute,
 		cache.ResourceEventHandlerFuncs{
-			AddFunc:    func(obj interface{}) {},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {},
-			DeleteFunc: func(obj interface{}) {},
+			AddFunc: func(obj interface{}) {
+				added(clientFromApi(obj.(*CockroachClient)))
+			},
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+				oldClient := oldObj.(*CockroachClient)
+				newClient := newObj.(*CockroachClient)
+
+				if oldClient.Generation != newClient.Generation {
+					updated(clientFromApi(oldClient), clientFromApi(newClient))
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				deleted(clientFromApi(obj.(*CockroachClient)))
+			},
 		},
 	)
 
 	stopper := make(chan struct{})
-	go userController.Run(stopper)
+	go clientController.Run(stopper)
 
-	return userStore, stopper
+	return clientStore, stopper
 }
