@@ -5,14 +5,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
-	"ponglehub.co.uk/operators/db/internal/client"
+	"ponglehub.co.uk/operators/db/internal/crds"
 	"ponglehub.co.uk/operators/db/internal/types"
 )
 
 func Test(t *testing.T) {
-	client.AddToScheme(scheme.Scheme)
+	crds.AddToScheme(scheme.Scheme)
 
-	cli, err := client.New()
+	cli, err := crds.New()
 	if err != nil {
 		assert.NoError(t, err)
 		t.FailNow()

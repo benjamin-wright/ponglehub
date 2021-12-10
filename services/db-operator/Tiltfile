@@ -41,9 +41,9 @@ k8s_yaml(helm(
   set=[
     'servers.operator.enabled=true',
     'servers.operator.image=db-operator',
-    'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
-    'servers.operator.rbac.resources={cockroachdbs,cockroachclients}',
-    'servers.operator.rbac.verbs={get,list,watch}',
+    'servers.operator.rbac.apiGroups={ponglehub.co.uk,apps,}',
+    'servers.operator.rbac.resources={cockroachdbs,cockroachclients,statefulsets,secrets,services,persistentvolumeclaims}',
+    'servers.operator.rbac.verbs={get,list,watch,create,delete}',
     'servers.operator.rbac.clusterWide=true',
     'servers.operator.resources.limits.memory=64Mi',
     'servers.operator.resources.requests.memory=64Mi',

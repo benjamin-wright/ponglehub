@@ -1,8 +1,7 @@
-package client
+package crds
 
 import (
 	"context"
-	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,7 +56,7 @@ func (c *DBClient) ClientListen(added ClientAddedHandler, updated ClientUpdatedH
 			},
 		},
 		&CockroachClient{},
-		1*time.Minute,
+		0,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				added(clientFromApi(obj.(*CockroachClient)))
