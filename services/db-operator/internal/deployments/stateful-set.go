@@ -9,6 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	"ponglehub.co.uk/operators/db/internal/types"
 )
 
@@ -56,6 +59,23 @@ func (d *DeploymentsClient) GetDeployments(namespace string) ([]types.Database, 
 	}
 
 	return databases, nil
+}
+
+func (d *DeploymentsClient) GetDeployment(namespace string, name string) (types.Database, error) {
+	deployment, err := d.clientset.AppsV1().
+		StatefulSets(namespace).
+		Get(context.TODO(), name, v1.GetOptions{})
+
+	if err != nil {
+		return emptyDB, fmt.Errorf("failed to get database deployments: %+v", err)
+	}
+
+	database, err := fromSS(*deployment)
+	if err != nil {
+		return emptyDB, fmt.Errorf("failed to parse stateful set: %+v", err)
+	}
+
+	return database, nil
 }
 
 func (d *DeploymentsClient) DeleteDeployment(database types.Database) error {
@@ -165,4 +185,46 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 	}
 
 	return nil
+}
+
+func (c *DeploymentsClient) Listen(readyChanged func(namespace string, name string, ready bool)) (cache.Store, chan<- struct{}) {
+	dbStore, dbController := cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(lo v1.ListOptions) (result runtime.Object, err error) {
+				lo.LabelSelector = "db-operator.ponglehub.co.uk/owned=true"
+				return c.clientset.AppsV1().StatefulSets("").List(context.TODO(), lo)
+			},
+			WatchFunc: func(lo v1.ListOptions) (watch.Interface, error) {
+				lo.LabelSelector = "db-operator.ponglehub.co.uk/owned=true"
+				return c.clientset.AppsV1().StatefulSets("").Watch(context.TODO(), lo)
+			},
+		},
+		&appsv1.StatefulSet{},
+		0,
+		cache.ResourceEventHandlerFuncs{
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+				oldSS := oldObj.(*appsv1.StatefulSet)
+				newSS := newObj.(*appsv1.StatefulSet)
+
+				if oldSS.ResourceVersion == newSS.ResourceVersion {
+					return
+				}
+
+				readyChanged(
+					newSS.Name,
+					newSS.Namespace,
+					newSS.Status.Replicas == newSS.Status.ReadyReplicas && newSS.Status.Replicas > 0,
+				)
+			},
+			DeleteFunc: func(obj interface{}) {
+				ss := obj.(*appsv1.StatefulSet)
+				readyChanged(ss.Name, ss.Namespace, false)
+			},
+		},
+	)
+
+	stopper := make(chan struct{})
+	go dbController.Run(stopper)
+
+	return dbStore, stopper
 }

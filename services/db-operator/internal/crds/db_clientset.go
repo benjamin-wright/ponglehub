@@ -2,7 +2,9 @@ package crds
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -37,6 +39,7 @@ func dbFromApi(db *CockroachDB) types.Database {
 		Name:      db.Name,
 		Namespace: db.Namespace,
 		Storage:   db.Spec.Storage,
+		Ready:     db.Status.Ready,
 	}
 }
 
@@ -48,6 +51,9 @@ func apiFromDB(db types.Database) *CockroachDB {
 		},
 		Spec: CockroachDBSpec{
 			Storage: db.Storage,
+		},
+		Status: CockroachDBStatus{
+			Ready: db.Ready,
 		},
 	}
 }
@@ -106,14 +112,14 @@ func (c *DBClient) DBCreate(db types.Database) error {
 }
 
 func (c *DBClient) DBGet(name string, namespace string) (types.Database, error) {
-	var db CockroachDB
+	db := CockroachDB{}
 
 	err := c.restClient.
 		Get().
 		Namespace(namespace).
 		Resource("cockroachdbs").
-		VersionedParams(&v1.CreateOptions{}, scheme.ParameterCodec).
 		Name(name).
+		VersionedParams(&v1.GetOptions{}, scheme.ParameterCodec).
 		Do(context.TODO()).
 		Into(&db)
 
@@ -131,6 +137,41 @@ func (c *DBClient) DBDelete(name string, namespace string) error {
 		Resource("cockroachdbs").
 		VersionedParams(&v1.CreateOptions{}, scheme.ParameterCodec).
 		Name(name).
+		Do(context.TODO()).
+		Error()
+}
+
+func (c *DBClient) DBUpdate(name string, namespace string, ready bool) error {
+	db := CockroachDB{}
+
+	err := c.restClient.
+		Get().
+		Namespace(namespace).
+		Resource("cockroachdbs").
+		Name(name).
+		VersionedParams(&v1.GetOptions{}, scheme.ParameterCodec).
+		Do(context.TODO()).
+		Into(&db)
+
+	if err != nil {
+		return fmt.Errorf("failed in initial fetch: %+v", err)
+	}
+
+	if db.Status.Ready == ready {
+		return nil
+	}
+
+	logrus.Infof("Updating CRD status: %s (%s) -> ready: %t", name, namespace, ready)
+	db.Status.Ready = ready
+
+	return c.restClient.
+		Put().
+		Namespace(namespace).
+		Resource("cockroachdbs").
+		Name(name).
+		SubResource("status").
+		VersionedParams(&v1.UpdateOptions{}, scheme.ParameterCodec).
+		Body(&db).
 		Do(context.TODO()).
 		Error()
 }

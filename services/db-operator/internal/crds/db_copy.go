@@ -10,6 +10,9 @@ func (in *CockroachDB) DeepCopyInto(out *CockroachDB) {
 	out.Spec = CockroachDBSpec{
 		Storage: in.Spec.Storage,
 	}
+	out.Status = CockroachDBStatus{
+		Ready: in.Status.Ready,
+	}
 }
 
 // DeepCopyObject returns a generically typed copy of an object

@@ -17,6 +17,18 @@ spec:
               properties:
                 storage:
                   type: string
+            status:
+              type: object
+              properties:
+                ready:
+                  type: boolean
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - name: Ready
+        type: boolean
+        description: Defines whether the database is running
+        jsonPath: .status.ready
   scope: Namespaced
   names:
     plural: cockroachdbs
