@@ -42,14 +42,14 @@ k8s_yaml(helm(
     'servers.operator.enabled=true',
     'servers.operator.image=db-operator',
     'servers.operator.rbac.apiGroups={ponglehub.co.uk,apps,}',
-    'servers.operator.rbac.resources={cockroachdbs,cockroachdbs/status,cockroachclients,statefulsets,secrets,services,persistentvolumeclaims}',
+    'servers.operator.rbac.resources={cockroachdbs,cockroachdbs/status,cockroachclients,cockroachclients/status,statefulsets,secrets,services,persistentvolumeclaims}',
     'servers.operator.rbac.verbs={get,list,watch,create,update,delete}',
     'servers.operator.rbac.clusterWide=true',
     'servers.operator.resources.limits.memory=64Mi',
     'servers.operator.resources.requests.memory=64Mi',
     'test.image=db-operator-tests',
-    'test.rbac.apiGroups={ponglehub.co.uk}',
-    'test.rbac.resources={cockroachdbs,cockroachclients}',
+    'test.rbac.apiGroups={ponglehub.co.uk,}',
+    'test.rbac.resources={cockroachdbs,cockroachclients,secrets}',
     'test.rbac.verbs={get,create,update,delete,deletecollection}',
     'test.rbac.clusterWide=true'
   ]

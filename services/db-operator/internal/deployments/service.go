@@ -35,12 +35,12 @@ func (d *DeploymentsClient) AddService(namespace string, name string) error {
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Name:       "client",
+					Name:       "grpc",
 					Port:       26257,
 					TargetPort: intstr.FromInt(26257),
 				},
 				{
-					Name:       "web",
+					Name:       "http",
 					Port:       8080,
 					TargetPort: intstr.FromInt(8080),
 				},

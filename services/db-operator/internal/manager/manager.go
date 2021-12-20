@@ -2,9 +2,13 @@ package manager
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/operators/db/internal/certs"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
+	"ponglehub.co.uk/lib/postgres/pkg/migrate"
+	"ponglehub.co.uk/operators/db/internal/crds"
 	"ponglehub.co.uk/operators/db/internal/deployments"
 	"ponglehub.co.uk/operators/db/internal/types"
 )
@@ -16,14 +20,6 @@ func DeleteDeployment(deplClient *deployments.DeploymentsClient, db types.Databa
 
 	if err := deplClient.DeleteService(db.Namespace, db.Name); err != nil {
 		logrus.Errorf("failed to delete service: %+v", err)
-	}
-
-	if err := deplClient.DeleteNodeSecret(db.Namespace, db.Name); err != nil {
-		logrus.Errorf("failed to delete node secret: %+v", err)
-	}
-
-	if err := deplClient.DeleteCASecret(db.Namespace, db.Name); err != nil {
-		logrus.Errorf("failed to delete ca secret: %+v", err)
 	}
 }
 
@@ -37,53 +33,6 @@ func AddDeployment(deplClient *deployments.DeploymentsClient, db types.Database)
 		}
 	} else {
 		logrus.Infof("Service already exists")
-	}
-
-	key, err := deplClient.GetCASecret(db.Namespace, db.Name)
-	if err != nil {
-		return fmt.Errorf("failed getting CA secret: %+v", err)
-	}
-
-	_, err = deplClient.GetNodeSecret(db.Namespace, db.Name)
-	if err != nil {
-		return fmt.Errorf("failed getting node secret: %+v", err)
-	}
-
-	if key == nil {
-		logrus.Infof("Creating ssl secrets...")
-		ca, caKey, err := certs.GenerateCACerts()
-		if err != nil {
-			return fmt.Errorf("failed to create ca cert: %+v", err)
-		}
-
-		err = deplClient.AddCaSecret(db.Namespace, db.Name, caKey)
-		if err != nil {
-			return fmt.Errorf("failed to create ca key secret: %+v", err)
-		}
-
-		dnsNames := []string{
-			db.Name,
-			fmt.Sprintf("%s.%s", db.Name, db.Namespace),
-			fmt.Sprintf("%s.%s.svc.cluster.local", db.Name, db.Namespace),
-		}
-
-		node, nodeKey, err := certs.GenerateNodeCerts(dnsNames, ca, caKey)
-		if err != nil {
-			return fmt.Errorf("failed to create node cert: %+v", err)
-		}
-
-		err = deplClient.AddNodeSecret(db.Namespace, db.Name, deployments.NodeCerts{
-			CACrt:   ca,
-			NodeCrt: node,
-			NodeKey: nodeKey,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create node certs secret: %+v", err)
-		}
-
-		logrus.Infof("Created secrets")
-	} else {
-		logrus.Infof("Secrets already exist")
 	}
 
 	depls, err := deplClient.GetDeployments(db.Namespace)
@@ -101,6 +50,65 @@ func AddDeployment(deplClient *deployments.DeploymentsClient, db types.Database)
 	err = deplClient.AddDeployment(db)
 	if err != nil {
 		return fmt.Errorf("create DB failed: %+v", err)
+	}
+
+	return nil
+}
+
+func DeleteClient(deplClient *deployments.DeploymentsClient, client types.Client) error {
+	return nil
+}
+
+func generatePassword() string {
+	rand.Seed(time.Now().UnixNano())
+	digits := "0123456789"
+	specials := "~=+%^*/()[]{}/!@#$?|"
+	all := "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+		"abcdefghijklmnopqrstuvwxyz" +
+		digits + specials
+
+	length := 16
+	buf := make([]byte, length)
+	buf[0] = digits[rand.Intn(len(digits))]
+	buf[1] = specials[rand.Intn(len(specials))]
+
+	for i := 2; i < length; i++ {
+		buf[i] = all[rand.Intn(len(all))]
+	}
+
+	rand.Shuffle(len(buf), func(i, j int) {
+		buf[i], buf[j] = buf[j], buf[i]
+	})
+
+	return string(buf) // E.g. "3i[g0|)z"
+}
+
+func AddClient(crdClient *crds.DBClient, client types.Client) error {
+	err := migrate.Initialize(
+		connect.ConnectConfig{
+			Host:     fmt.Sprintf("%s.%s.svc.cluster.local", client.Deployment, client.Namespace),
+			Port:     26257,
+			Username: "root",
+			Database: client.Database,
+		},
+		client.Database,
+		client.Username,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialise database %s for client %s (%s): %+v", client.Database, client.Name, client.Namespace, err)
+	}
+
+	err = crdClient.ClientUpdate(client.Name, client.Namespace, true)
+	if err != nil {
+		return fmt.Errorf("failed to update client secret for %s (%s): %+v", client.Name, client.Namespace, err)
+	}
+	err = crdClient.ClientUpdate(client.Name, client.Namespace, true)
+	if err != nil {
+		return fmt.Errorf("failed to update client secret for %s (%s): %+v", client.Name, client.Namespace, err)
+	}
+	err = crdClient.ClientUpdate(client.Name, client.Namespace, true)
+	if err != nil {
+		return fmt.Errorf("failed to update client secret for %s (%s): %+v", client.Name, client.Namespace, err)
 	}
 
 	return nil

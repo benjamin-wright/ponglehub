@@ -102,8 +102,6 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 		return fmt.Errorf("failed to parse database storage requirement: %+v", err)
 	}
 
-	var certReadMode int32 = 256
-
 	deployment := appsv1.StatefulSet{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      database.Name,
@@ -130,7 +128,11 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 							Name:    "db",
 							Image:   "cockroachdb/cockroach:v20.2.8",
 							Command: []string{"cockroach"},
-							Args:    []string{"start-single-node", "--certs-dir", "/certs"},
+							Args: []string{
+								"--logtostderr",
+								"start-single-node",
+								"--insecure",
+							},
 							Ports: []corev1.ContainerPort{
 								{ContainerPort: 26257},
 								{ContainerPort: 8080},
@@ -139,21 +141,6 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 								{
 									Name:      database.Name,
 									MountPath: "/cockroach/cockroach-data",
-								},
-								{
-									Name:      "ssl",
-									MountPath: "/certs",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "ssl",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName:  database.Name + "-ssl",
-									DefaultMode: &certReadMode,
 								},
 							},
 						},

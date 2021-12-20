@@ -19,5 +19,4 @@ require (
 )
 
 replace ponglehub.co.uk/lib/postgres => ./../../libraries/golang/postgres
-
 replace ponglehub.co.uk/lib/user-events => ./../../libraries/golang/user-events

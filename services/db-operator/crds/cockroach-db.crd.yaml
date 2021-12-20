@@ -34,3 +34,6 @@ spec:
     plural: cockroachdbs
     singular: cockroachdb
     kind: CockroachDB
+    shortNames:
+    - cdb
+    - cdbs

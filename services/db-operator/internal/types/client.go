@@ -1,8 +1,11 @@
 package types
 
 type Client struct {
-	Name      string
-	Namespace string
-	Database  string
-	Secret    string
+	Name       string
+	Username   string
+	Namespace  string
+	Deployment string
+	Database   string
+	Secret     string
+	Ready      bool
 }

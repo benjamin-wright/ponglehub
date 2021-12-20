@@ -2,7 +2,9 @@ package crds
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -32,12 +34,113 @@ func (c *DBClient) clientWatch(opts v1.ListOptions) (watch.Interface, error) {
 		Watch(context.TODO())
 }
 
-func clientFromApi(old *CockroachClient) types.Client {
+func (c *DBClient) ClientCreate(client types.Client) error {
+	clientObj := CockroachClient{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      client.Name,
+			Namespace: client.Namespace,
+		},
+		Spec: CockroachClientSpec{
+			Deployment: client.Deployment,
+			Database:   client.Database,
+			Username:   client.Username,
+			Secret:     client.Secret,
+		},
+		Status: CockroachClientStatus{
+			Ready: client.Ready,
+		},
+	}
+
+	err := c.restClient.
+		Post().
+		Namespace(client.Namespace).
+		Resource("cockroachclients").
+		VersionedParams(&v1.CreateOptions{}, scheme.ParameterCodec).
+		Body(&clientObj).
+		Do(context.TODO()).
+		Error()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *DBClient) ClientGet(name string, namespace string) (types.Client, error) {
+	client := CockroachClient{}
+
+	err := c.restClient.
+		Get().
+		Namespace(namespace).
+		Resource("cockroachclients").
+		Name(name).
+		VersionedParams(&v1.GetOptions{}, scheme.ParameterCodec).
+		Do(context.TODO()).
+		Into(&client)
+
+	if err != nil {
+		return types.Client{}, err
+	}
+
+	return clientFromApi(&client), nil
+}
+
+func (c *DBClient) ClientDelete(name string, namespace string) error {
+	return c.restClient.
+		Delete().
+		Namespace(namespace).
+		Resource("cockroachclients").
+		Name(name).
+		VersionedParams(&v1.DeleteOptions{}, scheme.ParameterCodec).
+		Do(context.TODO()).
+		Error()
+}
+
+func (c *DBClient) ClientUpdate(name string, namespace string, ready bool) error {
+	client := CockroachClient{}
+
+	err := c.restClient.
+		Get().
+		Namespace(namespace).
+		Resource("cockroachclients").
+		Name(name).
+		VersionedParams(&v1.GetOptions{}, scheme.ParameterCodec).
+		Do(context.TODO()).
+		Into(&client)
+
+	if err != nil {
+		return fmt.Errorf("failed in initial fetch: %+v", err)
+	}
+
+	if client.Status.Ready == ready {
+		return nil
+	}
+
+	logrus.Infof("Updating Client CRD status: %s (%s) -> ready: %t", name, namespace, ready)
+	client.Status.Ready = ready
+
+	return c.restClient.
+		Put().
+		Namespace(namespace).
+		Resource("cockroachclients").
+		Name(name).
+		SubResource("status").
+		VersionedParams(&v1.UpdateOptions{}, scheme.ParameterCodec).
+		Body(&client).
+		Do(context.TODO()).
+		Error()
+}
+
+func clientFromApi(client *CockroachClient) types.Client {
 	return types.Client{
-		Name:      old.Name,
-		Namespace: old.Namespace,
-		Database:  old.Spec.Database,
-		Secret:    old.Spec.Secret,
+		Name:       client.Name,
+		Username:   client.Spec.Username,
+		Namespace:  client.Namespace,
+		Deployment: client.Spec.Deployment,
+		Database:   client.Spec.Database,
+		Secret:     client.Spec.Secret,
+		Ready:      client.Status.Ready,
 	}
 }
 

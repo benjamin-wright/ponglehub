@@ -8,8 +8,13 @@ func (in *CockroachClient) DeepCopyInto(out *CockroachClient) {
 	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = CockroachClientSpec{
-		Database: in.Spec.Database,
-		Secret:   in.Spec.Secret,
+		Deployment: in.Spec.Deployment,
+		Database:   in.Spec.Database,
+		Username:   in.Spec.Username,
+		Secret:     in.Spec.Secret,
+	}
+	out.Status = CockroachClientStatus{
+		Ready: in.Status.Ready,
 	}
 }
 

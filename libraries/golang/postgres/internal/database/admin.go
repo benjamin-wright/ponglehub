@@ -27,7 +27,7 @@ func (d *AdminConn) Stop() {
 	d.conn.Close(context.Background())
 }
 
-func (d *AdminConn) CreateUser(username string, password string) error {
+func (d *AdminConn) CreateUser(username string) error {
 	rows, err := d.conn.Query(context.Background(), "SHOW USERS")
 	if err != nil {
 		return fmt.Errorf("failed to fetch existing user: %+v", err)
@@ -47,7 +47,7 @@ func (d *AdminConn) CreateUser(username string, password string) error {
 	}
 
 	logrus.Infof("Creating user %s!", username)
-	if _, err := d.conn.Exec(context.Background(), "CREATE USER $1 WITH PASSWORD $2", username, password); err != nil {
+	if _, err := d.conn.Exec(context.Background(), "CREATE USER $1", username); err != nil {
 		return fmt.Errorf("failed to create database user: %+v", err)
 	}
 

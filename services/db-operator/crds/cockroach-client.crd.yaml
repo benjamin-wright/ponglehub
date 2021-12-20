@@ -15,13 +15,32 @@ spec:
             spec:
               type: object
               properties:
+                deployment:
+                  type: string
                 database:
+                  type: string
+                username:
                   type: string
                 secret:
                   type: string
-              required: [ database, secret ]
+              required: [ deployment, database, username, secret ]
+            status:
+              type: object
+              properties:
+                ready:
+                  type: boolean
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - name: Ready
+        type: boolean
+        description: Defines whether the client secret has been created
+        jsonPath: .status.ready
   scope: Namespaced
   names:
     plural: cockroachclients
     singular: cockroachclient
     kind: CockroachClient
+    shortNames:
+    - cc
+    - ccs

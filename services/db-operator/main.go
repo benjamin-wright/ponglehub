@@ -15,6 +15,8 @@ import (
 
 var addDeployment = manager.AddDeployment
 var deleteDeployment = manager.DeleteDeployment
+var addClient = manager.AddClient
+var deleteClient = manager.DeleteClient
 
 func main() {
 	logrus.Infof("Starting operator...")
@@ -33,13 +35,25 @@ func main() {
 
 	_, clientStopper := crdClient.ClientListen(
 		func(newClient types.Client) {
-			logrus.Infof("Adding client: %+v", newClient)
+			logrus.Infof("Adding client: %s:%s (%s)", newClient.Database, newClient.Name, newClient.Namespace)
+
+			err := addClient(crdClient, newClient)
+			if err != nil {
+				logrus.Errorf("Adding client failed: %+v", err)
+				return
+			}
+
+			logrus.Infof("Client %s for database %s (%s) added", newClient.Name, newClient.Database, newClient.Namespace)
 		},
 		func(oldClient types.Client, newClient types.Client) {
 			logrus.Infof("Updating client: %+v -> %+v", oldClient, newClient)
 		},
 		func(oldClient types.Client) {
-			logrus.Infof("Deleting client: %+v", oldClient)
+			logrus.Infof("Deleting client: %s:%s (%s)", oldClient.Database, oldClient.Name, oldClient.Namespace)
+
+			deleteClient(deplClient, oldClient)
+
+			logrus.Infof("Client %s:%s (%s) deleted", oldClient.Database, oldClient.Name, oldClient.Namespace)
 		},
 	)
 

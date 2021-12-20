@@ -4,25 +4,25 @@ import (
 	"fmt"
 
 	"ponglehub.co.uk/lib/postgres/internal/database"
-	"ponglehub.co.uk/lib/postgres/pkg/types"
+	"ponglehub.co.uk/lib/postgres/pkg/connect"
 )
 
-func Initialize(config *types.MigrationConfig) error {
-	db, err := database.NewAdminConn(config.AdminConfig)
+func Initialize(config connect.ConnectConfig, dbName string, username string) error {
+	db, err := database.NewAdminConn(config)
 	if err != nil {
 		return fmt.Errorf("failed to connect to db: %+v", err)
 	}
 	defer db.Stop()
 
-	if err := db.CreateUser(config.TargetConfig.Username, config.TargetConfig.Password); err != nil {
+	if err := db.CreateUser(username); err != nil {
 		return fmt.Errorf("error creating user: %+v", err)
 	}
 
-	if err := db.CreateDatabase(config.TargetConfig.Database); err != nil {
+	if err := db.CreateDatabase(dbName); err != nil {
 		return fmt.Errorf("error creating user: %+v", err)
 	}
 
-	if err := db.GrantPermissions(config.TargetConfig.Username, config.TargetConfig.Database); err != nil {
+	if err := db.GrantPermissions(username, dbName); err != nil {
 		return fmt.Errorf("error granting permissions: %+v", err)
 	}
 

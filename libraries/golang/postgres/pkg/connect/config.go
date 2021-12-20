@@ -13,7 +13,6 @@ type ConnectConfig struct {
 	Username string
 	Password string
 	Database string
-	CertsDir string
 }
 
 func ConfigFromEnv() (ConnectConfig, error) {
@@ -49,18 +48,12 @@ func ConfigFromEnv() (ConnectConfig, error) {
 		database = "default"
 	}
 
-	certsDir, ok := os.LookupEnv("POSTGRES_CERTS")
-	if !ok {
-		return empty, errors.New("failed to lookup POSTGRES_CERTS env var")
-	}
-
 	return ConnectConfig{
 		Host:     host,
 		Port:     port,
 		Username: user,
 		Password: password,
 		Database: database,
-		CertsDir: certsDir,
 	}, nil
 }
 
@@ -89,16 +82,10 @@ func AdminFromEnv() (ConnectConfig, error) {
 
 	password, _ := os.LookupEnv("POSTGRES_ADMIN_PASS")
 
-	certsDir, ok := os.LookupEnv("POSTGRES_CERTS")
-	if !ok {
-		return empty, errors.New("failed to lookup POSTGRES_CERTS env var")
-	}
-
 	return ConnectConfig{
 		Host:     host,
 		Port:     port,
 		Username: user,
 		Password: password,
-		CertsDir: certsDir,
 	}, nil
 }
