@@ -1,0 +1,67 @@
+allow_k8s_contexts(['pongle'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+
+custom_build(
+  'localhost:5000/auth-server',
+  'mudly +server && docker tag localhost:5000/auth-server $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'localhost:5000/auth-server-events',
+  'mudly +events && docker tag localhost:5000/auth-server-events $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+# custom_build(
+#   'localhost:5000/auth-server-migrations',
+#   'mudly +migrations && docker tag localhost:5000/auth-server-migrations $EXPECTED_REF',
+#   ['./'],
+#   ignore=['Tiltfile', './dist']
+# )
+
+k8s_kind('CockroachDB')
+
+k8s_resource(
+  'cockroach',
+  extra_pod_selectors={
+    'db-operator.ponglehub.co.uk/deployment': 'cockroach'
+  }
+)
+
+k8s_resource(
+  'server',
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_resource(
+  'events',
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+# k8s_resource(
+#   'migrations',
+#   trigger_mode=TRIGGER_MODE_MANUAL
+# )
+
+k8s_yaml(namespace_yaml('int-auth-server'))
+
+k8s_yaml(helm(
+  '../../helm',
+  name='auth-server',
+  namespace='int-auth-server',
+  set=[
+    'cockroach.cockroach=512Mi',
+    'servers.server.image=localhost:5000/auth-server',
+    'servers.server.db.cluster=cockroach',
+    'servers.server.db.database=auth_data',
+    'servers.server.db.username=auth_user',
+    'servers.events.image=localhost:5000/auth-server-events',
+    'servers.events.env.BROKER_URL=http://tests',
+    'servers.events.db.cluster=cockroach',
+    'servers.events.db.database=auth_data',
+    'servers.events.db.username=events_user',
+  ]
+))

@@ -7,17 +7,12 @@ import (
 )
 
 func main() {
-	targetCfg, err := connect.ConfigFromEnv()
+	config, err := connect.ConfigFromEnv()
 	if err != nil {
 		logrus.Fatalf("Failed to load target config from environment: %+v", err)
 	}
 
-	adminCfg, err := connect.AdminFromEnv()
-	if err != nil {
-		logrus.Fatalf("Failed to load admin config from environment: %+v", err)
-	}
-
-	if err := migrations.Migrate(targetCfg, adminCfg); err != nil {
+	if err := migrations.Migrate(config); err != nil {
 		logrus.Fatalf("Failed to run migrations: %+v", err)
 	}
 }

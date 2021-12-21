@@ -11,7 +11,6 @@ type ConnectConfig struct {
 	Host     string
 	Port     int
 	Username string
-	Password string
 	Database string
 }
 
@@ -38,11 +37,6 @@ func ConfigFromEnv() (ConnectConfig, error) {
 		return empty, errors.New("failed to lookup POSTGRES_USER env var")
 	}
 
-	password, ok := os.LookupEnv("POSTGRES_PASS")
-	if !ok {
-		return empty, errors.New("failed to lookup POSTGRES_PASS env var")
-	}
-
 	database, ok := os.LookupEnv("POSTGRES_NAME")
 	if !ok {
 		database = "default"
@@ -52,7 +46,6 @@ func ConfigFromEnv() (ConnectConfig, error) {
 		Host:     host,
 		Port:     port,
 		Username: user,
-		Password: password,
 		Database: database,
 	}, nil
 }
@@ -80,12 +73,9 @@ func AdminFromEnv() (ConnectConfig, error) {
 		return empty, errors.New("failed to lookup POSTGRES_ADMIN_USER env var")
 	}
 
-	password, _ := os.LookupEnv("POSTGRES_ADMIN_PASS")
-
 	return ConnectConfig{
 		Host:     host,
 		Port:     port,
 		Username: user,
-		Password: password,
 	}, nil
 }

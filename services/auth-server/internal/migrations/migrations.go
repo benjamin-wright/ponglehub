@@ -6,11 +6,10 @@ import (
 	"ponglehub.co.uk/lib/postgres/pkg/types"
 )
 
-func Migrate(targetConfig connect.ConnectConfig, adminConfig connect.ConnectConfig) error {
-	return m.Migrate(&types.MigrationConfig{
-		TargetConfig: targetConfig,
-		AdminConfig:  adminConfig,
-		Migrations: []types.Migration{
+func Migrate(config connect.ConnectConfig) error {
+	return m.Migrate(
+		config,
+		[]types.Migration{
 			{Query: `
 				CREATE TABLE users (
 					id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,5 +20,5 @@ func Migrate(targetConfig connect.ConnectConfig, adminConfig connect.ConnectConf
 				);
 			`},
 		},
-	})
+	)
 }

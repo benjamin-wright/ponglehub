@@ -1,4 +1,3 @@
-ENV DEV_CLUSTER=pongle-dev
 ENV CLUSTER_NAME=pongle
 ENV REGISTRY_NAME=pongle-registry.localhost
 ENV REGISTRY_PORT=5000
@@ -32,14 +31,26 @@ ARTEFACT generate
         '. |= (select(.kind=="Service" and .metadata.name=="knative-local-gateway") | .metadata.labels["experimental.istio.io/disable-gateway-port-translation"]="true")' \
         infra/manifests/generated/knative-net-istio.yaml
 
-  STEP cockroachdb
-    CONDITION
-      [[ ! -f infra/manifests/generated/cockroachdb-crds.yaml ]]
+ARTEFACT generate-dev
+  STEP db-operator-crds
     COMMAND
-      curl -L https://raw.githubusercontent.com/cockroachdb/cockroach-operator/v2.4.0/install/crds.yaml -o infra/manifests/generated/cockroachdb-crds.yaml
-      curl -L https://raw.githubusercontent.com/cockroachdb/cockroach-operator/v2.4.0/install/operator.yaml -o infra/manifests/generated/cockroachdb-operator.yaml
+      cp -r services/db-operator/crds/ infra/dev/
 
-ARTEFACT start
+  STEP db-operator
+    COMMAND
+      rm -rf infra/dev/db-operator.yaml
+      helm template db-operator -n operators helm \
+        --set namespaces.operators=true \
+        --set servers.db-operator.enabled=true \
+        --set servers.db-operator.image=k3d-$REGISTRY_NAME:5000/db-operator \
+        --set servers.db-operator.rbac.apiGroups="{ponglehub.co.uk,apps,''}" \
+        --set servers.db-operator.rbac.resources="{cockroachdbs,cockroachdbs/status,cockroachclients,cockroachclients/status,statefulsets,secrets,services,persistentvolumeclaims}" \
+        --set servers.db-operator.rbac.verbs="{get,list,watch,create,update,delete}" \
+        --set servers.db-operator.rbac.clusterWide=true \
+        --set servers.db-operator.resources.limits.memory=64Mi \
+        --set servers.db-operator.resources.requests.memory=64Mi > infra/dev/db-operator.yaml
+
+ARTEFACT prod-cluster
   DEPENDS ON +generate
   
   STEP registry
@@ -123,32 +134,58 @@ ARTEFACT npm-stop
   STEP clear-checksums
     COMMAND find . -name '.last-checksum' -delete
 
-ARTEFACT dev
-  CONDITION ! k3d cluster list | grep -w $DEV_CLUSTER
+ARTEFACT raw-cluster
+  STEP registry
+    CONDITION ! k3d registry list | grep -w k3d-$REGISTRY_NAME 
+    COMMAND k3d registry create $REGISTRY_NAME --port $REGISTRY_PORT
   
-  STEP start-cluster
+  STEP cluster
+    CONDITION ! k3d cluster list | grep -w $CLUSTER_NAME
     COMMAND
-      k3d cluster create $DEV_CLUSTER \
-      --registry-create \
-      --k3s-server-arg "--no-deploy=traefik" \
-      --kubeconfig-update-default=false \
-      -p "80:80@loadbalancer" \
-      --wait
+      k3d cluster create $CLUSTER_NAME \
+        --registry-use $REGISTRY_NAME \
+        --k3s-server-arg "--no-deploy=traefik" \
+        --kubeconfig-update-default=false \
+        -p "80:80@loadbalancer" \
+        --wait
   
   STEP kubeconfig
     COMMAND
       mkdir -p .scratch \
-        && k3d kubeconfig get $DEV_CLUSTER > .scratch/kubeconfig \
-        && KUBECONFIG=.scratch/kubeconfig kubectl config use-context k3d-$DEV_CLUSTER
+        && k3d kubeconfig get $CLUSTER_NAME > .scratch/kubeconfig \
+        && KUBECONFIG=.scratch/kubeconfig kubectl config use-context k3d-$CLUSTER_NAME
 
-ARTEFACT dev-stop
-  CONDITION k3d cluster list | grep -w $DEV_CLUSTER
-  STEP stop
+ARTEFACT dev-cluster
+  DEPENDS ON services/db-operator+image
+  DEPENDS ON +generate-dev
+
+  STEP registry
+    CONDITION ! k3d registry list | grep -w k3d-$REGISTRY_NAME 
+    COMMAND k3d registry create $REGISTRY_NAME --port $REGISTRY_PORT
+  
+  STEP cluster
+    CONDITION ! k3d cluster list | grep -w $CLUSTER_NAME
     COMMAND
-      k3d cluster delete $DEV_CLUSTER \
-        && rm .scratch/kubeconfig
+      k3d cluster create $CLUSTER_NAME \
+        --registry-use $REGISTRY_NAME \
+        --k3s-server-arg "--no-deploy=traefik" \
+        --kubeconfig-update-default=false \
+        --volume $(pwd)/infra/dev:/var/lib/rancher/k3s/server/manifests/preload \
+        -p "80:80@loadbalancer" \
+        --wait
+  
+  STEP kubeconfig
+    COMMAND
+      mkdir -p .scratch \
+        && k3d kubeconfig get $CLUSTER_NAME > .scratch/kubeconfig \
+        && KUBECONFIG=.scratch/kubeconfig kubectl config use-context k3d-$CLUSTER_NAME
+  
+  STEP db-operator
+    COMMAND
+      docker push localhost:5000/db-operator
 
 ARTEFACT build
+  DEPENDS ON ./services/db-operator+image
   DEPENDS ON ./services/auth-operator+image
   DEPENDS ON ./services/auth-server+images
 

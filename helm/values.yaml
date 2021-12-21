@@ -1,7 +1,8 @@
-servers:
-  app:
-    enabled: false
-    # image:
+servers: {}
+# servers:
+#   app:
+#     enabled: false
+#     image:
 
 functions: {}
 # functions:
@@ -13,22 +14,4 @@ test:
 #   image:
   service: true
 
-cockroach:
-  enabled: false
-  statefulset:
-    replicas: 1
-
-migrations:
-  enabled: false
-  name: migrations
-  # baseImage:
-  flywayImage: docker.io/flyway/flyway:7
-
-  db:
-    # host:
-    port: 26257
-  
-  sets:
-  # - user:
-  #   database:
-  #   migrations:
+# cockroach:

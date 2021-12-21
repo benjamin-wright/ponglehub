@@ -4,6 +4,10 @@
 			"path": "."
 		},
 		{
+			"path": "helm",
+			"name": "helm",
+		},
+		{
 			"path": "libraries/golang/postgres",
 			"name": "lib: postgres"
 		},

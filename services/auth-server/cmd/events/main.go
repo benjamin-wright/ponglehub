@@ -34,6 +34,7 @@ func main() {
 		logrus.Fatalf("Failed to create event client: %+v", err)
 	}
 
+	logrus.Info("Starting event loop...")
 	cancel, err := events.Listen(func(event events.UserEvent) {
 		switch event.Type {
 		case "ponglehub.auth.user.delete":
@@ -52,6 +53,8 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to start event listener: %+v", err)
 	}
+
+	logrus.Info("Running")
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.

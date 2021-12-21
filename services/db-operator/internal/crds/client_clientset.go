@@ -25,6 +25,24 @@ func (c *DBClient) clientList(opts v1.ListOptions) (*CockroachClientList, error)
 	return &result, err
 }
 
+func (c *DBClient) ClientList(namespace string) ([]types.Client, error) {
+	result := CockroachClientList{}
+	err := c.restClient.
+		Get().
+		Resource("cockroachclients").
+		Namespace(namespace).
+		VersionedParams(&v1.ListOptions{}, scheme.ParameterCodec).
+		Do(context.TODO()).
+		Into(&result)
+
+	clients := []types.Client{}
+	for _, client := range result.Items {
+		clients = append(clients, clientFromApi(&client))
+	}
+
+	return clients, err
+}
+
 func (c *DBClient) clientWatch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.restClient.
@@ -44,7 +62,6 @@ func (c *DBClient) ClientCreate(client types.Client) error {
 			Deployment: client.Deployment,
 			Database:   client.Database,
 			Username:   client.Username,
-			Secret:     client.Secret,
 		},
 		Status: CockroachClientStatus{
 			Ready: client.Ready,
@@ -139,7 +156,6 @@ func clientFromApi(client *CockroachClient) types.Client {
 		Namespace:  client.Namespace,
 		Deployment: client.Spec.Deployment,
 		Database:   client.Spec.Database,
-		Secret:     client.Spec.Secret,
 		Ready:      client.Status.Ready,
 	}
 }

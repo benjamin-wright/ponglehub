@@ -1,3 +1,9 @@
+ARTEFACT start
+  DEPENDS ON ../../+dev-cluster
+
+ARTEFACT stop
+  DEPENDS ON ../../+stop
+
 ARTEFACT deps
   STEP download
     COMMAND go mod download
@@ -36,7 +42,7 @@ ARTEFACT migrations
     DOCKERFILE go
     CONTEXT dist
     ARG APP=migrations
-    TAG auth-server-migrations
+    TAG localhost:5000/auth-server-migrations
 
 ARTEFACT events
   DEPENDS ON +deps
@@ -50,7 +56,7 @@ ARTEFACT events
     DOCKERFILE go
     CONTEXT dist
     ARG APP=events
-    TAG auth-server-events
+    TAG localhost:5000/auth-server-events
 
 ARTEFACT server
   DEPENDS ON +deps
@@ -64,7 +70,7 @@ ARTEFACT server
     DOCKERFILE go
     CONTEXT dist
     ARG APP=server
-    TAG auth-server
+    TAG localhost:5000/auth-server
 
 ARTEFACT images
   DEPENDS ON +migrations

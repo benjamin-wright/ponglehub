@@ -6,7 +6,6 @@ type CockroachClientSpec struct {
 	Deployment string `json:"deployment"`
 	Database   string `json:"database"`
 	Username   string `json:"username"`
-	Secret     string `json:"secret"`
 }
 
 type CockroachClientStatus struct {

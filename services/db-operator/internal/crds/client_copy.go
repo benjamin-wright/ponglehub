@@ -11,7 +11,6 @@ func (in *CockroachClient) DeepCopyInto(out *CockroachClient) {
 		Deployment: in.Spec.Deployment,
 		Database:   in.Spec.Database,
 		Username:   in.Spec.Username,
-		Secret:     in.Spec.Secret,
 	}
 	out.Status = CockroachClientStatus{
 		Ready: in.Status.Ready,

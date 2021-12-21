@@ -34,17 +34,12 @@ func getConnection(config *pgx.ConnConfig) *pgx.Conn {
 }
 
 func Connect(config ConnectConfig) (*pgx.Conn, error) {
-	userPass := config.Username
-	if config.Password != "" {
-		userPass += ":" + config.Password
-	}
-
 	dbSuffix := ""
 	if config.Database != "" {
 		dbSuffix = "/" + config.Database
 	}
 
-	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgresql://%s@%s:%d%s", userPass, config.Host, config.Port, dbSuffix))
+	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgresql://%s@%s:%d%s", config.Username, config.Host, config.Port, dbSuffix))
 	if err != nil {
 		return nil, err
 	}

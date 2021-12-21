@@ -1,27 +1,10 @@
-{{- if .Values.db }}
-apiVersion: crdb.cockroachlabs.com/v1alpha1
-kind: CrdbCluster
+{{- $root := . }}
+{{- range $name, $storage := .Values.cockroach }}
+apiVersion: ponglehub.co.uk/v1alpha1
+kind: CockroachDB
 metadata:
-  name: cockroachdb
+  name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
 spec:
-  dataStore:
-    pvc:
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: "2Gi"
-        volumeMode: Filesystem
-  resources:
-    requests:
-      cpu: 500m
-      memory: 2Gi
-    limits:
-      cpu: 2
-      memory: 2Gi
-  tlsEnabled: true
-  image:
-    name: cockroachdb/cockroach:v21.1.11
-  nodes: 3
+  storage: {{ default "512Mi" $storage }}
 {{- end }}

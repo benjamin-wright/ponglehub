@@ -83,8 +83,27 @@ func main() {
 
 	_, deplStopper := deplClient.Listen(
 		func(name string, namespace string, ready bool) {
+			logrus.Infof("Database database %s (%s) updated", name, namespace)
+
 			if err := crdClient.DBUpdate(name, namespace, ready); err != nil {
 				logrus.Errorf("Failed to update CRD status: %s (%s) - %+v", name, namespace, err)
+				return
+			}
+
+			if ready {
+				clients, err := crdClient.ClientList(namespace)
+				if err != nil {
+					logrus.Errorf("Failed to list client CRDs: %+v", err)
+					return
+				}
+
+				for _, client := range clients {
+					logrus.Infof("Updating client %s (%s)", client.Name, namespace)
+					err := addClient(crdClient, client)
+					if err != nil {
+						logrus.Errorf("Adding client failed: %+v", err)
+					}
+				}
 			}
 		},
 	)

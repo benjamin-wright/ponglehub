@@ -1,18 +1,16 @@
-allow_k8s_contexts(['pongle-dev'])
+allow_k8s_contexts(['pongle'])
 load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
-default_registry('localhost:5000', host_from_cluster='k3d-auth-operator-registry:5000')
-
 custom_build(
-  'auth-operator',
-  'mudly +image && docker tag auth-operator $EXPECTED_REF',
+  'localhost:5000/auth-operator',
+  'mudly +image && docker tag localhost:5000/auth-operator $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
 
 custom_build(
-  'auth-operator-tests',
-  'mudly +integration && docker tag auth-operator-tests $EXPECTED_REF',
+  'localhost:5000/auth-operator-tests',
+  'mudly +integration && docker tag localhost:5000/auth-operator-tests $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
@@ -39,14 +37,14 @@ k8s_yaml(helm(
   set=[
     'servers.operator.enabled=true',
     'servers.operator.env.BROKER_URL="http://test:80"',
-    'servers.operator.image=auth-operator',
+    'servers.operator.image=localhost:5000/auth-operator',
     'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
     'servers.operator.rbac.resources={authusers,authusers/status}',
     'servers.operator.rbac.verbs={get,list,watch,patch,update}',
     'servers.operator.rbac.clusterWide=true',
     'servers.operator.resources.limits.memory=64Mi',
     'servers.operator.resources.requests.memory=64Mi',
-    'test.image=auth-operator-tests',
+    'test.image=localhost:5000/auth-operator-tests',
     'test.env.BROKER_URL="http://operator:80"',
     'test.rbac.apiGroups={ponglehub.co.uk}',
     'test.rbac.resources={authusers,authusers/status}',

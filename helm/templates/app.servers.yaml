@@ -1,65 +1,23 @@
 {{- $root := . }}
 {{- range $name, $server := .Values.servers }}
-{{- if $server.enabled }}
 {{- if $server.db }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+apiVersion: ponglehub.co.uk/v1alpha1
+kind: CockroachClient
 metadata:
-  name: {{ $name }}-cdb
-rules:
-- apiGroups:
-  - certificates.k8s.io 
-  resources:
-  - certificatesigningrequests
-  verbs:
-  - get
-  - create
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ $name }}-cdb
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ $name }}-cdb
-subjects:
-- kind: ServiceAccount
   name: {{ $name }}
   namespace: {{ $root.Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: {{ $name }}-cdb
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - create
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: {{ $name }}-cdb
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: {{ $name }}-cdb
-subjects:
-- kind: ServiceAccount
-  name: {{ $name }}
-  namespace: {{ $root.Release.Namespace }}
+spec:
+  deployment: {{ $server.db.cluster }}
+  database: {{ $server.db.database }}
+  username: {{ $server.db.username }}
 {{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
 automountServiceAccountToken: true
 ---
 apiVersion: apps/v1
@@ -68,6 +26,7 @@ metadata:
   labels:
     app: {{ required "must enter a name property!" $name }}
   name: {{ required "must enter a name property!" $name }}
+  namespace: {{ $root.Release.Namespace }}
 spec:
   replicas: {{ $server.replicas | default 1 }}
   selector:
@@ -85,10 +44,8 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ $name }}
-      {{- if (or $server.initContainers $server.db) }}
-      initContainers:
-      {{- end }}
       {{- if $server.initContainers }}
+      initContainers:
       {{- range $key, $container := $server.initContainers }}
       - name: {{ $container.name }}
         image: {{ required "must enter an image property!" $container.image}}
@@ -114,27 +71,6 @@ spec:
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
       {{- end }}
-      {{- end }}
-      {{- if  $server.db }}
-      - name: init-certs
-        command:
-        - /bin/ash
-        - -ecx
-        - /request-cert -namespace=${POD_NAMESPACE} -certs-dir=/cockroach-certs/ -symlink-ca-from=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt -type=node -addresses=localhost,127.0.0.1,$(hostname -f),$(hostname -f|cut -f 1-2 -d '.'),cockroachdb-public,cockroachdb-public.$(hostname -f|cut -f 3- -d '.')
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.namespace
-        image: cockroachdb/cockroach-k8s-request-cert:0.4
-        imagePullPolicy: IfNotPresent
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-        volumeMounts:
-        - mountPath: /cockroach-certs/
-          name: certs
       {{- end }}
       containers:
       - name: server
@@ -163,15 +99,11 @@ spec:
         {{- end }}
         {{- if $server.db }}
         - name: POSTGRES_HOST
-          value: cockroachdb
+          value: {{ $server.db.cluster }}
         - name: POSTGRES_PORT
           value: "26257"
         - name: POSTGRES_USER
-          value: {{ $server.db.user }}
-        - name: POSTGRES_PASS
-          value: test_password
-        - name: POSTGRES_CERTS
-          value: /certs
+          value: {{ $server.db.username }}
         - name: POSTGRES_NAME
           value: {{ $server.db.database }}
         {{- end }}
@@ -186,19 +118,8 @@ spec:
             memory: 32Mi
             cpu: 0.1
         {{- end }}
-        {{- if $server.db }}
-        volumeMounts:
-        - name: certs
-          mountPath: /certs
-        {{- end }}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
-
-      {{- if $server.db }}
-      volumes:
-      - name: certs
-        emptyDir: {}
-      {{- end }}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -211,6 +132,7 @@ metadata:
   labels:
     app: {{ $name }}
   name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
 spec:
   ports:
   {{- if $server.ports }}
@@ -243,6 +165,7 @@ metadata:
   labels:
     app: {{ $name }}
   name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
 spec:
   rules:
   - host: {{ required "must provide a host!" $server.host }}
@@ -297,6 +220,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
 rules:
 - apiGroups:
   {{- range $server.rbac.apiGroups }}
@@ -315,6 +239,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -323,7 +248,6 @@ subjects:
 - kind: ServiceAccount
   name: {{ $name }}
   namespace: {{ $root.Release.Namespace }}
-{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

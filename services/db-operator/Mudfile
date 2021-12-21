@@ -1,8 +1,8 @@
 ARTEFACT start
-  DEPENDS ON ../..+dev
+  DEPENDS ON ../..+raw-cluster
 
 ARTEFACT stop
-  DEPENDS ON ../../+dev-stop
+  DEPENDS ON ../../+stop
 
 DOCKERFILE go
   FILE
@@ -20,7 +20,7 @@ ARTEFACT image
 
   STEP image
     DOCKERFILE go
-    TAG db-operator
+    TAG localhost:5000/db-operator
     CONTEXT ./dist
 
 DOCKERFILE integration
@@ -40,10 +40,5 @@ ARTEFACT integration
 
   STEP image
     DOCKERFILE integration
-    TAG db-operator-tests
+    TAG localhost:5000/db-operator-tests
     CONTEXT ./dist
-
-ARTEFACT test
-  STEP test
-    COMMAND
-      go test -p=1 -v ./internal/...

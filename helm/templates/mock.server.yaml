@@ -1,5 +1,5 @@
 {{ $mock := default (dict) .Values.mock }}
-{{ $top := . }}
+{{ $root := . }}
 {{- if $mock }}
 apiVersion: apps/v1
 kind: Deployment
@@ -7,6 +7,7 @@ metadata:
   labels:
     app: {{ default "mock" $mock.name }}
   name: {{ default "mock" $mock.name }}
+  namespace: {{ $root.Release.Namespace }}
 spec:
   replicas: 1
   selector:
@@ -37,7 +38,7 @@ spec:
         env:
         {{- range $key, $value := $mock.env }}
         - name: {{ $key }}
-          value: {{ tpl $value $top }}
+          value: {{ tpl $value $root }}
         {{- end }}
         {{- end }}
         resources:
@@ -66,6 +67,7 @@ metadata:
   labels:
     app: {{ default "mock" $mock.name }}
   name: {{ default "mock" $mock.name }}
+  namespace: {{ $root.Release.Namespace }}
 spec:
   ports:
   - name: http

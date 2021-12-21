@@ -2,9 +2,9 @@ allow_k8s_contexts(['pongle'])
 
 load('libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
-k8s_kind('Service', api_version='serving.knative.dev/v1', image_json_path='{.spec.template.spec.containers[*].image}')
+k8s_kind('CockroachDB', api_version='ponglehub.co.uk/v1alpha1')
 
-default_registry('localhost:5000', host_from_cluster='k3d-pongle-registry:5000')
+default_registry('localhost:5000', host_from_cluster='pongle-registry.localhost:5000')
 
 custom_build(
   'auth-operator',

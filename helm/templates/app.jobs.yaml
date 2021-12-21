@@ -1,0 +1,117 @@
+{{- $root := . }}
+{{- range $name, $job := .Values.jobs }}
+{{- if $job.db }}
+---
+apiVersion: ponglehub.co.uk/v1alpha1
+kind: CockroachClient
+metadata:
+  name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+spec:
+  deployment: {{ $job.db.cluster }}
+  database: {{ $job.db.database }}
+  username: {{ $job.db.username }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: {{ required "must enter a name property!" $name }}
+  name: {{ required "must enter a name property!" $name }}
+  namespace: {{ $root.Release.Namespace }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: {{ required "must enter a name property!" $name }}
+      {{- if $job.annotations }}
+      annotations:
+      {{- range $key, $value := $job.annotations }}
+        {{ $key }}: {{ $value }}
+      {{- end }}
+      {{- end }}
+    spec:
+      {{- if $job.initContainers }}
+      initContainers:
+      {{- range $key, $container := $job.initContainers }}
+      - name: {{ $container.name }}
+        image: {{ required "must enter an image property!" $container.image}}
+        imagePullPolicy: {{ $container.pullPolicy | default "Always" }}
+        {{- if $container.env }}
+        env:
+        {{- range $name, $value := $container.env }}
+        - name: {{ $name }}
+          value: {{ tpl $value $root }}
+        {{- end }}
+        {{- end }}
+        resources:
+        {{- if $job.resources }}
+          {{- toYaml $job.resources | nindent 10 }}
+        {{- else }}
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        {{- end }}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: job
+        image: {{ required "must enter an image property!" $job.image}}
+        imagePullPolicy: {{ $job.pullPolicy | default "Always" }}
+        {{- if $job.command }}
+        command:
+          {{- range $job.command }}
+        - {{ . }}
+          {{- end }}
+        {{- end }}
+        {{- if $job.args }}
+        args:
+          {{- range $job.args }}
+        - {{ . | quote }}
+          {{- end }}
+        {{- end }}
+        {{- if (or $job.env $job.db) }}
+        env:
+        {{- end }}
+        {{- if $job.env }}
+        {{- range $key, $value := $job.env }}
+        - name: {{ $key }}
+          value: {{ tpl $value $root }}
+        {{- end }}
+        {{- end }}
+        {{- if $job.db }}
+        - name: POSTGRES_HOST
+          value: {{ $job.db.cluster }}
+        - name: POSTGRES_PORT
+          value: "26257"
+        - name: POSTGRES_USER
+          value: {{ $job.db.username }}
+        - name: POSTGRES_NAME
+          value: {{ $job.db.database }}
+        {{- end }}
+        resources:
+        {{- if $job.resources }}
+          {{- toYaml $job.resources | nindent 10 }}
+        {{- else }}
+          requests:
+            memory: 32Mi
+            cpu: 0.1
+          limits:
+            memory: 32Mi
+            cpu: 0.1
+        {{- end }}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+{{- end }}

@@ -1,8 +1,8 @@
 ARTEFACT start
-  DEPENDS ON ../..+dev
+  DEPENDS ON ../..+raw-cluster
 
 ARTEFACT stop
-  DEPENDS ON ../../+dev-stop
+  DEPENDS ON ../../+stop
 
 DOCKERFILE go
   FILE
@@ -20,7 +20,7 @@ ARTEFACT image
 
   STEP image
     DOCKERFILE go
-    TAG auth-operator
+    TAG localhost:5000/auth-operator
     CONTEXT ./dist
 
 DOCKERFILE integration
@@ -40,7 +40,7 @@ ARTEFACT integration
 
   STEP image
     DOCKERFILE integration
-    TAG auth-operator-tests
+    TAG localhost:5000/auth-operator-tests
     CONTEXT ./dist
 
 ARTEFACT test
