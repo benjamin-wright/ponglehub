@@ -1,4 +1,4 @@
-package routes
+package integration
 
 import (
 	"bytes"
@@ -7,23 +7,25 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
+	"os"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/auth/auth-server/internal/client"
 	"ponglehub.co.uk/auth/auth-server/internal/testutils"
 )
 
-const TEST_DB = "test_login"
-
-func TestLoginRoute(t *testing.T) {
+func TestServer(t *testing.T) {
 	logrus.SetOutput(io.Discard)
-	gin.SetMode(gin.TestMode)
 
-	cli := testutils.Client(t, TEST_DB)
+	testUrl, ok := os.LookupEnv("TEST_SERVER")
+	if !ok {
+		t.Error("TEST_SERVER env var not found")
+		t.FailNow()
+	}
+
+	cli := testutils.Client(t)
 	defer cli.Close(context.TODO())
 
 	for _, test := range []struct {
@@ -56,23 +58,18 @@ func TestLoginRoute(t *testing.T) {
 				return
 			}
 
-			w := httptest.NewRecorder()
-			ctx, r := gin.CreateTestContext(w)
-			r.POST("/", LoginHandler(cli))
-
 			data, _ := json.Marshal(map[string]string{
 				"email":    test.email,
 				"password": test.password,
 			})
-			ctx.Request, err = http.NewRequest("POST", "/", bytes.NewBuffer(data))
+			resp, err := http.Post(testUrl+"/", "application/json", bytes.NewBuffer(data))
 			if err != nil {
 				assert.FailNow(u, "Failed making test request: %+v", err)
 			}
+			defer resp.Body.Close()
 
-			r.HandleContext(ctx)
-
-			if w.Code != test.code {
-				fmt.Printf("Expected %d: Recieved %d\n", test.code, w.Code)
+			if resp.StatusCode != test.code {
+				fmt.Printf("Expected %d: Recieved %d\n", test.code, resp.StatusCode)
 				u.Fail()
 			}
 		})

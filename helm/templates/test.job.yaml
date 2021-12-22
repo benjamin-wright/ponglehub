@@ -1,6 +1,18 @@
 {{- if .Values.test.image }}
 {{- $test := .Values.test -}}
 {{- $root := . -}}
+{{- if $test.db }}
+apiVersion: ponglehub.co.uk/v1alpha1
+kind: CockroachClient
+metadata:
+  name: {{ $test.name }}
+  namespace: {{ $root.Release.Namespace }}
+spec:
+  deployment: {{ $test.db.cluster }}
+  database: {{ $test.db.database }}
+  username: {{ $test.db.username }}
+---
+{{- end }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -30,12 +42,24 @@ spec:
       - name: {{ $test.name | default "job" }}
         image: {{ required "must enter an image property!" $test.image}}
         imagePullPolicy: {{ $test.pullPolicy | default "Always" }}
-        {{- if $test.env }}
+        {{- if (or $test.env $test.db) }}
         env:
+        {{- end }}
+        {{- if $test.env }}
         {{- range $key, $value := $test.env }}
         - name: {{ $key }}
           value: {{ tpl $value $root }}
         {{- end }}
+        {{- end }}
+        {{- if $test.db }}
+        - name: POSTGRES_HOST
+          value: {{ $test.db.cluster }}
+        - name: POSTGRES_PORT
+          value: "26257"
+        - name: POSTGRES_USER
+          value: {{ $test.db.username }}
+        - name: POSTGRES_NAME
+          value: {{ $test.db.database }}
         {{- end }}
         resources:
         {{- if $test.resources }}

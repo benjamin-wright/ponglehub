@@ -8,21 +8,6 @@ ARTEFACT deps
   STEP download
     COMMAND go mod download
 
-ARTEFACT test
-  DEPENDS ON +deps
-  DEPENDS ON ../../libraries/mudfiles/cockroachdb+certs
-
-  STEP test
-    DEVENV ../../libraries/mudfiles/cockroachdb db
-    COMMAND
-      POSTGRES_HOST=localhost \
-      POSTGRES_PORT=26257 \
-      POSTGRES_USER=test_user \
-      POSTGRES_PASS=test_password \
-      POSTGRES_ADMIN_USER=root \
-      POSTGRES_CERTS=$(pwd)/../../libraries/mudfiles/ssl/certs \
-      go test -p=1 -v ./cmd/...
-
 DOCKERFILE go
   FILE
     FROM scratch
@@ -71,6 +56,26 @@ ARTEFACT server
     CONTEXT dist
     ARG APP=server
     TAG localhost:5000/auth-server
+
+DOCKERFILE integration
+  FILE
+    FROM scratch
+    COPY auth-server-tests /auth-server-tests
+    ENTRYPOINT [ "/auth-server-tests" ]
+    CMD [ "-test.v" ]
+  IGNORE
+    !auth-server-tests
+
+ARTEFACT integration
+  STEP build
+    COMMAND
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go test -c -o dist/auth-server-tests ./integration
+
+  STEP image
+    DOCKERFILE integration
+    TAG localhost:5000/auth-server-tests
+    CONTEXT ./dist
 
 ARTEFACT images
   DEPENDS ON +migrations

@@ -1,0 +1,8 @@
+apiVersion: ponglehub.co.uk/v1alpha1
+kind: AuthUser
+metadata:
+  name: test-user
+spec:
+  name: test-username
+  email: me@this.com
+  password: my-pass

@@ -23,6 +23,10 @@ ARTEFACT generate
       [[ ! -f infra/manifests/generated/knative-net-istio.yaml ]]
       [[ ! -f infra/manifests/generated/knative-serving-core.yaml ]]
       [[ ! -f infra/manifests/generated/knative-serving-crds.yaml ]]
+      [[ ! -f infra/manifests/generated/knative-eventing-crds.yaml ]]
+      [[ ! -f infra/manifests/generated/knative-eventing-core.yaml ]]
+      [[ ! -f infra/manifests/generated/knative-eventing-mt-channel.yaml ]]
+      [[ ! -f infra/manifests/generated/knative-eventing-mt-broker.yaml ]]
     COMMAND
       curl -L https://github.com/knative/serving/releases/download/v0.22.0/serving-crds.yaml -o infra/manifests/generated/knative-serving-crds.yaml
       curl -L https://github.com/knative/serving/releases/download/v0.22.0/serving-core.yaml -o infra/manifests/generated/knative-serving-core.yaml
@@ -30,6 +34,10 @@ ARTEFACT generate
       yq eval-all --inplace \
         '. |= (select(.kind=="Service" and .metadata.name=="knative-local-gateway") | .metadata.labels["experimental.istio.io/disable-gateway-port-translation"]="true")' \
         infra/manifests/generated/knative-net-istio.yaml
+      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/eventing-crds.yaml -o infra/manifests/generated/knative-eventing-crds.yaml
+      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/eventing-core.yaml -o infra/manifests/generated/knative-eventing-core.yaml
+      curl -L https://github.com/knative/eventing/releases/download/v0.20.0/in-memory-channel.yaml -o infra/manifests/generated/knative-eventing-mt-channel.yaml
+      curl -L https://github.com/knative/eventing/releases/download/v0.20.0/mt-channel-broker.yaml -o infra/manifests/generated/knative-eventing-mt-broker.yaml
 
 ARTEFACT generate-dev
   STEP db-operator-crds

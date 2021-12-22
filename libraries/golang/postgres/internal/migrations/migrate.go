@@ -35,5 +35,7 @@ func Migrate(config connect.ConnectConfig, migrations []types.Migration) error {
 		}
 	}
 
+	logrus.Info("Migrations complete")
+
 	return nil
 }

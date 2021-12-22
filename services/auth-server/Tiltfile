@@ -15,12 +15,19 @@ custom_build(
   ignore=['Tiltfile', './dist']
 )
 
-# custom_build(
-#   'localhost:5000/auth-server-migrations',
-#   'mudly +migrations && docker tag localhost:5000/auth-server-migrations $EXPECTED_REF',
-#   ['./'],
-#   ignore=['Tiltfile', './dist']
-# )
+custom_build(
+  'localhost:5000/auth-server-migrations',
+  'mudly +migrations && docker tag localhost:5000/auth-server-migrations $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'localhost:5000/auth-server-tests',
+  'mudly +integration && docker tag localhost:5000/auth-server-tests $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
 
 k8s_kind('CockroachDB')
 
@@ -33,18 +40,34 @@ k8s_resource(
 
 k8s_resource(
   'server',
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=[
+    'cockroach'
+  ]
 )
 
 k8s_resource(
   'events',
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=[
+    'cockroach'
+  ]
 )
 
-# k8s_resource(
-#   'migrations',
-#   trigger_mode=TRIGGER_MODE_MANUAL
-# )
+k8s_resource(
+  'migrations',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=[
+    'cockroach'
+  ]
+)
+
+k8s_resource(
+  'test',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+  resource_deps=['migrations']
+)
 
 k8s_yaml(namespace_yaml('int-auth-server'))
 
@@ -63,5 +86,14 @@ k8s_yaml(helm(
     'servers.events.db.cluster=cockroach',
     'servers.events.db.database=auth_data',
     'servers.events.db.username=events_user',
+    'jobs.migrations.image=localhost:5000/auth-server-migrations',
+    'jobs.migrations.db.cluster=cockroach',
+    'jobs.migrations.db.database=auth_data',
+    'jobs.migrations.db.username=migrations_user',
+    'test.image=localhost:5000/auth-server-tests',
+    'test.db.cluster=cockroach',
+    'test.db.database=auth_data',
+    'test.db.username=migrations_user',
+    'test.env.TEST_SERVER=http://server'
   ]
 ))

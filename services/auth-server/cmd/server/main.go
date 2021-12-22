@@ -19,7 +19,7 @@ import (
 func main() {
 	port, ok := os.LookupEnv("PONGLE_SERVER_PORT")
 	if !ok {
-		port = "8080"
+		port = "80"
 	}
 
 	config, err := connect.ConfigFromEnv()
