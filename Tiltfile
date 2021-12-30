@@ -2,6 +2,7 @@ allow_k8s_contexts(['pongle'])
 load('libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
 k8s_kind('CockroachDB', api_version='ponglehub.co.uk/v1alpha1')
+k8s_kind('Service', api_version='serving.knative.dev/v1', image_json_path='{.spec.template.spec.containers[*].image}')
 
 custom_build(
   'db-operator',
@@ -20,6 +21,13 @@ custom_build(
 custom_build(
   'auth-server',
   'mudly ./services/auth-server+server && docker tag localhost:5000/auth-server $EXPECTED_REF',
+  ['./services/auth-server'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'auth-server-events',
+  'mudly ./services/auth-server+events && docker tag localhost:5000/auth-server-events $EXPECTED_REF',
   ['./services/auth-server'],
   ignore=['Tiltfile', './dist']
 )
@@ -82,6 +90,12 @@ k8s_yaml(helm(
     'servers.auth-server.db.cluster=cockroach',
     'servers.auth-server.db.username=auth_user',
     'servers.auth-server.db.database=auth_db',
-    'servers.auth-server.image=auth-server'
+    'servers.auth-server.image=auth-server',
+    'functions.auth-server-events.image=auth-server-events',
+    'functions.auth-server-events.env.BROKER_URL="http://broker-ingress.knative-eventing.svc.cluster.local/auth-service/events"',
+    'functions.auth-server-events.db.cluster=cockroach',
+    'functions.auth-server-events.db.username=auth_user',
+    'functions.auth-server-events.db.database=auth_db',
+    'functions.auth-server-events.eventBroker=events'
   ]
 ))

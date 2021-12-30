@@ -9,24 +9,9 @@ ENV NPM_PASSWORD=djsafnAJFNsaFNJSADNfkjsA
 ARTEFACT generate
   STEP knative
     CONDITION
-      [[ ! -f infra/manifests/generated/knative-serving-core.yaml ]]
-      [[ ! -f infra/manifests/generated/knative-serving-crds.yaml ]]
-      [[ ! -f infra/manifests/generated/knative-kourier.yaml ]]
-      [[ ! -f infra/manifests/generated/knative-eventing-crds.yaml ]]
-      [[ ! -f infra/manifests/generated/knative-eventing-core.yaml ]]
-      [[ ! -f infra/manifests/generated/knative-eventing-mt-channel.yaml ]]
-      [[ ! -f infra/manifests/generated/knative-eventing-mt-broker.yaml ]]
+      [[ ! -f infra/manifests/generated/knative-operator.yaml ]]
     COMMAND
-      curl -L https://github.com/knative/serving/releases/download/knative-v1.1.0/serving-crds.yaml -o infra/manifests/generated/knative-serving-crds.yaml
-      curl -L https://github.com/knative/serving/releases/download/knative-v1.1.0/serving-core.yaml -o infra/manifests/generated/knative-serving-core.yaml
-      yq eval-all --inplace \
-        '. |= (select(.kind=="ConfigMap" and .metadata.name=="config-network") | .data.ingress-class="kourier.ingress.networking.knative.dev")' \
-        infra/manifests/generated/knative-serving-core.yaml
-      curl -L https://github.com/knative/net-kourier/releases/download/knative-v1.1.0/kourier.yaml -o infra/manifests/generated/knative-kourier.yaml
-      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/eventing-crds.yaml -o infra/manifests/generated/knative-eventing-crds.yaml
-      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/eventing-core.yaml -o infra/manifests/generated/knative-eventing-core.yaml
-      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/in-memory-channel.yaml -o infra/manifests/generated/knative-eventing-mt-channel.yaml
-      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/mt-channel-broker.yaml -o infra/manifests/generated/knative-eventing-mt-broker.yaml
+      curl -L https://github.com/knative/operator/releases/download/knative-v1.1.0/operator.yaml -o infra/manifests/generated/knative-operator.yaml
 
 ARTEFACT generate-dev
   STEP db-operator-crds
