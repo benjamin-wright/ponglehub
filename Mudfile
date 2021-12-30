@@ -7,37 +7,26 @@ ENV NPM_USERNAME=admin
 ENV NPM_PASSWORD=djsafnAJFNsaFNJSADNfkjsA
 
 ARTEFACT generate
-  STEP istio
-    CONDITION
-      [[ ! -f infra/manifests/generated/crd-operator.yaml ]]
-      [[ ! -f infra/manifests/generated/istio-operator.yaml ]]
-    COMMAND
-      mkdir -p infra/manifests/generated
-      curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.10.1 sh -
-      helm template istio-operator ./istio-1.10.1/manifests/charts/istio-operator --namespace istio-operator > infra/manifests/generated/istio-operator.yaml
-      cp ./istio-1.10.1/manifests/charts/istio-operator/crds/* infra/manifests/generated/
-      rm -rf istio-1.10.1
-
   STEP knative
     CONDITION
-      [[ ! -f infra/manifests/generated/knative-net-istio.yaml ]]
       [[ ! -f infra/manifests/generated/knative-serving-core.yaml ]]
       [[ ! -f infra/manifests/generated/knative-serving-crds.yaml ]]
+      [[ ! -f infra/manifests/generated/knative-kourier.yaml ]]
       [[ ! -f infra/manifests/generated/knative-eventing-crds.yaml ]]
       [[ ! -f infra/manifests/generated/knative-eventing-core.yaml ]]
       [[ ! -f infra/manifests/generated/knative-eventing-mt-channel.yaml ]]
       [[ ! -f infra/manifests/generated/knative-eventing-mt-broker.yaml ]]
     COMMAND
-      curl -L https://github.com/knative/serving/releases/download/v0.22.0/serving-crds.yaml -o infra/manifests/generated/knative-serving-crds.yaml
-      curl -L https://github.com/knative/serving/releases/download/v0.22.0/serving-core.yaml -o infra/manifests/generated/knative-serving-core.yaml
-      curl -L https://github.com/knative/net-istio/releases/download/v0.22.0/net-istio.yaml -o infra/manifests/generated/knative-net-istio.yaml
+      curl -L https://github.com/knative/serving/releases/download/knative-v1.1.0/serving-crds.yaml -o infra/manifests/generated/knative-serving-crds.yaml
+      curl -L https://github.com/knative/serving/releases/download/knative-v1.1.0/serving-core.yaml -o infra/manifests/generated/knative-serving-core.yaml
       yq eval-all --inplace \
-        '. |= (select(.kind=="Service" and .metadata.name=="knative-local-gateway") | .metadata.labels["experimental.istio.io/disable-gateway-port-translation"]="true")' \
-        infra/manifests/generated/knative-net-istio.yaml
+        '. |= (select(.kind=="ConfigMap" and .metadata.name=="config-network") | .data.ingress-class="kourier.ingress.networking.knative.dev")' \
+        infra/manifests/generated/knative-serving-core.yaml
+      curl -L https://github.com/knative/net-kourier/releases/download/knative-v1.1.0/kourier.yaml -o infra/manifests/generated/knative-kourier.yaml
       curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/eventing-crds.yaml -o infra/manifests/generated/knative-eventing-crds.yaml
       curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/eventing-core.yaml -o infra/manifests/generated/knative-eventing-core.yaml
-      curl -L https://github.com/knative/eventing/releases/download/v0.20.0/in-memory-channel.yaml -o infra/manifests/generated/knative-eventing-mt-channel.yaml
-      curl -L https://github.com/knative/eventing/releases/download/v0.20.0/mt-channel-broker.yaml -o infra/manifests/generated/knative-eventing-mt-broker.yaml
+      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/in-memory-channel.yaml -o infra/manifests/generated/knative-eventing-mt-channel.yaml
+      curl -L https://github.com/knative/eventing/releases/download/knative-v1.1.0/mt-channel-broker.yaml -o infra/manifests/generated/knative-eventing-mt-broker.yaml
 
 ARTEFACT generate-dev
   STEP db-operator-crds
