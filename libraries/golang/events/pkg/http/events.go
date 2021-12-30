@@ -1,8 +1,7 @@
-package events
+package http
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -16,32 +15,12 @@ import (
 type Events struct {
 	ctx    context.Context
 	sender cloudevents.Client
+	source string
 }
 
-type User struct {
-	Name            string `json:"name"`
-	Username        string `json:"username"`
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	ID              string `json:"id"`
-	Pending         bool   `json:"pending"`
-	ResourceVersion string `json:"resource_version"`
-}
+type EventHandler func(ctx context.Context, event event.Event)
 
-func (a User) Equals(user User) bool {
-	return a.Email == user.Email &&
-		a.Username == user.Username &&
-		a.Password == user.Password
-}
-
-type UserEvent struct {
-	Type string
-	User User
-}
-
-type UserEventHandler func(event UserEvent)
-
-func New(brokerEnv string) (*Events, error) {
+func New(brokerEnv string, source string) (*Events, error) {
 	brokerUrl, ok := os.LookupEnv(brokerEnv)
 	if !ok {
 		logrus.Fatalf("Environment Variable %s not found", brokerEnv)
@@ -64,10 +43,11 @@ func New(brokerEnv string) (*Events, error) {
 	return &Events{
 		ctx:    ctx,
 		sender: client,
+		source: source,
 	}, nil
 }
 
-func Listen(handler UserEventHandler) (context.CancelFunc, error) {
+func Listen(handler EventHandler) (context.CancelFunc, error) {
 	p, err := cloudevents.NewHTTP(cloudevents.WithPort(80))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create protocol: %s", err.Error())
@@ -81,16 +61,7 @@ func Listen(handler UserEventHandler) (context.CancelFunc, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		err := client.StartReceiver(ctx, func(ctx context.Context, e event.Event) {
-			var user User
-			err = json.Unmarshal(e.Data(), &user)
-			if err != nil {
-				logrus.Errorf("Error parsing user set data: %+v", err)
-				return
-			}
-
-			handler(UserEvent{Type: e.Type(), User: user})
-		})
+		err := client.StartReceiver(ctx, handler)
 
 		if err != nil && ctx.Err() == nil {
 			logrus.Fatalf("Error in event listener: %+v", err)
@@ -102,17 +73,17 @@ func Listen(handler UserEventHandler) (context.CancelFunc, error) {
 	return cancel, nil
 }
 
-func (e *Events) sendEvent(sender cloudevents.Client, eventType string, data interface{}) error {
+func (e *Events) Send(eventType string, data interface{}) error {
 	event := cloudevents.NewEvent()
 	event.SetType(eventType)
-	event.SetSource("auth-operator")
+	event.SetSource(e.source)
 	err := event.SetData(cloudevents.ApplicationJSON, data)
 	if err != nil {
 		return fmt.Errorf("failed to serialize event data: %+v", err)
 	}
 
 	ctx := cloudevents.ContextWithRetriesConstantBackoff(e.ctx, time.Second, 20)
-	res := sender.Send(ctx, event)
+	res := e.sender.Send(ctx, event)
 
 	if cloudevents.IsUndelivered(res) {
 		return fmt.Errorf("failed to send event: %v", res.Error())
@@ -138,56 +109,6 @@ func (e *Events) sendEvent(sender cloudevents.Client, eventType string, data int
 	}
 
 	logrus.Infof("Sent %s with status: %d%s", eventType, final.StatusCode, retriesString)
-
-	return nil
-}
-
-func (e *Events) NewUser(user User) error {
-	err := e.sendEvent(e.sender, "ponglehub.auth.user.add", &user)
-
-	if err != nil {
-		return fmt.Errorf("failed to send add event for %s: %+v", user.Name, err)
-	}
-
-	return nil
-}
-
-func (e *Events) UpdateUser(user User) error {
-	err := e.sendEvent(e.sender, "ponglehub.auth.user.update", &user)
-
-	if err != nil {
-		return fmt.Errorf("failed to send update event for %s: %+v", user.Name, err)
-	}
-
-	return nil
-}
-
-func (e *Events) DeleteUser(user User) error {
-	err := e.sendEvent(e.sender, "ponglehub.auth.user.delete", &user)
-
-	if err != nil {
-		return fmt.Errorf("failed to send delete event for %s: %+v", user.Name, err)
-	}
-
-	return nil
-}
-
-func (e *Events) SetUser(user User) error {
-	err := e.sendEvent(e.sender, "ponglehub.auth.user.set", &user)
-
-	if err != nil {
-		return fmt.Errorf("failed to send set user event for %s: %+v", user.Name, err)
-	}
-
-	return nil
-}
-
-func (e *Events) SetUserAck(user User) error {
-	err := e.sendEvent(e.sender, "ponglehub.auth.user.set.ack", &user)
-
-	if err != nil {
-		return fmt.Errorf("failed to send set user ack event for %s: %+v", user.Name, err)
-	}
 
 	return nil
 }

@@ -23,6 +23,6 @@
 
 ![](docs/pongle-architecture.png)
 
-### Auth flow
+### Game move events
 
-![](docs/pongle-auth.png)
+![](docs/pongle-game-move.png)

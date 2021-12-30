@@ -5,11 +5,15 @@
 		},
 		{
 			"path": "helm",
-			"name": "helm",
+			"name": "helm"
 		},
 		{
 			"path": "libraries/golang/postgres",
 			"name": "lib: postgres"
+		},
+		{
+			"path": "libraries/golang/events",
+			"name": "lib: events"
 		},
 		{
 			"path": "libraries/golang/user-events",
@@ -18,6 +22,10 @@
 		{
 			"path": "services/db-operator",
 			"name": "srv: db-operator"
+		},
+		{
+			"path": "services/event-gateway",
+			"name": "srv: event-gateway"
 		},
 		{
 			"path": "services/auth-operator",
