@@ -107,6 +107,14 @@ spec:
         - name: POSTGRES_NAME
           value: {{ $server.db.database }}
         {{- end }}
+        {{- if $server.volFromSecret }}
+        volumeMounts:
+        {{- range $name, $secret := $server.volFromSecret }}
+        - name: {{ $name }}
+          mountPath: {{ $secret.path }}
+          readOnly: true
+        {{- end }}
+        {{- end }}
         resources:
         {{- if $server.resources }}
           {{- toYaml $server.resources | nindent 10 }}
@@ -120,6 +128,14 @@ spec:
         {{- end }}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+      {{- if $server.volFromSecret }}
+      volumes:
+      {{- range $name, $secret := $server.volFromSecret }}
+      - name: {{ $name }}
+        secret:
+          secretName: {{ $name }}
+      {{- end }}
+      {{- end }}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler

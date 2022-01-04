@@ -1,0 +1,74 @@
+allow_k8s_contexts(['pongle'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+
+custom_build(
+  'localhost:5000/event-gateway',
+  'mudly +image && docker tag localhost:5000/event-gateway $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'localhost:5000/event-recorder',
+  'mudly ../event-recorder/+image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  ['../event-recorder'],
+  ignore=['Tiltfile', './dist']
+)
+
+k8s_resource(
+  'gateway',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3000:80", "3001:3001"]
+)
+
+k8s_resource(
+  'recorder',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3002:3002"]
+)
+
+k8s_yaml('crds/user.crd.yaml')
+k8s_yaml(namespace_yaml('int-event-gateway'))
+
+local_resource(
+  'test',
+  'mudly +test',
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+local_resource(
+  'int-test',
+  'mudly +int-test',
+  env={
+    'GATEWAY_URL': 'http://localhost:3000',
+    'GATEWAY_EVENTS': 'http://localhost:3001',
+    'RECORDER_URL': 'http://localhost:3002'
+  },
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_yaml(helm(
+  '../../helm',
+  name='event-gateway',
+  namespace='int-event-gateway',
+  set=[
+    'secrets.gateway-key.keyfile=abcdefg',
+    'servers.gateway.image=localhost:5000/event-gateway',
+    'servers.gateway.env.BROKER_URL="http://recorder:80"',
+    'servers.gateway.env.KEY_FILE="/secrets/keyfile"',
+    'servers.gateway.volFromSecret.gateway-key.path=/secrets',
+    'servers.gateway.rbac.apiGroups={ponglehub.co.uk}',
+    'servers.gateway.rbac.resources={authusers}',
+    'servers.gateway.rbac.verbs={get,list,watch,patch,update}',
+    'servers.gateway.rbac.clusterWide=true',
+    'servers.gateway.resources.limits.memory=64Mi',
+    'servers.gateway.resources.requests.memory=64Mi',
+    'servers.recorder.image=localhost:5000/event-recorder',
+    'servers.recorder.env.EVENT_PORT="80"',
+    'servers.recorder.env.SERVER_PORT="3001"',
+    'servers.recorder.resources.limits.memory=64Mi',
+    'servers.recorder.resources.requests.memory=64Mi'
+  ]
+))
