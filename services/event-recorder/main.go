@@ -66,6 +66,20 @@ func main() {
 		c.JSON(200, types)
 	})
 
+	r.GET("/latest", func(c *gin.Context) {
+		if len(eventList) == 0 {
+			c.Status(404)
+			return
+		}
+
+		latest := eventList[len(eventList)-1]
+
+		c.JSON(200, gin.H{
+			"type": latest.Type(),
+			"data": string(latest.Data()),
+		})
+	})
+
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%d", serverPort),
 		Handler: r,

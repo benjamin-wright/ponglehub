@@ -1,9 +1,12 @@
 package integration
 
 import (
+	"io"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/events/recorder/pkg/recorder"
 	"ponglehub.co.uk/lib/events"
@@ -17,6 +20,8 @@ func assertErr(t *testing.T, err error) {
 }
 
 func TestRecorder(t *testing.T) {
+	logrus.SetOutput(io.Discard)
+
 	SERVER_URL := os.Getenv("SERVER_URL")
 
 	client, err := events.New(events.EventsArgs{
@@ -55,4 +60,34 @@ func TestRecorder(t *testing.T) {
 		})
 	}
 
+	t.Run("latest", func(u *testing.T) {
+		recorder.Clear(u, SERVER_URL)
+		assertErr(u, client.Send("event.latest", "latest-data"))
+		eventType, data := recorder.GetLatest(u, SERVER_URL)
+		assert.Equal(u, "event.latest", eventType)
+		assert.Equal(u, "\"latest-data\"", data)
+	})
+
+	t.Run("wait for latest", func(u *testing.T) {
+		recorder.Clear(u, SERVER_URL)
+
+		assertErr(u, client.Send("event.first", "first-data"))
+
+		testOutput := make(chan string, 1)
+		go func() {
+			testOutput <- recorder.WaitForEvent(u, SERVER_URL, "event.wait")
+		}()
+
+		time.Sleep(500 * time.Millisecond)
+
+		assertErr(u, client.Send("event.wait", "wait-data"))
+
+		select {
+		case data := <-testOutput:
+			assert.Equal(u, data, "\"wait-data\"")
+		case <-time.After(5 * time.Second):
+			u.Errorf("timed out waiting for event")
+			u.Fail()
+		}
+	})
 }

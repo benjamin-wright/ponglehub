@@ -11,7 +11,7 @@ import (
 
 func Start(router *router.Router) (context.CancelFunc, error) {
 	cancelFunc, err := events.Listen(80, func(ctx context.Context, event event.Event) {
-		logrus.Infof("received event %s from %s: %+v", event.Type(), event.Source(), event)
+		logrus.Infof("received event %s from %s", event.Type(), event.Source())
 		urls := router.GetURLs(event.Type())
 
 		for _, url := range urls {

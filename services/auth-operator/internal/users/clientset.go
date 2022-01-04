@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +13,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"ponglehub.co.uk/lib/user-events/pkg/events"
+	"k8s.io/client-go/tools/clientcmd"
+	events "ponglehub.co.uk/lib/user-events"
 )
 
 type UserClient struct {
@@ -49,10 +51,29 @@ func fromAuthUser(authUser *AuthUser) events.User {
 	}
 }
 
-func New() (*UserClient, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kube config: %+v", err)
+type ClientArgs struct {
+	External bool
+}
+
+func New(args *ClientArgs) (*UserClient, error) {
+	var config *rest.Config
+	var err error
+
+	if args != nil && args.External {
+		KUBECONFIG, ok := os.LookupEnv("KUBECONFIG")
+		if !ok {
+			return nil, fmt.Errorf("failed to get kube config: missing KUBECONFIG env var")
+		}
+
+		config, err = clientcmd.BuildConfigFromFlags("", KUBECONFIG)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get kube config: %+v", err)
+		}
+	} else {
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get kube config: %+v", err)
+		}
 	}
 
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GroupName, Version: GroupVersion}

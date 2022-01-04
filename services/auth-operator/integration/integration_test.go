@@ -1,24 +1,24 @@
 package integration
 
 import (
+	"encoding/json"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/auth/auth-operator/internal/users"
-	"ponglehub.co.uk/lib/user-events/pkg/events"
+	"ponglehub.co.uk/events/recorder/pkg/recorder"
+	events "ponglehub.co.uk/lib/user-events"
 )
 
-func setNoUser(u *testing.T, userClient *users.UserClient, receiver chan events.UserEvent) {
-	if err := userClient.Delete("test-user"); err == nil {
-		<-receiver
-	}
+func setNoUser(u *testing.T, userClient *users.UserClient) {
+	userClient.Delete("test-user")
 }
 
-func setUser(u *testing.T, userClient *users.UserClient, receiver chan events.UserEvent, user events.User) {
-	if err := userClient.Delete("test-user"); err == nil {
-		<-receiver
-	}
+func setUser(u *testing.T, userClient *users.UserClient, user events.User) {
+	userClient.Delete("test-user")
 
 	_, err := userClient.Create(events.User{
 		Name:     "test-user",
@@ -29,7 +29,8 @@ func setUser(u *testing.T, userClient *users.UserClient, receiver chan events.Us
 	if err != nil {
 		assert.FailNow(u, "Failed to create test user %+v", err)
 	}
-	<-receiver
+
+	time.Sleep(250 * time.Millisecond)
 
 	current, err := userClient.Get("test-user")
 	if err != nil {
@@ -44,23 +45,17 @@ func setUser(u *testing.T, userClient *users.UserClient, receiver chan events.Us
 }
 
 func TestCRDCrud(t *testing.T) {
+	RECORDER_URL := os.Getenv("RECORDER_URL")
+
 	users.AddToScheme(scheme.Scheme)
-	userClient, err := users.New()
+	userClient, err := users.New(&users.ClientArgs{External: true})
 	if err != nil {
 		assert.FailNow(t, "failed to start users client: %+v", err)
 	}
 
-	eventClient, err := events.New("BROKER_URL", "test-operator")
+	eventClient, err := events.New("OPERATOR_URL", "test-operator")
 	if err != nil {
 		assert.FailNow(t, "failed to start event client: %+v", err)
-	}
-
-	receiver := make(chan events.UserEvent, 5)
-	err = events.Listen("BROKER_URL", func(event events.UserEvent) {
-		receiver <- event
-	})
-	if err != nil {
-		assert.FailNow(t, "failed to start event listener: %+v", err)
 	}
 
 	for _, test := range []struct {
@@ -74,7 +69,7 @@ func TestCRDCrud(t *testing.T) {
 		{
 			Name: "Add user",
 			Prepare: func(u *testing.T) {
-				setNoUser(u, userClient, receiver)
+				setNoUser(u, userClient)
 			},
 			Send: func(u *testing.T) {
 				_, err := userClient.Create(events.User{
@@ -99,7 +94,7 @@ func TestCRDCrud(t *testing.T) {
 		{
 			Name: "Delete user",
 			Prepare: func(u *testing.T) {
-				setUser(u, userClient, receiver, events.User{
+				setUser(u, userClient, events.User{
 					Name:     "test-user",
 					Username: "test-user",
 					Email:    "test@user.com",
@@ -123,7 +118,7 @@ func TestCRDCrud(t *testing.T) {
 		{
 			Name: "Update user",
 			Prepare: func(u *testing.T) {
-				setUser(u, userClient, receiver, events.User{
+				setUser(u, userClient, events.User{
 					Name:     "test-user",
 					Username: "test-user",
 					Email:    "test@user.com",
@@ -156,7 +151,7 @@ func TestCRDCrud(t *testing.T) {
 		{
 			Name: "Set user event",
 			Prepare: func(u *testing.T) {
-				setUser(u, userClient, receiver, events.User{
+				setUser(u, userClient, events.User{
 					Name:     "test-user",
 					Username: "test-user",
 					Email:    "test@user.com",
@@ -186,15 +181,17 @@ func TestCRDCrud(t *testing.T) {
 	} {
 		t.Run(test.Name, func(u *testing.T) {
 			test.Prepare(u)
+			recorder.Clear(u, RECORDER_URL)
 			test.Send(u)
 
-			e := <-receiver
+			data := recorder.WaitForEvent(u, RECORDER_URL, test.ExpectedType)
+			eventData := events.User{}
+			assert.NoError(u, json.Unmarshal([]byte(data), &eventData))
 
-			e.User.ResourceVersion = ""
+			eventData.ResourceVersion = ""
 
 			assert.NoError(u, err)
-			assert.Equal(u, test.ExpectedType, e.Type)
-			assert.Equal(u, test.ExpectedData, e.User)
+			assert.Equal(u, test.ExpectedData, eventData)
 
 			if test.ExpectUser {
 				user, err := userClient.Get(test.ExpectedData.Name)

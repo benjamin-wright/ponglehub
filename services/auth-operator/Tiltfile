@@ -9,33 +9,51 @@ custom_build(
 )
 
 custom_build(
-  'localhost:5000/auth-operator-tests',
-  'mudly +integration && docker tag localhost:5000/auth-operator-tests $EXPECTED_REF',
-  ['./'],
+  'localhost:5000/event-recorder',
+  'mudly ../event-recorder/+image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  ['../event-recorder'],
   ignore=['Tiltfile', './dist']
 )
 
 k8s_resource(
   'operator',
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3000:80"]
 )
 
 k8s_resource(
-  'test',
+  'recorder',
   trigger_mode=TRIGGER_MODE_MANUAL,
-  auto_init=False,
-  resource_deps=['operator']
+  port_forwards=["3001:3001"]
 )
 
 k8s_yaml('crds/user.crd.yaml')
 k8s_yaml(namespace_yaml('int-auth-operator'))
+
+local_resource(
+  'test',
+  'mudly +test',
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+local_resource(
+  'int-test',
+  'mudly +int-test',
+  env={
+    'OPERATOR_URL': 'http://localhost:3000',
+    'RECORDER_URL': 'http://localhost:3001'
+  },
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
 
 k8s_yaml(helm(
   '../../helm',
   name='auth-operator',
   namespace='int-auth-operator',
   set=[
-    'servers.operator.env.BROKER_URL="nats://nats:4222"',
+    'servers.operator.env.BROKER_URL="http://recorder:80"',
     'servers.operator.image=localhost:5000/auth-operator',
     'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
     'servers.operator.rbac.resources={authusers,authusers/status}',
@@ -43,11 +61,10 @@ k8s_yaml(helm(
     'servers.operator.rbac.clusterWide=true',
     'servers.operator.resources.limits.memory=64Mi',
     'servers.operator.resources.requests.memory=64Mi',
-    'test.image=localhost:5000/auth-operator-tests',
-    'test.env.BROKER_URL="http://nats:4222"',
-    'test.rbac.apiGroups={ponglehub.co.uk}',
-    'test.rbac.resources={authusers,authusers/status}',
-    'test.rbac.verbs={get,create,update,delete,deletecollection}',
-    'test.rbac.clusterWide=true',
+    'servers.recorder.image=localhost:5000/event-recorder',
+    'servers.recorder.env.EVENT_PORT="80"',
+    'servers.recorder.env.SERVER_PORT="3001"',
+    'servers.recorder.resources.limits.memory=64Mi',
+    'servers.recorder.resources.requests.memory=64Mi'
   ]
 ))

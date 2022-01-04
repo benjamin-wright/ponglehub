@@ -46,4 +46,9 @@ ARTEFACT integration
 ARTEFACT test
   STEP test
     COMMAND
-      go test -p=1 -v ./internal/...
+      go test -v ./internal/...
+
+ARTEFACT int-test
+  STEP test
+    COMMAND
+      go test -v ./integration

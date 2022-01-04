@@ -9,14 +9,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/auth/auth-operator/internal/handlers"
 	"ponglehub.co.uk/auth/auth-operator/internal/users"
-	"ponglehub.co.uk/lib/user-events/pkg/events"
+	events "ponglehub.co.uk/lib/user-events"
 )
 
 func main() {
 	logrus.Infof("Starting operator...")
 
 	users.AddToScheme(scheme.Scheme)
-	userClient, err := users.New()
+	userClient, err := users.New(&users.ClientArgs{})
 	if err != nil {
 		logrus.Fatalf("Failed to start user client: %+v", err)
 	}
@@ -32,10 +32,13 @@ func main() {
 	}
 
 	_, stopper := userClient.Listen(handler.AddUser, handler.UpdateUser, handler.DeleteUser)
-	err = events.Listen("BROKER_URL", handler.UserEvent)
+	defer func() { stopper <- struct{}{} }()
+
+	cancelFunc, err := events.Listen(80, handler.UserEvent)
 	if err != nil {
 		logrus.Fatalf("Failed to create event listener: %+v", err)
 	}
+	defer cancelFunc()
 
 	logrus.Infof("Running...")
 
@@ -46,8 +49,4 @@ func main() {
 	<-quit
 
 	log.Println("Shutdown Server...")
-
-	stopper <- struct{}{}
-
-	log.Println("Stop signal sent")
 }

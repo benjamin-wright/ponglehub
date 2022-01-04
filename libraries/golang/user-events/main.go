@@ -6,11 +6,11 @@ import (
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/lib/events/pkg/nats"
+	"ponglehub.co.uk/lib/events"
 )
 
 type Events struct {
-	events *nats.Events
+	events *events.Events
 }
 
 type User struct {
@@ -37,7 +37,10 @@ type UserEvent struct {
 type UserEventHandler func(event UserEvent)
 
 func New(brokerEnv string, source string) (*Events, error) {
-	events, err := nats.New(brokerEnv, "com.ponglehub.auth", source)
+	events, err := events.New(events.EventsArgs{
+		BrokerEnv: brokerEnv,
+		Source:    source,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +50,8 @@ func New(brokerEnv string, source string) (*Events, error) {
 	}, nil
 }
 
-func Listen(brokerEnv string, handler UserEventHandler) error {
-	return nats.Listen(brokerEnv, "com.ponglehub.auth", func(ctx context.Context, event event.Event) {
+func Listen(port int, handler UserEventHandler) (context.CancelFunc, error) {
+	return events.Listen(port, func(ctx context.Context, event event.Event) {
 		user := User{}
 		err := event.DataAs(&user)
 		if err != nil {

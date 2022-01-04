@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/lib/user-events/pkg/events"
+	events "ponglehub.co.uk/lib/user-events"
 )
 
 type Handler struct {
@@ -94,7 +94,7 @@ func (h *Handler) DeleteUser(user events.User) {
 
 func (h *Handler) UserEvent(event events.UserEvent) {
 	if event.Type != "ponglehub.auth.user.set" {
-		logrus.Warnf("Unrecognised event type: %s", event)
+		logrus.Warnf("Unrecognised event type: %s", event.Type)
 		return
 	}
 

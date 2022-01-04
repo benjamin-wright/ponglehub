@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
-	"ponglehub.co.uk/lib/user-events/pkg/events"
+	events "ponglehub.co.uk/lib/user-events"
 )
 
 type MockEvents struct {

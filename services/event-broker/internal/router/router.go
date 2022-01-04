@@ -42,10 +42,16 @@ func (r *Router) Remove(filter string, url string) error {
 func (r *Router) GetURLs(eventType string) []string {
 	urls := []string{}
 
-	typeParts := strings.Split(eventType, ".")
-
 	for _, route := range r.routes {
-		if len(route.Filter) != len(typeParts) {
+		typeParts := strings.Split(eventType, ".")
+
+		lenTypeParts := len(typeParts)
+		lenFilterParts := len(route.Filter)
+		isOpenWildcard := route.Filter[len(route.Filter)-1] == "*"
+
+		if lenTypeParts > lenFilterParts && isOpenWildcard {
+			typeParts = typeParts[:lenFilterParts]
+		} else if lenTypeParts != lenFilterParts {
 			continue
 		}
 
