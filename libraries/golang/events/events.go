@@ -1,4 +1,4 @@
-package http
+package events
 
 import (
 	"context"
@@ -18,12 +18,26 @@ type Events struct {
 	source string
 }
 
-type EventHandler func(ctx context.Context, event event.Event)
+type EventsArgs struct {
+	BrokerEnv string
+	BrokerURL string
+	Source    string
+}
 
-func New(brokerEnv string, source string) (*Events, error) {
-	brokerUrl, ok := os.LookupEnv(brokerEnv)
-	if !ok {
-		logrus.Fatalf("Environment Variable %s not found", brokerEnv)
+func New(args EventsArgs) (*Events, error) {
+	brokerUrl := args.BrokerURL
+
+	if args.BrokerEnv != "" {
+		url, ok := os.LookupEnv(args.BrokerEnv)
+		if !ok {
+			return nil, fmt.Errorf("environment variable %s not found", args.BrokerEnv)
+		}
+
+		brokerUrl = url
+	}
+
+	if brokerUrl == "" {
+		return nil, fmt.Errorf("no broker url found, provide either BrokerEnv or BrokerURL")
 	}
 
 	ctx := cloudevents.ContextWithTarget(context.Background(), brokerUrl)
@@ -43,34 +57,8 @@ func New(brokerEnv string, source string) (*Events, error) {
 	return &Events{
 		ctx:    ctx,
 		sender: client,
-		source: source,
+		source: args.Source,
 	}, nil
-}
-
-func Listen(handler EventHandler) (context.CancelFunc, error) {
-	p, err := cloudevents.NewHTTP(cloudevents.WithPort(80))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create protocol: %s", err.Error())
-	}
-
-	client, err := cloudevents.NewClient(p)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client, %v", err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		err := client.StartReceiver(ctx, handler)
-
-		if err != nil && ctx.Err() == nil {
-			logrus.Fatalf("Error in event listener: %+v", err)
-		} else {
-			logrus.Infof("Stopped event listener")
-		}
-	}()
-
-	return cancel, nil
 }
 
 func (e *Events) Proxy(event event.Event) error {
@@ -81,7 +69,7 @@ func (e *Events) Proxy(event event.Event) error {
 		return fmt.Errorf("failed to send event: %v", res.Error())
 	}
 
-	if !cloudevents.IsACK(res) {
+	if cloudevents.IsNACK(res) {
 		return fmt.Errorf("event for %s not acknowledged", event.Type())
 	}
 
@@ -115,4 +103,34 @@ func (e *Events) Send(eventType string, data interface{}) error {
 	}
 
 	return e.Proxy(event)
+}
+
+type EventHandler func(ctx context.Context, event event.Event)
+
+func Listen(port int, handler EventHandler) (context.CancelFunc, error) {
+	p, err := cloudevents.NewHTTP(cloudevents.WithPort(port))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create protocol: %s", err.Error())
+	}
+
+	client, err := cloudevents.NewClient(p)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client, %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		err := client.StartReceiver(ctx, handler)
+
+		if err != nil && ctx.Err() == nil {
+			logrus.Fatalf("Error in event listener: %+v", err)
+		} else {
+			logrus.Infof("Stopped event listener")
+		}
+	}()
+
+	logrus.Infof("Listening on port %d...", port)
+
+	return cancel, nil
 }

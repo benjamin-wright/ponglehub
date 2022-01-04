@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,30 +44,24 @@ func setUser(u *testing.T, userClient *users.UserClient, receiver chan events.Us
 }
 
 func TestCRDCrud(t *testing.T) {
-	brokerUrl, ok := os.LookupEnv("BROKER_URL")
-	if !ok {
-		assert.FailNow(t, "BROKER_URL not set")
-	}
-
 	users.AddToScheme(scheme.Scheme)
 	userClient, err := users.New()
 	if err != nil {
 		assert.FailNow(t, "failed to start users client: %+v", err)
 	}
 
-	eventClient, err := events.New(brokerUrl)
+	eventClient, err := events.New("BROKER_URL", "test-operator")
 	if err != nil {
 		assert.FailNow(t, "failed to start event client: %+v", err)
 	}
 
 	receiver := make(chan events.UserEvent, 5)
-	cancel, err := events.Listen(func(event events.UserEvent) {
+	err = events.Listen("BROKER_URL", func(event events.UserEvent) {
 		receiver <- event
 	})
 	if err != nil {
 		assert.FailNow(t, "failed to start event listener: %+v", err)
 	}
-	defer cancel()
 
 	for _, test := range []struct {
 		Name         string

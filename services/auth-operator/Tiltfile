@@ -35,8 +35,7 @@ k8s_yaml(helm(
   name='auth-operator',
   namespace='int-auth-operator',
   set=[
-    'servers.operator.enabled=true',
-    'servers.operator.env.BROKER_URL="http://test:80"',
+    'servers.operator.env.BROKER_URL="nats://nats:4222"',
     'servers.operator.image=localhost:5000/auth-operator',
     'servers.operator.rbac.apiGroups={ponglehub.co.uk}',
     'servers.operator.rbac.resources={authusers,authusers/status}',
@@ -45,7 +44,7 @@ k8s_yaml(helm(
     'servers.operator.resources.limits.memory=64Mi',
     'servers.operator.resources.requests.memory=64Mi',
     'test.image=localhost:5000/auth-operator-tests',
-    'test.env.BROKER_URL="http://operator:80"',
+    'test.env.BROKER_URL="http://nats:4222"',
     'test.rbac.apiGroups={ponglehub.co.uk}',
     'test.rbac.resources={authusers,authusers/status}',
     'test.rbac.verbs={get,create,update,delete,deletecollection}',

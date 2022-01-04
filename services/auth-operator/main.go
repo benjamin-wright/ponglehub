@@ -12,28 +12,16 @@ import (
 	"ponglehub.co.uk/lib/user-events/pkg/events"
 )
 
-func getEnv(key string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		logrus.Fatalf("Environment variable value required: %s", key)
-	}
-
-	return value
-}
-
 func main() {
 	logrus.Infof("Starting operator...")
 
-	brokerUrl := getEnv("BROKER_URL")
-
 	users.AddToScheme(scheme.Scheme)
-
 	userClient, err := users.New()
 	if err != nil {
 		logrus.Fatalf("Failed to start user client: %+v", err)
 	}
 
-	eventClient, err := events.New(brokerUrl)
+	eventClient, err := events.New("BROKER_URL", "auth-operator")
 	if err != nil {
 		logrus.Fatalf("Failed to start event client: %+v", err)
 	}
@@ -44,7 +32,7 @@ func main() {
 	}
 
 	_, stopper := userClient.Listen(handler.AddUser, handler.UpdateUser, handler.DeleteUser)
-	cancelEventListener, err := events.Listen(handler.UserEvent)
+	err = events.Listen("BROKER_URL", handler.UserEvent)
 	if err != nil {
 		logrus.Fatalf("Failed to create event listener: %+v", err)
 	}
@@ -60,7 +48,6 @@ func main() {
 	log.Println("Shutdown Server...")
 
 	stopper <- struct{}{}
-	cancelEventListener()
 
 	log.Println("Stop signal sent")
 }

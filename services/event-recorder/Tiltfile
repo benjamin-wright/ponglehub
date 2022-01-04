@@ -1,0 +1,43 @@
+allow_k8s_contexts(['pongle'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+
+custom_build(
+  'localhost:5000/event-recorder',
+  'mudly +image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+k8s_resource(
+  'recorder',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3000:80", "3001:3001"]
+)
+
+local_resource(
+    'test',
+    'mudly +test',
+    env={
+        'TEST_NAMESPACE': 'int-event-recorder',
+        'BROKER_URL': 'http://localhost:3000',
+        'SERVER_URL': 'http://localhost:3001',
+    },
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=['recorder']
+)
+
+k8s_yaml(namespace_yaml('int-event-recorder'))
+
+k8s_yaml(helm(
+  '../../helm',
+  name='event-recorder',
+  namespace='int-event-recorder',
+  set=[
+    'servers.recorder.image=localhost:5000/event-recorder',
+    'servers.recorder.env.EVENT_PORT="80"',
+    'servers.recorder.env.SERVER_PORT="3001"',
+    'servers.recorder.resources.limits.memory=64Mi',
+    'servers.recorder.resources.requests.memory=64Mi'
+  ]
+))

@@ -1,0 +1,64 @@
+allow_k8s_contexts(['pongle'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+
+custom_build(
+  'localhost:5000/event-broker',
+  'mudly +image && docker tag localhost:5000/event-broker $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'localhost:5000/event-recorder',
+  'mudly ../event-recorder+image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  ['../event-recorder']
+)
+
+k8s_resource(
+  'broker',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3000:80"]
+)
+
+k8s_resource(
+  'recorder',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3001:3001"]
+)
+
+local_resource(
+    'int-test',
+    'mudly +int-test',
+    env={
+        'TEST_NAMESPACE': 'int-event-broker',
+        'BROKER_URL': 'http://localhost:3000',
+        'RECORDER_URL': 'http://recorder:80',
+        'RECORDER_SERVER': 'http://localhost:3001',
+    },
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=['broker', 'recorder']
+)
+
+k8s_yaml('crds/event-trigger.crd.yaml')
+k8s_yaml(namespace_yaml('int-event-broker'))
+
+k8s_yaml(helm(
+  '../../helm',
+  name='event-broker',
+  namespace='int-event-broker',
+  set=[
+    'servers.broker.image=localhost:5000/event-broker',
+    'servers.broker.rbac.apiGroups={ponglehub.co.uk}',
+    'servers.broker.rbac.resources={eventtriggers}',
+    'servers.broker.rbac.verbs={list,watch}',
+    'servers.broker.rbac.clusterWide=true',
+    'servers.broker.resources.limits.memory=64Mi',
+    'servers.broker.resources.requests.memory=64Mi',
+    'servers.recorder.image=localhost:5000/event-recorder',
+    'servers.recorder.env.EVENT_PORT="80"',
+    'servers.recorder.env.SERVER_PORT="3001"',
+    'servers.recorder.resources.limits.memory=64Mi',
+    'servers.recorder.resources.requests.memory=64Mi'
+  ]
+))

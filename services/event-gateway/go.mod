@@ -1,3 +1,3 @@
-module ponglehub.co.uk/services/event-gateway
+module ponglehub.co.uk/events/gateway
 
 go 1.16

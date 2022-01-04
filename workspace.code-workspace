@@ -24,6 +24,14 @@
 			"name": "srv: db-operator"
 		},
 		{
+			"path": "services/event-broker",
+			"name": "srv: event-broker"
+		},
+		{
+			"path": "services/event-recorder",
+			"name": "srv: event-recorder"
+		},
+		{
 			"path": "services/event-gateway",
 			"name": "srv: event-gateway"
 		},

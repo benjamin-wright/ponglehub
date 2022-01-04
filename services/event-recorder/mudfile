@@ -1,0 +1,29 @@
+ARTEFACT start
+  DEPENDS ON ../..+raw-cluster
+
+ARTEFACT stop
+  DEPENDS ON ../../+stop
+
+DOCKERFILE go
+  FILE
+    FROM scratch
+    COPY event-recorder /event-recorder
+    ENTRYPOINT [ "/event-recorder" ]
+  IGNORE
+    !event-recorder
+
+ARTEFACT image
+  STEP build
+    COMMAND
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/event-recorder ./main.go
+
+  STEP image
+    DOCKERFILE go
+    TAG localhost:5000/event-recorder
+    CONTEXT ./dist
+
+ARTEFACT test
+  STEP test
+    COMMAND
+      go test -v ./integration

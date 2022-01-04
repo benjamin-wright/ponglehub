@@ -44,7 +44,7 @@ ARTEFACT prod-cluster
     COMMAND
       k3d cluster create $CLUSTER_NAME \
         --registry-use $REGISTRY_NAME \
-        --k3s-server-arg "--no-deploy=traefik" \
+        --k3s-arg "--disable=traefik@server:0" \
         --kubeconfig-update-default=false \
         --volume $(pwd)/infra/manifests:/var/lib/rancher/k3s/server/manifests/preload \
         -p "80:80@loadbalancer" \
@@ -126,7 +126,7 @@ ARTEFACT raw-cluster
     COMMAND
       k3d cluster create $CLUSTER_NAME \
         --registry-use $REGISTRY_NAME \
-        --k3s-server-arg "--no-deploy=traefik" \
+        --k3s-arg "--disable=traefik@server:0" \
         --kubeconfig-update-default=false \
         -p "80:80@loadbalancer" \
         --wait
@@ -150,7 +150,7 @@ ARTEFACT dev-cluster
     COMMAND
       k3d cluster create $CLUSTER_NAME \
         --registry-use $REGISTRY_NAME \
-        --k3s-server-arg "--no-deploy=traefik" \
+        --k3s-arg "--disable=traefik@server:0" \
         --kubeconfig-update-default=false \
         --volume $(pwd)/infra/dev:/var/lib/rancher/k3s/server/manifests/preload \
         -p "80:80@loadbalancer" \

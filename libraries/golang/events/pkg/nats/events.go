@@ -51,6 +51,8 @@ func Listen(brokerEnv string, subject string, handler EventHandler) error {
 		logrus.Fatalf("Environment Variable %s not found", brokerEnv)
 	}
 
+	logrus.Infof("Connecting with url: %s", brokerUrl)
+
 	consumer, err := cenats.NewConsumer(brokerUrl, subject, cenats.NatsOptions())
 	if err != nil {
 		return fmt.Errorf("failed to create nats consumer: %s", err.Error())
