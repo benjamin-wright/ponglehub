@@ -9,15 +9,18 @@ type User struct {
 	ResourceVersion string
 	Display         string
 	Email           string
-	InviteToken     string
-	PasswordHash    string
+	Invited         bool
+	Member          bool
 }
 
 type AuthUserSpec struct {
-	Display      string `json:"display"`
-	Email        string `json:"email"`
-	InviteToken  string `json:"inviteToken"`
-	PasswordHash string `json:"passwordHash"`
+	Display string `json:"display"`
+	Email   string `json:"email"`
+}
+
+type AuthUserStatus struct {
+	Invited bool `json:"invited"`
+	Member  bool `json:"member"`
 }
 
 // For internal use only
@@ -25,7 +28,8 @@ type AuthUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec AuthUserSpec `json:"spec"`
+	Spec   AuthUserSpec   `json:"spec"`
+	Status AuthUserStatus `json:"status"`
 }
 
 type AuthUserList struct {

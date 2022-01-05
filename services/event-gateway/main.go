@@ -25,6 +25,8 @@ func main() {
 	logrus.Infof("Starting operator...")
 
 	keyFilePath := getEnv("KEY_FILE")
+	redisUrl := getEnv("REDIS_URL")
+	tokenDomain := getEnv("TOKEN_DOMAIN")
 
 	crds.AddToScheme(scheme.Scheme)
 	client, err := crds.New(&crds.ClientArgs{})
@@ -32,12 +34,12 @@ func main() {
 		logrus.Fatalf("Failed to start user client: %+v", err)
 	}
 
-	tk, err := tokens.New(keyFilePath)
+	tk, err := tokens.New(keyFilePath, redisUrl)
 	if err != nil {
 		logrus.Fatalf("Failed to start server: %+v", err)
 	}
 
-	srv, err := server.Start("BROKER_URL", tk, client)
+	srv, err := server.Start("BROKER_URL", tokenDomain, tk, client)
 	if err != nil {
 		logrus.Fatalf("Failed to start server: %+v", err)
 	}

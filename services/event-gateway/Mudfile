@@ -31,4 +31,4 @@ ARTEFACT test
 ARTEFACT int-test
   STEP test
     COMMAND
-      go test -v ./integration
+      go test -count 1 -v ./integration

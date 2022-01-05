@@ -4,6 +4,8 @@ metadata:
   name: authusers.ponglehub.co.uk
 spec:
   group: ponglehub.co.uk
+  subresources:
+    status: {}
   versions:
     - name: v1alpha1
       served: true
@@ -19,11 +21,18 @@ spec:
                   type: string
                 email:
                   type: string
-                inviteToken:
-                  type: string
-                passwordHash:
-                  type: string
               required: [ display, email ]
+            status:
+              type: object
+              properties:
+                invited:
+                  type: boolean
+                  default: false
+                member:
+                  type: boolean
+                  default: false
+      subresources:
+        status: {}
       additionalPrinterColumns:
       - name: Display
         type: string
@@ -33,14 +42,14 @@ spec:
         type: string
         description: The user email
         jsonPath: .spec.email
-      - name: Invite
-        type: string
-        description: Has a value if an invite is pending
-        jsonPath: .spec.inviteToken
+      - name: Invited
+        type: boolean
+        description: True if an invite token exists
+        jsonPath: .status.invited
       - name: Password
-        type: string
-        description: Hashed password
-        jsonPath: .spec.passwordHash
+        type: boolean
+        description: True if user has provided a password
+        jsonPath: .status.member
       - name: Age
         type: date
         jsonPath: .metadata.creationTimestamp

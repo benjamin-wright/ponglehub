@@ -8,10 +8,12 @@ func (in *AuthUser) DeepCopyInto(out *AuthUser) {
 	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = AuthUserSpec{
-		Display:      in.Spec.Display,
-		Email:        in.Spec.Email,
-		InviteToken:  in.Spec.InviteToken,
-		PasswordHash: in.Spec.PasswordHash,
+		Display: in.Spec.Display,
+		Email:   in.Spec.Email,
+	}
+	out.Status = AuthUserStatus{
+		Invited: in.Status.Invited,
+		Member:  in.Status.Member,
 	}
 }
 

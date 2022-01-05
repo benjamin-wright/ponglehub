@@ -28,10 +28,12 @@ func fromUser(user User) *AuthUser {
 			ResourceVersion: user.ResourceVersion,
 		},
 		Spec: AuthUserSpec{
-			Display:      user.Display,
-			Email:        user.Email,
-			InviteToken:  user.InviteToken,
-			PasswordHash: user.PasswordHash,
+			Display: user.Display,
+			Email:   user.Email,
+		},
+		Status: AuthUserStatus{
+			Invited: user.Invited,
+			Member:  user.Member,
 		},
 	}
 
@@ -49,8 +51,8 @@ func fromAuthUser(authUser *AuthUser) User {
 		ResourceVersion: authUser.ResourceVersion,
 		Display:         authUser.Spec.Display,
 		Email:           authUser.Spec.Email,
-		InviteToken:     authUser.Spec.InviteToken,
-		PasswordHash:    authUser.Spec.PasswordHash,
+		Invited:         authUser.Status.Invited,
+		Member:          authUser.Status.Member,
 	}
 }
 
@@ -139,6 +141,23 @@ func (c *UserClient) Update(user User) (User, error) {
 		Put().
 		Resource("authusers").
 		Name(user.Name).
+		VersionedParams(&v1.UpdateOptions{}, scheme.ParameterCodec).
+		Body(authUser).
+		Do(context.TODO()).
+		Into(&result)
+
+	return fromAuthUser(&result), err
+}
+
+func (c *UserClient) Status(user User) (User, error) {
+	authUser := fromUser(user)
+
+	result := AuthUser{}
+	err := c.restClient.
+		Put().
+		Resource("authusers").
+		Name(user.Name).
+		SubResource("status").
 		VersionedParams(&v1.UpdateOptions{}, scheme.ParameterCodec).
 		Body(authUser).
 		Do(context.TODO()).

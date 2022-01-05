@@ -18,13 +18,18 @@ custom_build(
 k8s_resource(
   'gateway',
   trigger_mode=TRIGGER_MODE_MANUAL,
-  port_forwards=["3000:80", "3001:3001"]
+  port_forwards=["3000:80"]
 )
 
 k8s_resource(
   'recorder',
   trigger_mode=TRIGGER_MODE_MANUAL,
-  port_forwards=["3002:3002"]
+  port_forwards=["3001:3001"]
+)
+
+k8s_resource(
+  'redis',
+  port_forwards=["6379:6379"]
 )
 
 k8s_yaml('crds/user.crd.yaml')
@@ -42,8 +47,9 @@ local_resource(
   'mudly +int-test',
   env={
     'GATEWAY_URL': 'http://localhost:3000',
-    'GATEWAY_EVENTS': 'http://localhost:3001',
-    'RECORDER_URL': 'http://localhost:3002'
+    'GATEWAY_EVENTS': 'http://localhost:3000/events',
+    'RECORDER_URL': 'http://localhost:3001',
+    'REDIS_URL': 'localhost:6379'
   },
   auto_init=False,
   trigger_mode=TRIGGER_MODE_MANUAL
@@ -54,13 +60,16 @@ k8s_yaml(helm(
   name='event-gateway',
   namespace='int-event-gateway',
   set=[
+    'redis.redis.storage=256Mi',
     'secrets.gateway-key.keyfile=abcdefg',
     'servers.gateway.image=localhost:5000/event-gateway',
     'servers.gateway.env.BROKER_URL="http://recorder:80"',
+    'servers.gateway.env.REDIS_URL="redis:6379"',
     'servers.gateway.env.KEY_FILE="/secrets/keyfile"',
+    'servers.gateway.env.TOKEN_DOMAIN="localhost"',
     'servers.gateway.volFromSecret.gateway-key.path=/secrets',
     'servers.gateway.rbac.apiGroups={ponglehub.co.uk}',
-    'servers.gateway.rbac.resources={authusers}',
+    'servers.gateway.rbac.resources={authusers,authusers/status}',
     'servers.gateway.rbac.verbs={get,list,watch,patch,update}',
     'servers.gateway.rbac.clusterWide=true',
     'servers.gateway.resources.limits.memory=64Mi',

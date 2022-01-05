@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	nethttp "net/http"
 	"os"
 	"time"
 
@@ -22,7 +23,14 @@ type EventsArgs struct {
 	BrokerEnv string
 	BrokerURL string
 	Source    string
+	Cookies   nethttp.CookieJar
 }
+
+type Error string
+
+func (e Error) Error() string { return string(e) }
+
+const UnauthorizedError = Error("unauthorized")
 
 func New(args EventsArgs) (*Events, error) {
 	brokerUrl := args.BrokerURL
@@ -48,6 +56,7 @@ func New(args EventsArgs) (*Events, error) {
 	}
 
 	p.Client.Timeout = time.Second
+	p.Client.Jar = args.Cookies
 
 	client, err := cloudevents.NewClient(p, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
 	if err != nil {
@@ -69,10 +78,6 @@ func (e *Events) Proxy(event event.Event) error {
 		return fmt.Errorf("failed to send event: %v", res.Error())
 	}
 
-	if cloudevents.IsNACK(res) {
-		return fmt.Errorf("event for %s not acknowledged", event.Type())
-	}
-
 	var result *http.RetriesResult
 	if !cloudevents.ResultAs(res, &result) {
 		return fmt.Errorf("error decoding retries result %T: %+v", res, res)
@@ -81,6 +86,14 @@ func (e *Events) Proxy(event event.Event) error {
 	var final *http.Result
 	if !cloudevents.ResultAs(result.Result, &final) {
 		return fmt.Errorf("error decoding final result %T: %+v", res, res)
+	}
+
+	if cloudevents.IsNACK(res) {
+		if final.StatusCode == 401 {
+			return UnauthorizedError
+		} else {
+			return fmt.Errorf("event for %s not acknowledged: %d", event.Type(), final.StatusCode)
+		}
 	}
 
 	retriesString := ""
