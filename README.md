@@ -2,7 +2,7 @@
 
 ## Todo:
 
-- Update auth-user status after setting password
+- Update auth-user status after setting password (store lookups for email -> id and id -> name)
 - Properly check token in cookie for normal events
 - Set up event-gateway to hold requests by ID and wait for response events
 

@@ -7,9 +7,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
-	"ponglehub.co.uk/events/gateway/internal/crds"
-	"ponglehub.co.uk/events/gateway/internal/server"
-	"ponglehub.co.uk/events/gateway/internal/tokens"
+	"ponglehub.co.uk/events/gateway/internal/managers/server"
+	"ponglehub.co.uk/events/gateway/internal/managers/state"
+	"ponglehub.co.uk/events/gateway/internal/services/crds"
+	"ponglehub.co.uk/events/gateway/internal/services/tokens"
+	"ponglehub.co.uk/events/gateway/internal/services/user_store"
 )
 
 func getEnv(env string) string {
@@ -21,12 +23,9 @@ func getEnv(env string) string {
 	return value
 }
 
-func main() {
-	logrus.Infof("Starting operator...")
-
+func getServices() (*crds.UserClient, *tokens.Tokens, *user_store.Store) {
 	keyFilePath := getEnv("KEY_FILE")
 	redisUrl := getEnv("REDIS_URL")
-	tokenDomain := getEnv("TOKEN_DOMAIN")
 
 	crds.AddToScheme(scheme.Scheme)
 	client, err := crds.New(&crds.ClientArgs{})
@@ -34,19 +33,26 @@ func main() {
 		logrus.Fatalf("Failed to start user client: %+v", err)
 	}
 
-	tk, err := tokens.New(keyFilePath, redisUrl)
+	tokens, err := tokens.New(keyFilePath, redisUrl)
 	if err != nil {
 		logrus.Fatalf("Failed to start server: %+v", err)
 	}
 
-	srv, err := server.Start("BROKER_URL", tokenDomain, tk, client)
-	if err != nil {
-		logrus.Fatalf("Failed to start server: %+v", err)
-	}
-	defer srv.Stop()
+	store := user_store.New()
 
-	_, stopper := client.Listen(srv.AddUser, srv.UpdateUser, srv.RemoveUser)
-	defer func() { stopper <- struct{}{} }()
+	return client, tokens, store
+}
+
+func main() {
+	logrus.Infof("Starting operator...")
+
+	client, tokens, store := getServices()
+
+	stopServer := server.Start("BROKER_URL", getEnv("TOKEN_DOMAIN"), client, store, tokens)
+	defer stopServer()
+
+	stopListener := state.Start(client, store, tokens)
+	defer stopListener()
 
 	logrus.Infof("Running...")
 

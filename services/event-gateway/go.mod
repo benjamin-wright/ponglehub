@@ -12,6 +12,7 @@ require (
 	k8s.io/apimachinery v0.23.1
 	k8s.io/client-go v0.23.1
 	ponglehub.co.uk/lib/events v1.0.0
+	ponglehub.co.uk/events/recorder v1.0.0
 )
 
 require (

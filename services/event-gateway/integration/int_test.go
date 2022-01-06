@@ -1,22 +1,26 @@
 package integration
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/cookiejar"
+	"io"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
-	"ponglehub.co.uk/events/gateway/internal/crds"
+	"ponglehub.co.uk/events/gateway/integration/redis"
+	"ponglehub.co.uk/events/gateway/integration/test_client"
+	"ponglehub.co.uk/events/gateway/internal/services/crds"
+	"ponglehub.co.uk/events/recorder/pkg/recorder"
 	"ponglehub.co.uk/lib/events"
 )
+
+func init() {
+	logrus.SetOutput(io.Discard)
+	crds.AddToScheme(scheme.Scheme)
+}
 
 func noErr(t *testing.T, err error) {
 	if err != nil {
@@ -25,121 +29,263 @@ func noErr(t *testing.T, err error) {
 	}
 }
 
-func waitForKey(t *testing.T, rdb *redis.Client, key string) string {
-	resultChan := make(chan string, 1)
-
-	go func(resultChan chan<- string) {
-		for {
-			value, err := rdb.Get(context.Background(), key).Result()
-			if err != nil {
-				continue
-			}
-
-			resultChan <- value
-			break
-		}
-	}(resultChan)
-
-	select {
-	case result := <-resultChan:
-		return result
-	case <-time.After(5 * time.Second):
-		t.Errorf("timed out waiting for key: %s", key)
-		t.FailNow()
-		return ""
-	}
-}
-
-type TestClient struct {
-	client *http.Client
-}
-
-func (t *TestClient) Post(u *testing.T, url string, data map[string]string) []*http.Cookie {
-	json_data, err := json.Marshal(data)
-	noErr(u, err)
-
-	req, err := http.NewRequest(
-		"POST",
-		url,
-		bytes.NewBuffer(json_data),
-	)
-	noErr(u, err)
-
-	req.Header.Add("Content-Type", "application/json")
-
-	res, err := t.client.Do(req)
-	noErr(u, err)
-
-	assert.Equal(u, 200, res.StatusCode)
-
-	return res.Cookies()
-}
-
-func TestGateway(t *testing.T) {
-	crds.AddToScheme(scheme.Scheme)
-
+func clients(t *testing.T) (*crds.UserClient, *redis.Redis, *test_client.TestClient, *events.Events) {
 	crdClient, err := crds.New(&crds.ClientArgs{
 		External: true,
 	})
 	noErr(t, err)
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_URL"),
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
+	redis := redis.New()
 
-	crdClient.Delete("test-user")
-	user, err := crdClient.Create(crds.User{
-		Name:    "test-user",
-		Display: "test user",
-		Email:   "test@user.com",
-	})
-	noErr(t, err)
+	testClient := test_client.New(t)
 
-	invite := waitForKey(t, rdb, fmt.Sprintf("%s.%s", user.ID, "invite"))
-
-	jar, err := cookiejar.New(nil)
-	noErr(t, err)
-
-	testClient := TestClient{
-		client: &http.Client{
-			Jar: jar,
-		},
-	}
-
-	testClient.Post(
-		t,
-		fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL")),
-		map[string]string{
-			"invite":   invite,
-			"password": "new-password",
-			"confirm":  "new-password",
-		},
-	)
-
-	testClient.Post(
-		t,
-		fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL")),
-		map[string]string{
-			"email":    "test@user.com",
-			"password": "new-password",
-		},
-	)
-
-	client, err := events.New(events.EventsArgs{
+	eventClient, err := events.New(events.EventsArgs{
 		BrokerEnv: "GATEWAY_EVENTS",
 		Source:    "int-tests",
-		Cookies:   jar,
+		Cookies:   testClient.CookieJar(),
 	})
 	noErr(t, err)
 
-	err = client.Send("test.event", "event 1")
-	noErr(t, err)
+	return crdClient, redis, testClient, eventClient
+}
 
-	err = client.Send("test.event", "event 2")
-	noErr(t, err)
+func TestInviteToken(t *testing.T) {
+	for _, test := range []struct {
+		Name       string
+		Prep       func(*testing.T, *redis.Redis, crds.User)
+		Input      func(string) map[string]string
+		StatusCode int
+	}{
+		{
+			Name: "success",
+			Prep: func(*testing.T, *redis.Redis, crds.User) {},
+			Input: func(invite string) map[string]string {
+				return map[string]string{
+					"invite":   invite,
+					"password": "new-password",
+					"confirm":  "new-password",
+				}
+			},
+			StatusCode: 200,
+		},
+		{
+			Name: "expired",
+			Prep: func(t *testing.T, r *redis.Redis, u crds.User) {
+				r.DeleteKey(t, fmt.Sprintf("%s.%s", u.ID, "invite"))
+			},
+			Input: func(invite string) map[string]string {
+				return map[string]string{
+					"invite":   invite,
+					"password": "new-password",
+					"confirm":  "new-password",
+				}
+			},
+			StatusCode: 401,
+		},
+		{
+			Name:       "no args",
+			Prep:       func(*testing.T, *redis.Redis, crds.User) {},
+			Input:      func(invite string) map[string]string { return map[string]string{} },
+			StatusCode: 400,
+		},
+		{
+			Name: "malformed token",
+			Prep: func(*testing.T, *redis.Redis, crds.User) {},
+			Input: func(invite string) map[string]string {
+				return map[string]string{
+					"invite":   "bad-token",
+					"password": "new-password",
+					"confirm":  "new-password",
+				}
+			},
+			StatusCode: 401,
+		},
+		{
+			Name: "mismatched passwords",
+			Prep: func(*testing.T, *redis.Redis, crds.User) {},
+			Input: func(invite string) map[string]string {
+				return map[string]string{
+					"invite":   "bad-token",
+					"password": "new-password",
+					"confirm":  "wrong-password",
+				}
+			},
+			StatusCode: 400,
+		},
+	} {
+		t.Run(test.Name, func(u *testing.T) {
+			crdClient, redisClient, testClient, _ := clients(u)
 
-	err = client.Send("test.event", "event 3")
-	noErr(t, err)
+			crdClient.Delete("test-user")
+			user, err := crdClient.Create(crds.User{
+				Name:    "test-user",
+				Display: "test user",
+				Email:   "test@user.com",
+			})
+			noErr(u, err)
+
+			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
+
+			test.Prep(u, redisClient, user)
+
+			url := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
+			res := testClient.Post(u, url, test.Input(invite))
+
+			assert.Equal(u, test.StatusCode, res.StatusCode)
+		})
+	}
+}
+
+func TestLogin(t *testing.T) {
+	for _, test := range []struct {
+		Name       string
+		Prep       func(*testing.T, *redis.Redis, crds.User)
+		Input      map[string]string
+		StatusCode int
+		Cookies    int
+	}{
+		{
+			Name: "success",
+			Prep: func(*testing.T, *redis.Redis, crds.User) {},
+			Input: map[string]string{
+				"email":    "test@user.com",
+				"password": "new-password",
+			},
+			StatusCode: 200,
+			Cookies:    1,
+		},
+		{
+			Name:       "no args",
+			Prep:       func(*testing.T, *redis.Redis, crds.User) {},
+			Input:      map[string]string{},
+			StatusCode: 400,
+			Cookies:    0,
+		},
+		{
+			Name: "wrong email",
+			Prep: func(*testing.T, *redis.Redis, crds.User) {},
+			Input: map[string]string{
+				"email":    "wrong@user.com",
+				"password": "new-password",
+			},
+			StatusCode: 401,
+			Cookies:    0,
+		},
+		{
+			Name: "wrong password",
+			Prep: func(*testing.T, *redis.Redis, crds.User) {},
+			Input: map[string]string{
+				"email":    "test@user.com",
+				"password": "wrong-password",
+			},
+			StatusCode: 401,
+			Cookies:    0,
+		},
+	} {
+		t.Run(test.Name, func(u *testing.T) {
+			crdClient, redisClient, testClient, _ := clients(u)
+
+			crdClient.Delete("test-user")
+			user, err := crdClient.Create(crds.User{
+				Name:    "test-user",
+				Display: "test user",
+				Email:   "test@user.com",
+			})
+			noErr(u, err)
+
+			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
+
+			url := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
+			res := testClient.Post(
+				u,
+				url,
+				map[string]string{
+					"invite":   invite,
+					"password": "new-password",
+					"confirm":  "new-password",
+				},
+			)
+			assert.Equal(u, 200, res.StatusCode)
+
+			test.Prep(u, redisClient, user)
+
+			url = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
+			res = testClient.Post(t, url, test.Input)
+			assert.Equal(t, test.StatusCode, res.StatusCode)
+			assert.Equal(t, test.Cookies, len(res.Cookies()))
+		})
+	}
+}
+
+func TestProxying(t *testing.T) {
+	for _, test := range []struct {
+		Name         string
+		LoggedIn     bool
+		Unauthorized bool
+		Events       int
+	}{
+		{
+			Name:         "not logged in",
+			LoggedIn:     false,
+			Unauthorized: true,
+			Events:       0,
+		},
+		{
+			Name:         "logged in",
+			LoggedIn:     true,
+			Unauthorized: false,
+			Events:       1,
+		},
+	} {
+		t.Run(test.Name, func(u *testing.T) {
+			crdClient, redisClient, testClient, eventClient := clients(u)
+			recorder.Clear(u, os.Getenv("RECORDER_URL"))
+
+			crdClient.Delete("test-user")
+			user, err := crdClient.Create(crds.User{
+				Name:    "test-user",
+				Display: "test user",
+				Email:   "test@user.com",
+			})
+			noErr(u, err)
+
+			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
+
+			url := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
+			res := testClient.Post(
+				u,
+				url,
+				map[string]string{
+					"invite":   invite,
+					"password": "new-password",
+					"confirm":  "new-password",
+				},
+			)
+			assert.Equal(u, 200, res.StatusCode)
+
+			if test.LoggedIn {
+				url = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
+				res = testClient.Post(
+					t,
+					url,
+					map[string]string{
+						"email":    "test@user.com",
+						"password": "new-password",
+					},
+				)
+				assert.Equal(t, 200, res.StatusCode)
+			}
+
+			err = eventClient.Send("test.event", "event 1")
+			if test.Unauthorized {
+				assert.Equal(t, events.UnauthorizedError, err)
+			} else {
+				noErr(t, err)
+			}
+
+			time.Sleep(250 * time.Millisecond)
+			received := recorder.GetEvents(u, os.Getenv("RECORDER_URL"))
+			assert.Equal(t, test.Events, len(received))
+		})
+	}
 }
