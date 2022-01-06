@@ -20,12 +20,12 @@ type Server struct {
 	client *events.Events
 	tokens *tokens.Tokens
 	crds   *crds.UserClient
-	users  map[string]string
+	store  *UserStore
 }
 
 func Start(brokerEnv string, domain string, tokens *tokens.Tokens, crds *crds.UserClient) (*Server, error) {
 	server := Server{
-		users:  map[string]string{},
+		store:  NewUserStore(),
 		crds:   crds,
 		tokens: tokens,
 	}
@@ -50,106 +50,11 @@ func Start(brokerEnv string, domain string, tokens *tokens.Tokens, crds *crds.Us
 
 	r := gin.Default()
 
-	r.POST("/events", func(c *gin.Context) {
-		_, err := c.Cookie("ponglehub.login")
-		if err == http.ErrNoCookie {
-			c.Status(401)
-			return
-		}
-
-		if err != nil {
-			logrus.Errorf("Error getting cookie: %+v", err)
-			c.Status(500)
-			return
-		}
-
-		h.ServeHTTP(c.Writer, c.Request)
-	})
-
-	r.GET("/auth/login", func(c *gin.Context) {
-	})
-
-	type LoginBody struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	r.POST("/auth/login", func(c *gin.Context) {
-		body := LoginBody{}
-		c.Bind(&body)
-
-		id, ok := server.users[body.Email]
-		if !ok {
-			logrus.Errorf("Login user not found: %s", body.Email)
-			c.Status(400)
-			return
-		}
-
-		ok, err := tokens.CheckPassword(id, body.Password)
-		if err != nil {
-			logrus.Errorf("Failed checking user password: %+v", err)
-			c.Status(500)
-			return
-		}
-
-		if !ok {
-			logrus.Errorf("Passwords didn't match for user %s", body.Email)
-			c.Status(400)
-			return
-		}
-
-		token, err := tokens.NewToken(id, "login", 1*time.Hour)
-		if err != nil {
-			logrus.Errorf("Failed creating token for user %s: %+v", body.Email, err)
-			c.Status(500)
-			return
-		}
-
-		c.SetCookie("ponglehub.login", token, 6400, "/", domain, false, true)
-		c.Status(200)
-	})
-
-	r.GET("/auth/set-password", func(c *gin.Context) {
-	})
-
-	type SetPasswordBody struct {
-		Invite   string `json:"invite"`
-		Password string `json:"password"`
-		Confirm  string `json:"confirm"`
-	}
-
-	r.POST("/auth/set-password", func(c *gin.Context) {
-		body := SetPasswordBody{}
-		c.Bind(&body)
-
-		if body.Password != body.Confirm {
-			logrus.Errorf("Mismatched password and confirmation")
-			c.JSON(400, gin.H{"failure": "passwords"})
-			return
-		}
-
-		claims, err := tokens.Parse(body.Invite)
-		if err != nil {
-			logrus.Errorf("Failed to parse invite token: %+v", err)
-			c.JSON(400, gin.H{"failure": "token"})
-			return
-		}
-
-		if claims.Kind != "invite" {
-			logrus.Errorf("Tried to set password without an invite token: %s", claims.Kind)
-			c.Status(401)
-			return
-		}
-
-		err = tokens.AddPasswordHash(claims.Subject, body.Password)
-		if err != nil {
-			logrus.Errorf("Failed to hash password: %+v", err)
-			c.Status(500)
-			return
-		}
-
-		logrus.Infof("Password updated for user %s", claims.Subject)
-	})
+	r.POST("/events", EventsRoute(h))
+	r.GET("/auth/login", func(c *gin.Context) {})
+	r.POST("/auth/login", LoginRoute(server.store, tokens, domain))
+	r.GET("/auth/set-password", func(c *gin.Context) {})
+	r.POST("/auth/set-password", SetPasswordRoute(tokens))
 
 	srv := &http.Server{
 		Addr:    "0.0.0.0:80",
@@ -246,39 +151,22 @@ func (s *Server) processUser(user crds.User) crds.User {
 	return user
 }
 
-func (s *Server) addToLookup(user crds.User) {
-	logrus.Infof("loading user %s", user.Email)
-	id, ok := s.users[user.Email]
-	if ok && id != user.ID {
-		logrus.Errorf("user %s already exists in lookup!", user.Email)
-		return
-	}
-
-	s.users[user.Email] = user.ID
-}
-
-func (s *Server) removeFromLookup(user crds.User) {
-	logrus.Infof("unloading user %s", user.Email)
-
-	delete(s.users, user.Email)
-}
-
 func (s *Server) AddUser(newUser crds.User) {
 	newUser = s.processUser(newUser)
-	s.addToLookup(newUser)
+	s.store.Add(newUser.ID, newUser.Email)
 }
 
 func (s *Server) UpdateUser(oldUser crds.User, newUser crds.User) {
 	newUser = s.processUser(newUser)
 
 	if oldUser.Email != newUser.Email {
-		s.removeFromLookup(oldUser)
-		s.addToLookup(newUser)
+		s.store.Remove(oldUser.Email)
+		s.store.Add(newUser.ID, newUser.Email)
 	}
 }
 
 func (s *Server) RemoveUser(oldUser crds.User) {
-	s.removeFromLookup(oldUser)
+	s.store.Remove(oldUser.Email)
 	if oldUser.Invited {
 		err := s.tokens.DeleteToken(oldUser.ID, "invite")
 		if err != nil {

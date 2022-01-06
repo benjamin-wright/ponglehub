@@ -2,6 +2,8 @@
 
 ## Todo:
 
+- Update auth-user status after setting password
+- Properly check token in cookie for normal events
 - Set up event-gateway to hold requests by ID and wait for response events
 
 ## Dependencies:
