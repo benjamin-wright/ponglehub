@@ -11,9 +11,9 @@ custom_build(
 )
 
 custom_build(
-  'auth-operator',
-  'mudly ./services/auth-operator+image && docker tag localhost:5000/auth-operator $EXPECTED_REF',
-  ['./services/auth-operator'],
+  'event-gateway',
+  'mudly ./services/event-gateway+image && docker tag localhost:5000/event-gateway $EXPECTED_REF',
+  ['./services/event-gateway'],
   ignore=['Tiltfile', './dist']
 )
 
@@ -30,7 +30,7 @@ k8s_resource(
 )
 
 k8s_resource(
-  'auth-operator',
+  'gateway',
   trigger_mode=TRIGGER_MODE_MANUAL
 )
 
@@ -60,28 +60,26 @@ k8s_yaml(helm(
   ]
 ))
 
-k8s_resource(
-  'cockroach',
-  extra_pod_selectors={
-    'db-operator.ponglehub.co.uk/deployment': 'cockroach'
-  }
-)
-
 k8s_yaml(namespace_yaml('auth-service'))
 k8s_yaml(helm(
   'helm',
   name='auth',
   namespace='auth-service',
   set=[
-    'cockroach.cockroach=1Gi',
-    'servers.auth-operator.env.BROKER_URL="http://recorder:80"',
-    'servers.auth-operator.image=auth-operator',
-    'servers.auth-operator.rbac.apiGroups={ponglehub.co.uk}',
-    'servers.auth-operator.rbac.resources={authusers,authusers/status}',
-    'servers.auth-operator.rbac.verbs={get,list,watch,patch,update}',
-    'servers.auth-operator.rbac.clusterWide=true',
-    'servers.auth-operator.resources.limits.memory=64Mi',
-    'servers.auth-operator.resources.requests.memory=64Mi',
+    'redis.redis.storage=256Mi',
+    'secrets.gateway-key.keyfile=abcdefg',
+    'servers.gateway.image=event-gateway',
+    'servers.gateway.env.BROKER_URL="http://gateway:80"',
+    'servers.gateway.env.REDIS_URL="redis:6379"',
+    'servers.gateway.env.KEY_FILE="/secrets/keyfile"',
+    'servers.gateway.env.TOKEN_DOMAIN="localhost"',
+    'servers.gateway.volFromSecret.gateway-key.path=/secrets',
+    'servers.gateway.rbac.apiGroups={ponglehub.co.uk}',
+    'servers.gateway.rbac.resources={authusers,authusers/status}',
+    'servers.gateway.rbac.verbs={get,list,watch,patch,update}',
+    'servers.gateway.rbac.clusterWide=true',
+    'servers.gateway.resources.limits.memory=64Mi',
+    'servers.gateway.resources.requests.memory=64Mi',
     'servers.broker.image=event-broker',
     'servers.broker.rbac.apiGroups={ponglehub.co.uk}',
     'servers.broker.rbac.resources={eventtriggers}',

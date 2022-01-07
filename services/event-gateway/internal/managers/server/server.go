@@ -23,7 +23,7 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 
 	r := gin.Default()
 
-	r.POST("/events", eventsRoute(eventClient))
+	r.POST("/events", eventsRoute(tokens, domain, eventClient))
 	r.GET("/auth/login", func(c *gin.Context) {})
 	r.POST("/auth/login", loginRoute(store, tokens, domain))
 	r.GET("/auth/set-password", func(c *gin.Context) {})
@@ -49,7 +49,7 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 	}
 }
 
-func eventsRoute(client *events.Events) func(c *gin.Context) {
+func eventsRoute(tokens *tokens.Tokens, domain string, client *events.Events) func(c *gin.Context) {
 	ctx := context.Background()
 	p, err := cloudevents.NewHTTP()
 	if err != nil {
@@ -70,7 +70,7 @@ func eventsRoute(client *events.Events) func(c *gin.Context) {
 	}
 
 	return func(c *gin.Context) {
-		_, err := c.Cookie("ponglehub.login")
+		token, err := c.Cookie("ponglehub.login")
 		if err == http.ErrNoCookie {
 			c.Status(401)
 			return
@@ -81,6 +81,22 @@ func eventsRoute(client *events.Events) func(c *gin.Context) {
 			c.Status(500)
 			return
 		}
+
+		claims, err := tokens.Parse(token)
+		if err != nil {
+			logrus.Errorf("Error parsing cookie: %+v", err)
+			c.Status(401)
+			return
+		}
+
+		if claims.Kind != "login" {
+			logrus.Errorf("Accessed with non login cookie: %s", claims.Kind)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(401)
+			return
+		}
+
+		c.Request.Header.Add("ce-userid", claims.Subject)
 
 		h.ServeHTTP(c.Writer, c.Request)
 	}
@@ -198,6 +214,12 @@ func setPasswordRoute(store *user_store.Store, crdClient *crds.UserClient, token
 
 		logrus.Infof("Password updated for user %s", claims.Subject)
 
+		err = tokens.DeleteToken(claims.Subject, "invite")
+		if err != nil {
+			logrus.Errorf("Failed to delete token after setting password: %+v", err)
+			return
+		}
+
 		name, ok := store.GetName(claims.Subject)
 		if !ok {
 			logrus.Errorf("Failed to update user after setting password: user not found")
@@ -210,13 +232,16 @@ func setPasswordRoute(store *user_store.Store, crdClient *crds.UserClient, token
 			return
 		}
 
-		user.Invited = false
-		user.Member = true
+		if user.Invited || !user.Member {
+			user.Invited = false
+			user.Member = true
 
-		_, err = crdClient.Status(user)
-		if err != nil {
-			logrus.Errorf("Failed to update user after setting password: %+v", err)
-			return
+			logrus.Infof("Updating status for new member %s", user.Email)
+			_, err = crdClient.Status(user)
+			if err != nil {
+				logrus.Errorf("Failed to update user after setting password: %+v", err)
+				return
+			}
 		}
 	}
 }

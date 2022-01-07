@@ -2,7 +2,6 @@
 
 ## Todo:
 
-- Check that invite token can't be used twice
 - Properly check token in cookie for normal events
 - Set up event-gateway to hold requests by ID and wait for response events
 

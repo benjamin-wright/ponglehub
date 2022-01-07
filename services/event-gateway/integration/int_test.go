@@ -52,13 +52,12 @@ func clients(t *testing.T) (*crds.UserClient, *redis.Redis, *test_client.TestCli
 func TestInviteToken(t *testing.T) {
 	for _, test := range []struct {
 		Name       string
-		Prep       func(*testing.T, *redis.Redis, crds.User)
+		Prep       func(*testing.T, *redis.Redis, crds.User, *test_client.TestClient)
 		Input      func(string) map[string]string
 		StatusCode int
 	}{
 		{
 			Name: "success",
-			Prep: func(*testing.T, *redis.Redis, crds.User) {},
 			Input: func(invite string) map[string]string {
 				return map[string]string{
 					"invite":   invite,
@@ -70,7 +69,7 @@ func TestInviteToken(t *testing.T) {
 		},
 		{
 			Name: "expired",
-			Prep: func(t *testing.T, r *redis.Redis, u crds.User) {
+			Prep: func(t *testing.T, r *redis.Redis, u crds.User, c *test_client.TestClient) {
 				r.DeleteKey(t, fmt.Sprintf("%s.%s", u.ID, "invite"))
 			},
 			Input: func(invite string) map[string]string {
@@ -83,14 +82,38 @@ func TestInviteToken(t *testing.T) {
 			StatusCode: 401,
 		},
 		{
+			Name: "expired",
+			Prep: func(t *testing.T, r *redis.Redis, u crds.User, c *test_client.TestClient) {
+				invite := r.WaitForKey(t, fmt.Sprintf("%s.%s", u.ID, "invite"))
+
+				url := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
+				res := c.Post(
+					t,
+					url,
+					map[string]string{
+						"invite":   invite,
+						"password": "new-password",
+						"confirm":  "new-password",
+					},
+				)
+				assert.Equal(t, 200, res.StatusCode)
+			},
+			Input: func(invite string) map[string]string {
+				return map[string]string{
+					"invite":   invite,
+					"password": "new-password",
+					"confirm":  "new-password",
+				}
+			},
+			StatusCode: 401,
+		},
+		{
 			Name:       "no args",
-			Prep:       func(*testing.T, *redis.Redis, crds.User) {},
 			Input:      func(invite string) map[string]string { return map[string]string{} },
 			StatusCode: 400,
 		},
 		{
 			Name: "malformed token",
-			Prep: func(*testing.T, *redis.Redis, crds.User) {},
 			Input: func(invite string) map[string]string {
 				return map[string]string{
 					"invite":   "bad-token",
@@ -102,7 +125,6 @@ func TestInviteToken(t *testing.T) {
 		},
 		{
 			Name: "mismatched passwords",
-			Prep: func(*testing.T, *redis.Redis, crds.User) {},
 			Input: func(invite string) map[string]string {
 				return map[string]string{
 					"invite":   "bad-token",
@@ -126,7 +148,9 @@ func TestInviteToken(t *testing.T) {
 
 			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
 
-			test.Prep(u, redisClient, user)
+			if test.Prep != nil {
+				test.Prep(u, redisClient, user, testClient)
+			}
 
 			url := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
 			res := testClient.Post(u, url, test.Input(invite))
@@ -139,14 +163,12 @@ func TestInviteToken(t *testing.T) {
 func TestLogin(t *testing.T) {
 	for _, test := range []struct {
 		Name       string
-		Prep       func(*testing.T, *redis.Redis, crds.User)
 		Input      map[string]string
 		StatusCode int
 		Cookies    int
 	}{
 		{
 			Name: "success",
-			Prep: func(*testing.T, *redis.Redis, crds.User) {},
 			Input: map[string]string{
 				"email":    "test@user.com",
 				"password": "new-password",
@@ -156,14 +178,12 @@ func TestLogin(t *testing.T) {
 		},
 		{
 			Name:       "no args",
-			Prep:       func(*testing.T, *redis.Redis, crds.User) {},
 			Input:      map[string]string{},
 			StatusCode: 400,
 			Cookies:    0,
 		},
 		{
 			Name: "wrong email",
-			Prep: func(*testing.T, *redis.Redis, crds.User) {},
 			Input: map[string]string{
 				"email":    "wrong@user.com",
 				"password": "new-password",
@@ -173,7 +193,6 @@ func TestLogin(t *testing.T) {
 		},
 		{
 			Name: "wrong password",
-			Prep: func(*testing.T, *redis.Redis, crds.User) {},
 			Input: map[string]string{
 				"email":    "test@user.com",
 				"password": "wrong-password",
@@ -206,8 +225,6 @@ func TestLogin(t *testing.T) {
 				},
 			)
 			assert.Equal(u, 200, res.StatusCode)
-
-			test.Prep(u, redisClient, user)
 
 			url = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
 			res = testClient.Post(t, url, test.Input)
