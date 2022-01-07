@@ -46,7 +46,7 @@ spec:
         type: boolean
         description: True if an invite token exists
         jsonPath: .status.invited
-      - name: Password
+      - name: Member
         type: boolean
         description: True if user has provided a password
         jsonPath: .status.member

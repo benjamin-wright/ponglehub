@@ -13,14 +13,14 @@ func Start(client *crds.UserClient, store *user_store.Store, tokens *tokens.Toke
 	_, stopper := client.Listen(
 		func(newUser crds.User) {
 			newUser = processUser(client, tokens, newUser)
-			store.Add(newUser.ID, newUser.Email)
+			store.Add(newUser.ID, newUser.Name, newUser.Email)
 		},
 		func(oldUser crds.User, newUser crds.User) {
 			newUser = processUser(client, tokens, newUser)
 
 			if oldUser.Email != newUser.Email {
 				store.Remove(oldUser.Email)
-				store.Add(newUser.ID, newUser.Email)
+				store.Add(newUser.ID, newUser.Name, newUser.Email)
 			}
 		},
 		func(oldUser crds.User) {

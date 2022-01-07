@@ -27,7 +27,7 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 	r.GET("/auth/login", func(c *gin.Context) {})
 	r.POST("/auth/login", loginRoute(store, tokens, domain))
 	r.GET("/auth/set-password", func(c *gin.Context) {})
-	r.POST("/auth/set-password", setPasswordRoute(crdClient, tokens))
+	r.POST("/auth/set-password", setPasswordRoute(store, crdClient, tokens))
 
 	srv := &http.Server{
 		Addr:    "0.0.0.0:80",
@@ -140,7 +140,7 @@ type setPasswordBody struct {
 	Confirm  string `json:"confirm"`
 }
 
-func setPasswordRoute(crdClient *crds.UserClient, tokens *tokens.Tokens) func(c *gin.Context) {
+func setPasswordRoute(store *user_store.Store, crdClient *crds.UserClient, tokens *tokens.Tokens) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		body := setPasswordBody{}
 		c.Bind(&body)
@@ -197,5 +197,26 @@ func setPasswordRoute(crdClient *crds.UserClient, tokens *tokens.Tokens) func(c 
 		}
 
 		logrus.Infof("Password updated for user %s", claims.Subject)
+
+		name, ok := store.GetName(claims.Subject)
+		if !ok {
+			logrus.Errorf("Failed to update user after setting password: user not found")
+			return
+		}
+
+		user, err := crdClient.Get(name)
+		if err != nil {
+			logrus.Errorf("Failed to update user after setting password: %+v", err)
+			return
+		}
+
+		user.Invited = false
+		user.Member = true
+
+		_, err = crdClient.Status(user)
+		if err != nil {
+			logrus.Errorf("Failed to update user after setting password: %+v", err)
+			return
+		}
 	}
 }

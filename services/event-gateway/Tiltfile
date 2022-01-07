@@ -52,7 +52,8 @@ local_resource(
     'REDIS_URL': 'localhost:6379'
   },
   auto_init=False,
-  trigger_mode=TRIGGER_MODE_MANUAL
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=['gateway']
 )
 
 k8s_yaml(helm(
