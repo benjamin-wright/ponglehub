@@ -1,0 +1,25 @@
+ARTEFACT start
+  DEPENDS ON ../..+raw-cluster
+
+ARTEFACT stop
+  DEPENDS ON ../../+stop
+
+DOCKERFILE vue
+  FILE
+    FROM node:15.5.1-alpine
+
+    WORKDIR /var/app
+
+    COPY package*.json  ./
+    RUN npm install
+    COPY ./ ./
+
+    CMD npm run serve
+  IGNORE
+    node_modules
+
+ARTEFACT dev
+  STEP image
+    DOCKERFILE vue
+    CONTEXT .
+    TAG localhost:5000/landing-page/dev

@@ -36,12 +36,8 @@
 			"name": "srv: event-gateway"
 		},
 		{
-			"path": "services/auth-operator",
-			"name": "srv: auth-operator"
-		},
-		{
-			"path": "services/auth-server",
-			"name": "srv: auth-server"
+			"path": "static/landing-page",
+			"name": "static: landing-page"
 		}
 	],
 	"settings": {}
