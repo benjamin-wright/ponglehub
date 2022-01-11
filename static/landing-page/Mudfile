@@ -6,7 +6,7 @@ ARTEFACT stop
 
 DOCKERFILE vue
   FILE
-    FROM node:15.5.1-alpine
+    FROM node:15.5.1-alpine as builder
 
     WORKDIR /var/app
 
@@ -14,12 +14,19 @@ DOCKERFILE vue
     RUN npm install
     COPY ./ ./
 
-    CMD npm run serve
+    RUN npm run build
+
+    FROM nginx:stable-alpine as production-stage
+
+    COPY --from=builder /var/app/dist /usr/share/nginx/html
+    EXPOSE 80
+    CMD ["nginx", "-g", "daemon off;"]
+
   IGNORE
     node_modules
 
-ARTEFACT dev
+ARTEFACT image
   STEP image
     DOCKERFILE vue
     CONTEXT .
-    TAG localhost:5000/landing-page/dev
+    TAG localhost:5000/landing-page

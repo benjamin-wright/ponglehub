@@ -3,17 +3,17 @@ load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
 custom_build(
   'landing-page',
-  'mudly +dev && docker tag localhost:5000/landing-page/dev $EXPECTED_REF',
+  'mudly +image && docker tag localhost:5000/landing-page $EXPECTED_REF',
   ['./'],
-  ignore=['Tiltfile', './dist', '.dockerignore'],
-  live_update=[sync('./src', '/var/app/src')]
+  ignore=['Tiltfile', '.dockerignore'],
 )
 
 k8s_yaml(namespace_yaml('int-landing-page'))
 
 k8s_resource(
   'landing-page',
-  port_forwards=["8080:8080"]
+  port_forwards=["8080:80"],
+  trigger_mode=TRIGGER_MODE_MANUAL,
 )
 
 k8s_yaml(helm(
@@ -22,7 +22,7 @@ k8s_yaml(helm(
   namespace='int-landing-page',
   set=[
     'servers.landing-page.image=landing-page',
-    'servers.landing-page.resources.limits.memory=512Mi',
-    'servers.landing-page.resources.requests.memory=512Mi',
+    'servers.landing-page.resources.limits.memory=64Mi',
+    'servers.landing-page.resources.requests.memory=64Mi',
   ]
 ))

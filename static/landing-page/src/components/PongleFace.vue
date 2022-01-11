@@ -37,7 +37,7 @@ export default {
 <style scoped>
 .pongle {
   display: grid;
-  grid-template-columns: 10% 25% 30% 25% 10%;
+  grid-template-columns: auto 128px 128px 128px auto;
 }
 
 .face {
@@ -53,11 +53,12 @@ export default {
 .happy {
   grid-column: 3;
   grid-row: 1;
+  /* opacity: 0; */
   justify-self: center;
-  animation-duration: 5s;
+  /* animation-duration: 5s;
   animation-name: happy-in;
   animation-iteration-count: infinite;
-  animation-delay: 5s;
+  animation-delay: 5s; */
 }
 
 .paw {
