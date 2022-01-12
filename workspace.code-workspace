@@ -38,6 +38,10 @@
 		{
 			"path": "static/landing-page",
 			"name": "static: landing-page"
+		},
+		{
+			"path": "static/draughts",
+			"name": "static: draughts"
 		}
 	],
 	"settings": {}

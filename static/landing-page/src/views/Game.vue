@@ -1,5 +1,5 @@
 <template>
-  <iframe src="http://localhost:8081" />
+  <iframe :src="url" />
 </template>
 
 <script>
@@ -8,6 +8,13 @@ export default {
   name: "Game",
   props: {
     game: String,
+  },
+  computed: {
+    url: function () {
+      if (this.game == "draughts") return "http://localhost:3001";
+      if (this.game == "naughts-and-crosses") return "http://localhost:3002";
+      return "";
+    },
   },
 };
 </script>
