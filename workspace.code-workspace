@@ -36,12 +36,20 @@
 			"name": "srv: event-gateway"
 		},
 		{
+			"path": "libraries/node/messaging",
+			"name": "lib: messaging"
+		},
+		{
 			"path": "static/landing-page",
 			"name": "static: landing-page"
 		},
 		{
 			"path": "static/draughts",
 			"name": "static: draughts"
+		},
+		{
+			"path": "static/naughts-and-crosses",
+			"name": "static: naughts-and-crosses"
 		}
 	],
 	"settings": {}

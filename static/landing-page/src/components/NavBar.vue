@@ -2,19 +2,43 @@
   <div class="nav">
     <router-link to="/">Ponglehub</router-link>
     <p>{{ game }}</p>
-    <a v-if="loggedIn" v-on:click="this.$store.commit('logOut')">Log out</a>
+    <template v-if="options && options.length > 0">
+      <NavMenu
+        :items="options"
+        @select:option="this.$store.state.menuOptions.handler($event)"
+        @select:logout="this.$store.commit('logOut')"
+      />
+    </template>
+    <template v-if="!options || options.length == 0">
+      <a v-if="loggedIn" v-on:click="this.$store.commit('logOut')">Log out</a>
+    </template>
   </div>
 </template>
 
 <script>
+import Messenger from "messaging";
+import NavMenu from "@/components/NavMenu";
+
 export default {
   name: "NavBar",
+  components: {
+    NavMenu,
+  },
+  created: function () {
+    this.messenger = new Messenger();
+  },
+  unmounted: function () {
+    this.messenger.stop();
+  },
   computed: {
     game: function () {
       return this.$route.meta.game;
     },
     loggedIn: function () {
       return this.$store.state.loggedIn;
+    },
+    options: function () {
+      return this.$store.state.menuOptions.options;
     },
   },
 };

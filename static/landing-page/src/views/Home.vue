@@ -20,6 +20,9 @@ export default {
     PongleFace,
     GameSelector,
   },
+  mounted: function () {
+    this.$store.commit("menuOptions", []);
+  },
 };
 </script>
 

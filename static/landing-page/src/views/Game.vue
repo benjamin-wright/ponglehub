@@ -1,8 +1,10 @@
 <template>
-  <iframe :src="url" />
+  <iframe ref="game-frame" :src="url" />
 </template>
 
 <script>
+import Messenger from "messaging";
+
 // @ is an alias to /src
 export default {
   name: "Game",
@@ -16,6 +18,20 @@ export default {
       return "";
     },
   },
+  created: function () {
+    this.messenger = new Messenger();
+    this.messenger.listenMenuOptions((options) => {
+      this.$store.commit("menuOptions", {
+        options,
+        handler: (event) => {
+          this.messenger.selectMenuOption(this.$refs["game-frame"], event);
+        },
+      });
+    });
+  },
+  unmounted: function () {
+    this.messenger.stop();
+  },
 };
 </script>
 
@@ -23,5 +39,6 @@ export default {
 iframe {
   height: calc(100% - 3.8em);
   width: 100%;
+  border: none;
 }
 </style>

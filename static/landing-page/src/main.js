@@ -21,3 +21,4 @@ router.beforeEach((to, from, next) => {
 });
 
 createApp(App).use(store).use(router).mount("#app");
+
