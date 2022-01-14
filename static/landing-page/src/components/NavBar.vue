@@ -6,7 +6,10 @@
       <NavMenu
         :items="options"
         @select:option="this.$store.state.menuOptions.handler($event)"
-        @select:logout="this.$store.commit('logOut')"
+        @select:logout="
+          this.$store.commit('logOut');
+          this.$router.push('/');
+        "
       />
     </template>
     <template v-if="!options || options.length == 0">
@@ -47,6 +50,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .nav {
+  position: relative;
   padding: 1em;
   background: #2c3e50;
   color: #dbeeff;
@@ -54,6 +58,7 @@ export default {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  transform-style: preserve-3d;
 }
 
 a {

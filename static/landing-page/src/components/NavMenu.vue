@@ -1,6 +1,6 @@
 <template>
   <a class="button" v-on:click="toggle()">...</a>
-  <transition name="slide" :duration="1000">
+  <transition name="slide" :duration="500">
     <div v-if="expanded" class="expander">
       <a v-on:click="this.toggle()">...</a>
       <a
@@ -55,10 +55,9 @@ export default {
   position: absolute;
   top: 0;
   right: 0;
-  z-index: 5;
 
   background: #2c3e50;
-  /* border: 1px solid #dbeeff; */
+  transform: translateZ(-10px);
 
   display: flex;
   flex-direction: column;
@@ -69,11 +68,15 @@ export default {
 }
 
 .slide-enter-active, .slide-leave-active {
-  transition: transform 1s;
+  transition: transform 0.5s;
 }
 
-.slide-enter, .slide-leave-to {
-  transform: translateY(-100%);
+.slide-enter-from, .slide-leave-to {
+  transform: translateZ(-10px) translateY(-100%);
+}
+
+.slide-enter-to, .slide-leave-from {
+  transform: translateZ(-10px) translateY(0%);
 }
 
 .expander a {

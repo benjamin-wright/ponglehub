@@ -23,8 +23,21 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 
 	r := gin.Default()
 
+	r.LoadHTMLGlob("/html/*")
+
 	r.POST("/events", eventsRoute(tokens, domain, eventClient))
-	r.GET("/auth/login", func(c *gin.Context) {})
+	r.GET("/auth/login", func(c *gin.Context) {
+		url, ok := c.GetQuery("redirect")
+		if !ok {
+			c.Status(400)
+			return
+		}
+
+		c.HTML(http.StatusOK, "login.tmpl", gin.H{
+			"title":    "Main website",
+			"redirect": url,
+		})
+	})
 	r.POST("/auth/login", loginRoute(store, tokens, domain))
 	r.GET("/auth/set-password", func(c *gin.Context) {})
 	r.POST("/auth/set-password", setPasswordRoute(store, crdClient, tokens))

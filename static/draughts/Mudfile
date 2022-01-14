@@ -28,4 +28,4 @@ ARTEFACT image
   STEP image
     DOCKERFILE vue
     CONTEXT ./dist
-    TAG localhost:5000/landing-page
+    TAG localhost:5000/draughts

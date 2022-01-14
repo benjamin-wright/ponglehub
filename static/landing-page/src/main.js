@@ -5,15 +5,16 @@ import store from "./store";
 
 const landingPageUrl = "http://localhost:3000";
 // const draughtsUrl = "http://localhost:3001";
-const authUrl = "http://localhost:3002";
+const authUrl = "http://localhost:4000";
 
 router.beforeEach((to, from, next) => {
-  if (process.env.NODE_ENV == "development") {
-    store.commit("logIn");
+  if (store.state.loggedIn) {
     return next();
   }
 
-  if (store.state.loggedIn) {
+  if (process.env.NODE_ENV == "development") {
+    console.log("dev mode: bypassing login");
+    store.commit("logIn");
     return next();
   }
 
