@@ -1,7 +1,10 @@
 package commands
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -36,6 +39,11 @@ var AddUserCommand = cli.Command{
 			Aliases:  []string{"e"},
 			Required: true,
 		},
+		&cli.StringFlag{
+			Name:     "password",
+			Aliases:  []string{"p"},
+			Required: true,
+		},
 	},
 	Action: func(c *cli.Context) error {
 		client, err := crds.New(&crds.ClientArgs{
@@ -54,7 +62,7 @@ var AddUserCommand = cli.Command{
 			return err
 		}
 
-		logrus.Infof("User: %+v", user)
+		logrus.Infof("User ID: %s", user.ID)
 
 		cli := redis.New("localhost:6379")
 		token, err := cli.WaitForKey(fmt.Sprintf("%s.%s", user.ID, "invite"))
@@ -63,6 +71,23 @@ var AddUserCommand = cli.Command{
 		}
 
 		logrus.Infof("Invite token: %s", token)
+
+		json_data, err := json.Marshal(map[string]string{
+			"invite":   token,
+			"password": c.String("password"),
+			"confirm":  c.String("password"),
+		})
+		if err != nil {
+			return err
+		}
+
+		res, err := http.Post("http://localhost:4000/auth/set-password", "application/json", bytes.NewBuffer(json_data))
+		if err != nil {
+			return err
+		}
+		if res.StatusCode != 200 {
+			return fmt.Errorf("failed to set password, response code: %d", res.StatusCode)
+		}
 
 		return nil
 	},

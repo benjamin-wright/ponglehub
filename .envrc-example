@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PATH_add $(pwd)/bin
+
 export SCRATCH_DIR=$(pwd)/.scratch
 export KUBECONFIG=$SCRATCH_DIR/kubeconfig
 
