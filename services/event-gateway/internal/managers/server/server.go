@@ -9,9 +9,9 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/events/gateway/internal/services/crds"
 	"ponglehub.co.uk/events/gateway/internal/services/tokens"
 	"ponglehub.co.uk/events/gateway/internal/services/user_store"
+	"ponglehub.co.uk/events/gateway/pkg/crds"
 	"ponglehub.co.uk/lib/events"
 )
 

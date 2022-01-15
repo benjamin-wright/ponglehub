@@ -50,6 +50,10 @@
 		{
 			"path": "static/naughts-and-crosses",
 			"name": "static: naughts-and-crosses"
+		},
+		{
+			"path": "tools/ponglehub",
+			"name": "tools: ponglehub"
 		}
 	],
 	"settings": {}

@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/events/gateway/internal/services/crds"
 	"ponglehub.co.uk/events/gateway/internal/services/tokens"
 	"ponglehub.co.uk/events/gateway/internal/services/user_store"
+	"ponglehub.co.uk/events/gateway/pkg/crds"
 )
 
 func Start(client *crds.UserClient, store *user_store.Store, tokens *tokens.Tokens) func() {

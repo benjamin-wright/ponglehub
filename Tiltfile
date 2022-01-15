@@ -67,6 +67,11 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_MANUAL
 )
 
+k8s_resource(
+  'redis',
+  port_forwards=["6379:6379"]
+)
+
 k8s_yaml(namespace_yaml('auth-service'))
 k8s_yaml(helm(
   'helm',

@@ -9,9 +9,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/events/gateway/internal/managers/server"
 	"ponglehub.co.uk/events/gateway/internal/managers/state"
-	"ponglehub.co.uk/events/gateway/internal/services/crds"
 	"ponglehub.co.uk/events/gateway/internal/services/tokens"
 	"ponglehub.co.uk/events/gateway/internal/services/user_store"
+	"ponglehub.co.uk/events/gateway/pkg/crds"
 )
 
 func getEnv(env string) string {

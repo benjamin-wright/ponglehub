@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/events/gateway/integration/redis"
 	"ponglehub.co.uk/events/gateway/integration/test_client"
-	"ponglehub.co.uk/events/gateway/internal/services/crds"
+	"ponglehub.co.uk/events/gateway/pkg/crds"
 	"ponglehub.co.uk/events/recorder/pkg/recorder"
 	"ponglehub.co.uk/lib/events"
 )
