@@ -7,6 +7,7 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/events/gateway/internal/services/tokens"
@@ -23,11 +24,21 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 
 	r := gin.Default()
 
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002"},
+		AllowMethods:     []string{"POST", "GET"},
+		AllowHeaders:     []string{"Origin", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
 	r.LoadHTMLGlob("/html/*")
 
 	r.POST("/events", eventsRoute(tokens, domain, eventClient))
+	r.GET("/auth/user", userRoute(tokens, domain, crdClient, store))
 	r.GET("/auth/login", loginHTML)
 	r.POST("/auth/login", loginRoute(store, tokens, domain))
+	r.POST("/auth/logout", logoutRoute(tokens, domain))
 	r.GET("/auth/set-password", setPasswordHTML)
 	r.POST("/auth/set-password", setPasswordRoute(store, crdClient, tokens))
 
@@ -104,6 +115,78 @@ func eventsRoute(tokens *tokens.Tokens, domain string, client *events.Events) fu
 	}
 }
 
+func userRoute(tokens *tokens.Tokens, domain string, users *crds.UserClient, store *user_store.Store) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token, err := c.Cookie("ponglehub.login")
+		if err == http.ErrNoCookie {
+			logrus.Errorf("No cookie found")
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		if err != nil {
+			logrus.Errorf("Error getting cookie: %+v", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		claims, err := tokens.Parse(token)
+		if err != nil {
+			logrus.Errorf("Error parsing cookie: %+v", err)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		if claims.Kind != "login" {
+			logrus.Errorf("Accessed with non login cookie: %s", claims.Kind)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		t, err := tokens.GetToken(claims.Subject, "login")
+		if err != nil {
+			logrus.Errorf("Failed to fetch invite token: %+v", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		if t == "" {
+			logrus.Errorf("Invite token expired: %s", claims.Subject)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		if t != token {
+			logrus.Errorf("Login token doesn't match latest: %s", claims.Subject)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		name, ok := store.GetName(claims.Subject)
+		if !ok {
+			logrus.Errorf("Failed to find user name: user not found")
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		user, err := users.Get(name)
+		if err != nil {
+			logrus.Errorf("Failed to fetch user data: %+v", err)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"name": user.Display,
+		})
+	}
+}
+
 func loginHTML(c *gin.Context) {
 	url, ok := c.GetQuery("redirect")
 	if !ok {
@@ -165,7 +248,79 @@ func loginRoute(store *user_store.Store, tokens *tokens.Tokens, domain string) f
 	}
 }
 
-func setPasswordHTML(c *gin.Context) {}
+func logoutRoute(tokens *tokens.Tokens, domain string) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token, err := c.Cookie("ponglehub.login")
+		if err == http.ErrNoCookie {
+			logrus.Errorf("No cookie found")
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		if err != nil {
+			logrus.Errorf("Error getting cookie: %+v", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		claims, err := tokens.Parse(token)
+		if err != nil {
+			logrus.Errorf("Error parsing cookie: %+v", err)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		if claims.Kind != "login" {
+			logrus.Errorf("Accessed with non login cookie: %s", claims.Kind)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		t, err := tokens.GetToken(claims.Subject, "login")
+		if err != nil {
+			logrus.Errorf("Failed to fetch invite token: %+v", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		if t == "" {
+			logrus.Errorf("Invite token expired: %s", claims.Subject)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		if t != token {
+			logrus.Errorf("Login token doesn't match latest: %s", claims.Subject)
+			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		err = tokens.DeleteToken(claims.Subject, "login")
+		if err != nil {
+			logrus.Errorf("Failed revoking token for user %s: %+v", claims.Subject, err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+		c.Status(http.StatusNoContent)
+	}
+}
+
+func setPasswordHTML(c *gin.Context) {
+	token, ok := c.GetQuery("token")
+	if !ok {
+		c.Status(400)
+		return
+	}
+
+	c.HTML(http.StatusOK, "set-password.tmpl", gin.H{
+		"invite": token,
+	})
+}
 
 type setPasswordBody struct {
 	Invite   string `json:"invite" form:"invite" binding:"required"`

@@ -6,14 +6,11 @@
       <NavMenu
         :items="options"
         @select:option="this.$store.state.menuOptions.handler($event)"
-        @select:logout="
-          this.$store.commit('logOut');
-          this.$router.push('/');
-        "
+        @select:logout="logOut()"
       />
     </template>
     <template v-if="!options || options.length == 0">
-      <a v-if="loggedIn" v-on:click="this.$store.commit('logOut')">Log out</a>
+      <a v-if="loggedIn" v-on:click="logOut()">Log out</a>
     </template>
   </div>
 </template>
@@ -27,21 +24,27 @@ export default {
   components: {
     NavMenu,
   },
-  created: function () {
+  created() {
     this.messenger = new Messenger();
   },
-  unmounted: function () {
+  unmounted() {
     this.messenger.stop();
   },
   computed: {
-    game: function () {
+    game() {
       return this.$route.meta.game;
     },
-    loggedIn: function () {
+    loggedIn() {
       return this.$store.state.loggedIn;
     },
-    options: function () {
+    options() {
       return this.$store.state.menuOptions.options;
+    },
+  },
+  methods: {
+    async logOut() {
+      await this.$store.dispatch("logOut");
+      await this.$router.go();
     },
   },
 };

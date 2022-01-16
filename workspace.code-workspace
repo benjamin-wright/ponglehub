@@ -16,10 +16,6 @@
 			"name": "lib: events"
 		},
 		{
-			"path": "libraries/golang/user-events",
-			"name": "lib: user-events"
-		},
-		{
 			"path": "services/db-operator",
 			"name": "srv: db-operator"
 		},
@@ -50,6 +46,10 @@
 		{
 			"path": "static/naughts-and-crosses",
 			"name": "static: naughts-and-crosses"
+		},
+		{
+			"path": "services/naughts-and-crosses",
+			"name": "srv: naughts-and-crosses"
 		},
 		{
 			"path": "tools/ponglehub",

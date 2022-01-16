@@ -67,15 +67,18 @@ export default {
   border-radius: 0 0 0 0.5em;
 }
 
-.slide-enter-active, .slide-leave-active {
+.slide-enter-active,
+.slide-leave-active {
   transition: transform 0.5s;
 }
 
-.slide-enter-from, .slide-leave-to {
+.slide-enter-from,
+.slide-leave-to {
   transform: translateZ(-10px) translateY(-100%);
 }
 
-.slide-enter-to, .slide-leave-from {
+.slide-enter-to,
+.slide-leave-from {
   transform: translateZ(-10px) translateY(0%);
 }
 

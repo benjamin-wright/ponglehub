@@ -1,0 +1,40 @@
+allow_k8s_contexts(['pongle'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+load_dynamic('../db-operator/shared.Tiltfile')
+
+k8s_yaml(namespace_yaml('int-naughts-and-crosses'))
+
+custom_build(
+  'localhost:5000/naughts-and-crosses/migrations',
+  'mudly +migrations && docker tag localhost:5000/naughts-and-crosses/migrations $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+k8s_resource(
+    'nac-migrations',
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    auto_init=False,
+)
+
+k8s_resource(
+    'db',
+    extra_pod_selectors=[
+        {'db-operator.ponglehub.co.uk/deployment': 'db'}
+    ]
+)
+
+k8s_yaml(helm(
+  '../../helm',
+  name='naughts-and-crosses',
+  namespace='int-naughts-and-crosses',
+  set=[
+    'cockroach.db=256Mi',
+    'jobs.nac-migrations.image=localhost:5000/naughts-and-crosses/migrations',
+    'jobs.nac-migrations.db.cluster=db',
+    'jobs.nac-migrations.db.username=nac-mig-user',
+    'jobs.nac-migrations.db.database=naughts-and-crosses',
+    'jobs.nac-migrations.resources.limits.memory=64Mi',
+    'jobs.nac-migrations.resources.requests.memory=64Mi',
+  ]
+))

@@ -1,0 +1,24 @@
+ARTEFACT start
+  DEPENDS ON ../..+raw-cluster
+
+ARTEFACT stop
+  DEPENDS ON ../../+stop
+
+DOCKERFILE migrations
+  FILE
+    FROM scratch
+    COPY migrations /migrations
+    ENTRYPOINT [ "/migrations" ]
+  IGNORE
+    !migrations
+
+ARTEFACT migrations
+  STEP build
+    COMMAND
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/migrations ./cmd/migrations/main.go
+
+  STEP image
+    DOCKERFILE migrations
+    TAG localhost:5000/naughts-and-crosses/migrations
+    CONTEXT ./dist

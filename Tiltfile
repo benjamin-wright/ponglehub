@@ -1,7 +1,26 @@
+# Setup
+
 allow_k8s_contexts(['pongle'])
 load('libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
 k8s_kind('CockroachDB', api_version='ponglehub.co.uk/v1alpha1')
+
+# Conditional resources
+
+config.define_string_list("to-run", args=True)
+cfg = config.parse()
+groups = {
+  'servers': ['db-operator', 'gateway', 'broker', 'redis'],
+}
+
+resources = []
+for arg in cfg.get('to-run', []):
+  if arg in groups:
+    resources += groups[arg]
+  else:
+    resources.append(arg)
+
+config.set_enabled_resources(resources)
 
 # CRDs
 
