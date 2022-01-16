@@ -39,7 +39,11 @@ func Connect(config ConnectConfig) (*pgx.Conn, error) {
 		dbSuffix = "/" + config.Database
 	}
 
-	pgxConfig, err := pgx.ParseConfig(fmt.Sprintf("postgresql://%s@%s:%d%s", config.Username, config.Host, config.Port, dbSuffix))
+	connectionString := fmt.Sprintf("postgresql://%s@%s:%d%s", config.Username, config.Host, config.Port, dbSuffix)
+
+	logrus.Infof("Connecting to postgres with connection string: %s", connectionString)
+
+	pgxConfig, err := pgx.ParseConfig(connectionString)
 	if err != nil {
 		return nil, err
 	}

@@ -19,9 +19,7 @@ k8s_resource(
 
 k8s_resource(
     'db',
-    extra_pod_selectors=[
-        {'db-operator.ponglehub.co.uk/deployment': 'db'}
-    ]
+    extra_pod_selectors=[{'db-operator.ponglehub.co.uk/deployment': 'db'}]
 )
 
 k8s_yaml(helm(
@@ -32,8 +30,8 @@ k8s_yaml(helm(
     'cockroach.db=256Mi',
     'jobs.nac-migrations.image=localhost:5000/naughts-and-crosses/migrations',
     'jobs.nac-migrations.db.cluster=db',
-    'jobs.nac-migrations.db.username=nac-mig-user',
-    'jobs.nac-migrations.db.database=naughts-and-crosses',
+    'jobs.nac-migrations.db.username=nac_mig_user',
+    'jobs.nac-migrations.db.database=naughts_and_crosses',
     'jobs.nac-migrations.resources.limits.memory=64Mi',
     'jobs.nac-migrations.resources.requests.memory=64Mi',
   ]
