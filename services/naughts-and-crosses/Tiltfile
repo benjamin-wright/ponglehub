@@ -11,10 +11,36 @@ custom_build(
   ignore=['Tiltfile', './dist']
 )
 
+custom_build(
+  'localhost:5000/naughts-and-crosses/server',
+  'mudly +server && docker tag localhost:5000/naughts-and-crosses/server $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'localhost:5000/event-recorder',
+  'mudly ../event-recorder/+image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  ['../event-recorder'],
+  ignore=['Tiltfile', './dist']
+)
+
 k8s_resource(
     'nac-migrations',
     trigger_mode=TRIGGER_MODE_MANUAL,
     auto_init=False,
+)
+
+k8s_resource(
+  'nac',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3000:80"]
+)
+
+k8s_resource(
+    'recorder',
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    port_forwards=["3001:3001"]
 )
 
 k8s_resource(
@@ -34,5 +60,29 @@ k8s_yaml(helm(
     'jobs.nac-migrations.db.database=naughts_and_crosses',
     'jobs.nac-migrations.resources.limits.memory=64Mi',
     'jobs.nac-migrations.resources.requests.memory=64Mi',
+    'servers.recorder.image=localhost:5000/event-recorder',
+    'servers.recorder.env.EVENT_PORT="80"',
+    'servers.recorder.env.SERVER_PORT="3001"',
+    'servers.recorder.resources.limits.memory=64Mi',
+    'servers.recorder.resources.requests.memory=64Mi',
+    'servers.nac.image=localhost:5000/naughts-and-crosses/server',
+    'servers.nac.env.BROKER_URL="http://recorder:80"',
+    'servers.nac.db.cluster=db',
+    'servers.nac.db.username=nac_user',
+    'servers.nac.db.database=naughts_and_crosses',
+    'servers.nac.resources.limits.memory=64Mi',
+    'servers.nac.resources.requests.memory=64Mi',
   ]
 ))
+
+local_resource(
+  'int-test',
+  'mudly +int-test',
+  env={
+    'RECORDER_URL': 'http://localhost:3001',
+    'NAC_URL': 'http://localhost:3000',
+  },
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=['nac']
+)

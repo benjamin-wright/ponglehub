@@ -1,21 +1,36 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/games/naughts-and-crosses/cmd/server/server"
+	"ponglehub.co.uk/games/naughts-and-crosses/pkg/database"
+	"ponglehub.co.uk/lib/events"
 )
 
 func main() {
 	logrus.Infof("Starting operator...")
 
-	stopper, err := server.Start()
+	client, err := events.New(events.EventsArgs{
+		BrokerEnv: "BROKER_URL",
+		Source:    "naughts-and-crosses",
+	})
+	if err != nil {
+		logrus.Fatalf("failed to create events client: %+v", err)
+	}
+
+	db, err := database.New()
+	if err != nil {
+		logrus.Fatalf("failed to create database client: %+v", err)
+	}
+
+	server, err := server.New(client, db)
 	if err != nil {
 		logrus.Fatalf("Failed to start server: %+v", err)
 	}
+	defer server.Stop()
 
 	logrus.Infof("Running...")
 
@@ -25,9 +40,5 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	log.Println("Shutdown Server...")
-
-	stopper()
-
-	log.Println("Stopped")
+	logrus.Infof("Stopped")
 }

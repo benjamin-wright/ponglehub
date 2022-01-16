@@ -22,3 +22,27 @@ ARTEFACT migrations
     DOCKERFILE migrations
     TAG localhost:5000/naughts-and-crosses/migrations
     CONTEXT ./dist
+
+DOCKERFILE server
+  FILE
+    FROM scratch
+    COPY server /server
+    ENTRYPOINT [ "/server" ]
+  IGNORE
+    !server
+
+ARTEFACT server
+  STEP build
+    COMMAND
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/server ./cmd/server/main.go
+  
+  STEP image
+    DOCKERFILE server
+    TAG localhost:5000/naughts-and-crosses/server
+    CONTEXT ./dist
+
+ARTEFACT int-test
+  STEP test
+    COMMAND
+      go test -count 1 -v ./integration
