@@ -1,5 +1,5 @@
 ARTEFACT start
-  DEPENDS ON ../..+raw-cluster
+  DEPENDS ON ../..+start
 
 ARTEFACT stop
   DEPENDS ON ../../+stop

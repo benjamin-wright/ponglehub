@@ -45,7 +45,8 @@ k8s_resource(
 
 k8s_resource(
     'db',
-    extra_pod_selectors=[{'db-operator.ponglehub.co.uk/deployment': 'db'}]
+    extra_pod_selectors=[{'db-operator.ponglehub.co.uk/deployment': 'db'}],
+    port_forwards=["26257:26257"]
 )
 
 k8s_yaml(helm(
@@ -81,6 +82,10 @@ local_resource(
   env={
     'RECORDER_URL': 'http://localhost:3001',
     'NAC_URL': 'http://localhost:3000',
+    "POSTGRES_HOST": "localhost",                 
+    "POSTGRES_PORT": "26257",            
+    "POSTGRES_USER": "nac_user",           
+    "POSTGRES_NAME": "naughts_and_crosses",
   },
   auto_init=False,
   trigger_mode=TRIGGER_MODE_MANUAL,

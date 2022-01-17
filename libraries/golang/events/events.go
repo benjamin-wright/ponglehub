@@ -106,10 +106,17 @@ func (e *Events) Proxy(event event.Event) error {
 	return nil
 }
 
-func (e *Events) Send(eventType string, data interface{}) error {
+func (e *Events) Send(eventType string, data interface{}, extensions ...map[string]interface{}) error {
 	event := cloudevents.NewEvent()
 	event.SetType(eventType)
 	event.SetSource(e.source)
+
+	for _, ext := range extensions {
+		for key, value := range ext {
+			event.SetExtension(key, value)
+		}
+	}
+
 	err := event.SetData(cloudevents.ApplicationJSON, data)
 	if err != nil {
 		return fmt.Errorf("failed to serialize event data: %+v", err)

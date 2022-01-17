@@ -19,9 +19,23 @@ func New(client *events.Events, db *database.Database) (*Server, error) {
 	cancelFunc, err := events.Listen(80, func(ctx context.Context, event event.Event) {
 		var err error
 
+		userIdObj, err := event.Context.GetExtension("userid")
+		if err != nil {
+			logrus.Errorf("failed to get user id from event: %+v", err)
+			return
+		}
+
+		userId, ok := userIdObj.(string)
+		if !ok {
+			logrus.Errorf("expected user id to be a string, got %T", userId)
+			return
+		}
+
 		switch event.Type() {
 		case "naughts-and-crosses.new-game":
-			err = newGame(client, db, event)
+			err = newGame(client, db, userId, event)
+		case "naughts-and-crosses.move":
+			err = move(client, db, userId, event)
 		default:
 			err = errors.New("unrecognised event type")
 		}
@@ -45,15 +59,17 @@ func (s *Server) Stop() {
 }
 
 type NewGameEvent struct {
-	Player1 string `json:"player1"`
-	Player2 string `json:"player2"`
+	Opponent string `json:"opponent"`
 }
 
-func newGame(client *events.Events, db *database.Database, event event.Event) error {
+func newGame(client *events.Events, db *database.Database, userId string, event event.Event) error {
 	data := NewGameEvent{}
-	event.DataAs(&data)
+	err := event.DataAs(&data)
+	if err != nil {
+		return fmt.Errorf("failed to parse payload data from event: %+v", err)
+	}
 
-	id, err := db.NewGame(data.Player1, data.Player2)
+	id, err := db.NewGame(data.Opponent, userId)
 	if err != nil {
 		return fmt.Errorf("failed to create new game: %+v", err)
 	}
@@ -61,6 +77,26 @@ func newGame(client *events.Events, db *database.Database, event event.Event) er
 	err = client.Send("naughts-and-crosses.new-game-id", map[string]string{"id": id})
 	if err != nil {
 		return fmt.Errorf("failed to send new game id event: %+v", err)
+	}
+
+	return nil
+}
+
+type Location struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+type MoveEvent struct {
+	Piece Location   `json:"piece"`
+	Moves []Location `json:"moves"`
+}
+
+func move(client *events.Events, db *database.Database, userId string, event event.Event) error {
+	data := MoveEvent{}
+	err := event.DataAs(&data)
+	if err != nil {
+		return fmt.Errorf("failed to parse payload data from event: %+v", err)
 	}
 
 	return nil
