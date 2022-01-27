@@ -37,7 +37,7 @@ func assertGames(t *testing.T, expected []Game, actual []database.Game) {
 	}
 }
 
-func TestNewGame(t *testing.T) {
+func TestNewGameEvent(t *testing.T) {
 	db, err := database.New()
 	noErr(t, err)
 
@@ -66,4 +66,38 @@ func TestNewGame(t *testing.T) {
 	noErr(t, err)
 
 	assertGames(t, []Game{{Player1: opponentId, Player2: userId, Turn: 0}}, games)
+}
+
+func TestMarkEvent(t *testing.T) {
+	db, err := database.New()
+	noErr(t, err)
+
+	eventClient, err := events.New(events.EventsArgs{
+		BrokerEnv: "NAC_URL",
+		Source:    "int-test",
+	})
+	noErr(t, err)
+
+	recorder.Clear(t, os.Getenv("RECORDER_URL"))
+	noErr(t, db.Clear())
+
+	userId := uuid.New().String()
+	opponentId := uuid.New().String()
+
+	gameId, err := db.NewGame(userId, opponentId)
+	noErr(t, err)
+
+	err = eventClient.Send(
+		"naughts-and-crosses.mark",
+		map[string]interface{}{
+			"game":     gameId,
+			"position": 1,
+		},
+		map[string]interface{}{"userid": userId},
+	)
+	noErr(t, err)
+
+	data := recorder.WaitForEvent(t, os.Getenv("RECORDER_URL"), "naughts-and-crosses.new-marks")
+
+	assert.Equal(t, "some data", data)
 }

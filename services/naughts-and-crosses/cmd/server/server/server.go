@@ -8,6 +8,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/games/naughts-and-crosses/pkg/database"
+	"ponglehub.co.uk/games/naughts-and-crosses/pkg/rules"
 	"ponglehub.co.uk/lib/events"
 )
 
@@ -34,8 +35,8 @@ func New(client *events.Events, db *database.Database) (*Server, error) {
 		switch event.Type() {
 		case "naughts-and-crosses.new-game":
 			err = newGame(client, db, userId, event)
-		case "naughts-and-crosses.move":
-			err = move(client, db, userId, event)
+		case "naughts-and-crosses.mark":
+			err = mark(client, db, userId, event)
 		default:
 			err = errors.New("unrecognised event type")
 		}
@@ -82,21 +83,48 @@ func newGame(client *events.Events, db *database.Database, userId string, event 
 	return nil
 }
 
-type Location struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+type MarkEvent struct {
+	Game     string `json:"game"`
+	Position int    `json:"position"`
 }
 
-type MoveEvent struct {
-	Piece Location   `json:"piece"`
-	Moves []Location `json:"moves"`
-}
-
-func move(client *events.Events, db *database.Database, userId string, event event.Event) error {
-	data := MoveEvent{}
+func mark(client *events.Events, db *database.Database, userId string, event event.Event) error {
+	data := MarkEvent{}
 	err := event.DataAs(&data)
 	if err != nil {
 		return fmt.Errorf("failed to parse payload data from event: %+v", err)
+	}
+
+	game, err := db.GetMarks(data.Game)
+	if err != nil {
+		return fmt.Errorf("failed to fetch game marks: %+v", err)
+	}
+
+	err = rules.ValidateMark(game, userId, data.Position)
+	if err != nil {
+		return fmt.Errorf("failed to fetch game marks: %+v", err)
+	}
+
+	err = db.SetMark(data.Game, data.Position)
+	if err != nil {
+		return fmt.Errorf("failed to set new mark: %+v", err)
+	}
+
+	err = db.ChangeTurn(game)
+	if err != nil {
+		return fmt.Errorf("failed to change turn: %+v", err)
+	}
+
+	game.SetMark(data.Position)
+
+	err = client.Send("naughts-and-crosses.new-marks", map[string]interface{}{
+		"game":    data.Game,
+		"turn":    userId,
+		"player1": game.Player1Marks,
+		"player2": game.Player2Marks,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to send new game id event: %+v", err)
 	}
 
 	return nil

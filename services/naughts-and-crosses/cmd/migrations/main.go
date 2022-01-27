@@ -31,13 +31,11 @@ func main() {
 						turn INT2
 					);
 
-					CREATE TABLE pieces (
+					CREATE TABLE marks (
 						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 						game_id UUID NOT NULL,
 						player INT2,
-						x INT2,
-						y INT2,
-						is_king BOOL,
+						position INT2,
 						CONSTRAINT fk_game
 							FOREIGN KEY(game_id) 
 							REFERENCES games(id)
