@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -37,7 +38,7 @@ func assertGames(t *testing.T, expected []Game, actual []database.Game) {
 	}
 }
 
-func TestNewGameEvent(t *testing.T) {
+func initClients(t *testing.T) (*database.Database, *events.Events) {
 	db, err := database.New()
 	noErr(t, err)
 
@@ -47,13 +48,27 @@ func TestNewGameEvent(t *testing.T) {
 	})
 	noErr(t, err)
 
+	return db, eventClient
+}
+
+func assertJson(t *testing.T, expected map[string]interface{}, actual string) {
+	parsed := map[string]interface{}{}
+	err := json.Unmarshal([]byte(actual), &parsed)
+	noErr(t, err)
+
+	assert.Equal(t, expected, parsed)
+}
+
+func TestNewGameEvent(t *testing.T) {
+	db, eventClient := initClients(t)
+
 	recorder.Clear(t, os.Getenv("RECORDER_URL"))
 	noErr(t, db.Clear())
 
 	userId := uuid.New().String()
 	opponentId := uuid.New().String()
 
-	err = eventClient.Send(
+	err := eventClient.Send(
 		"naughts-and-crosses.new-game",
 		map[string]string{"opponent": opponentId},
 		map[string]interface{}{"userid": userId},
@@ -66,38 +81,4 @@ func TestNewGameEvent(t *testing.T) {
 	noErr(t, err)
 
 	assertGames(t, []Game{{Player1: opponentId, Player2: userId, Turn: 0}}, games)
-}
-
-func TestMarkEvent(t *testing.T) {
-	db, err := database.New()
-	noErr(t, err)
-
-	eventClient, err := events.New(events.EventsArgs{
-		BrokerEnv: "NAC_URL",
-		Source:    "int-test",
-	})
-	noErr(t, err)
-
-	recorder.Clear(t, os.Getenv("RECORDER_URL"))
-	noErr(t, db.Clear())
-
-	userId := uuid.New().String()
-	opponentId := uuid.New().String()
-
-	gameId, err := db.NewGame(userId, opponentId)
-	noErr(t, err)
-
-	err = eventClient.Send(
-		"naughts-and-crosses.mark",
-		map[string]interface{}{
-			"game":     gameId,
-			"position": 1,
-		},
-		map[string]interface{}{"userid": userId},
-	)
-	noErr(t, err)
-
-	data := recorder.WaitForEvent(t, os.Getenv("RECORDER_URL"), "naughts-and-crosses.new-marks")
-
-	assert.Equal(t, "some data", data)
 }

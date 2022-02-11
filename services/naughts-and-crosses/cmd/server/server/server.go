@@ -8,7 +8,6 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/games/naughts-and-crosses/pkg/database"
-	"ponglehub.co.uk/games/naughts-and-crosses/pkg/rules"
 	"ponglehub.co.uk/lib/events"
 )
 
@@ -93,38 +92,6 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 	err := event.DataAs(&data)
 	if err != nil {
 		return fmt.Errorf("failed to parse payload data from event: %+v", err)
-	}
-
-	game, err := db.GetMarks(data.Game)
-	if err != nil {
-		return fmt.Errorf("failed to fetch game marks: %+v", err)
-	}
-
-	err = rules.ValidateMark(game, userId, data.Position)
-	if err != nil {
-		return fmt.Errorf("failed to fetch game marks: %+v", err)
-	}
-
-	err = db.SetMark(data.Game, data.Position)
-	if err != nil {
-		return fmt.Errorf("failed to set new mark: %+v", err)
-	}
-
-	err = db.ChangeTurn(game)
-	if err != nil {
-		return fmt.Errorf("failed to change turn: %+v", err)
-	}
-
-	game.SetMark(data.Position)
-
-	err = client.Send("naughts-and-crosses.new-marks", map[string]interface{}{
-		"game":    data.Game,
-		"turn":    userId,
-		"player1": game.Player1Marks,
-		"player2": game.Player2Marks,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to send new game id event: %+v", err)
 	}
 
 	return nil

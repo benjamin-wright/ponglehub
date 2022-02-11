@@ -28,18 +28,8 @@ func main() {
 						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 						player1 UUID,
 						player2 UUID,
-						turn INT2
-					);
-
-					CREATE TABLE marks (
-						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-						game_id UUID NOT NULL,
-						player INT2,
-						position INT2,
-						CONSTRAINT fk_game
-							FOREIGN KEY(game_id) 
-							REFERENCES games(id)
-							ON DELETE CASCADE
+						turn INT2,
+						marks varchar(9)
 					);
 
 					RELEASE SAVEPOINT games_restart;
