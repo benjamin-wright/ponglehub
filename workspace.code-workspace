@@ -40,8 +40,12 @@
 			"name": "static: landing-page"
 		},
 		{
-			"path": "static/draughts",
+			"path": "static/draughts-wasm",
 			"name": "static: draughts"
+		},
+		{
+			"path": "static/draughts-wasm/wasm",
+			"name": "wasm: draughts"
 		},
 		{
 			"path": "static/naughts-and-crosses",
