@@ -48,4 +48,4 @@ ARTEFACT start
 
 ARTEFACT stop
   STEP run
-    COMMAND docker stop draughts
+    COMMAND docker stop landing-page
