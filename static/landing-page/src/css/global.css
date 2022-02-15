@@ -1,0 +1,10 @@
+:root {
+    --default-background: #dbeeff;
+    --default-foreground: #2c3e50;
+}
+
+html, body {
+    background: var(--default-background);
+    margin: 0;
+    padding: 0;
+}

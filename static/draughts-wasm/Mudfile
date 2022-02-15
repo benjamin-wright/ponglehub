@@ -1,6 +1,6 @@
 DOCKERFILE static
   FILE
-    FROM nginx:stable-alpine as production-stage
+    FROM nginx:stable-alpine
 
     COPY ./ /usr/share/nginx/html
     EXPOSE 80
@@ -9,7 +9,20 @@ DOCKERFILE static
   IGNORE
     node_modules
 
-ARTEFACT image
+ARTEFACT rebuild
+  STEP build
+    COMMAND
+      tinygo build -o dist/compiled/draughts.wasm -target wasm ./wasm/main.go
+  
+  STEP statics
+    COMMAND
+      cp -r ./static/ ./dist/
+
+  STEP components
+    COMMAND
+      npm run build
+
+ARTEFACT build
   STEP clean
     COMMAND
       rm -rf ./dist
@@ -29,20 +42,21 @@ ARTEFACT image
     COMMAND
       npm run build
 
+ARTEFACT image
+  DEPENDS ON +build
+
   STEP image
     DOCKERFILE static
     CONTEXT ./dist
     TAG localhost:5000/draughts
 
 ARTEFACT start
-  DEPENDS ON +image
-
   STEP stop
     CONDITION docker ps | grep -q draughts
     COMMAND docker stop draughts
   
   STEP start
-    COMMAND docker run -d --rm -p 3000:80 --name draughts localhost:5000/draughts
+    COMMAND docker run -d --rm -p 3000:80 -v $(pwd)/dist:/usr/share/nginx/html --name draughts nginx:stable-alpine
 
 ARTEFACT stop
   STEP run

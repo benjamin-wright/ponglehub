@@ -1,12 +1,6 @@
-ARTEFACT start
-  DEPENDS ON ../..+start
-
-ARTEFACT stop
-  DEPENDS ON ../../+stop
-
-DOCKERFILE vue
+DOCKERFILE static
   FILE
-    FROM nginx:stable-alpine as production-stage
+    FROM nginx:stable-alpine
 
     COPY ./ /usr/share/nginx/html
     EXPOSE 80
@@ -15,17 +9,43 @@ DOCKERFILE vue
   IGNORE
     node_modules
 
-ARTEFACT image
+ARTEFACT clean
   STEP clean
-    COMMAND rm -rf ./dist
-  
-  STEP install
-    COMMAND npm install
+    COMMAND
+      rm -rf ./dist
+      mkdir -p dist/compiled
+      mkdir -p dist/js
 
+ARTEFACT statics
   STEP build
-    COMMAND npm run build
+    COMMAND
+      cp -r ./static/ ./dist/
+
+ARTEFACT web-components
+  STEP build
+    COMMAND
+      npm run build
+
+ARTEFACT build
+  DEPENDS ON +statics
+  DEPENDS ON +web-components
+  
+ARTEFACT image
+  DEPENDS ON +build
 
   STEP image
-    DOCKERFILE vue
+    DOCKERFILE static
     CONTEXT ./dist
     TAG localhost:5000/landing-page
+
+ARTEFACT start
+  STEP stop
+    CONDITION docker ps | grep -q landing-page
+    COMMAND docker stop landing-page
+  
+  STEP start
+    COMMAND docker run -d --rm -p 3000:80 -v $(pwd)/dist:/usr/share/nginx/html --name landing-page nginx:stable-alpine
+
+ARTEFACT stop
+  STEP run
+    COMMAND docker stop draughts

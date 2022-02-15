@@ -23,6 +23,8 @@ export class NavBar extends LitElement {
     a, a:visited {
       text-transform: uppercase;
       color: var(--default-background);
+      font-weight: bold;
+      text-decoration: none;
     }
   `;
 
@@ -30,11 +32,20 @@ export class NavBar extends LitElement {
   authorised = false;
 
   render() {
-    return html`
-      <div class="container">
-        <div><a href="/"><span>LOGO</span></a></div>
-        <div><a href="/">logout</a></div>
-      </div>
-    `;
+    if (this.authorised) {
+      return html`
+        <div class="container">
+          <div><a href="/"><span>LOGO</span></a></div>
+          <div><a href="/">logout</a></div>
+        </div>
+      `;
+    } else {
+      return html`
+        <div class="container">
+          <div><a href="/"><span>LOGO</span></a></div>
+          <span></span>
+        </div>
+      `;
+    }
   }
 }

@@ -27,7 +27,7 @@ export const wasmBrowserInstantiate = async (wasmModuleUrl, importObject) => {
 const go = new Go(); // Defined in wasm_exec.js. Don't forget to add this in your index.html.
 const WASM_URL = './compiled/draughts.wasm';
 
-const runWasmAdd = async (ponglehub) => {
+export const runWasmAdd = async (ponglehub) => {
   // Get the importObject from the go instance.
   const importObject = go.importObject;
 
