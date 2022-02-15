@@ -27,7 +27,6 @@ ARTEFACT image
   
   STEP components
     COMMAND
-      cd ./components
       npm run build
 
   STEP image
