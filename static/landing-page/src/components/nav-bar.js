@@ -31,12 +31,19 @@ export class NavBar extends LitElement {
   @property({type: Boolean})
   authorised = false;
 
+  _logoutEvent(event) {
+    event.preventDefault();
+
+    let e = new CustomEvent('logout-event', {});
+    this.dispatchEvent(e);
+  }
+
   render() {
     if (this.authorised) {
       return html`
         <div class="container">
           <div><a href="/"><span>LOGO</span></a></div>
-          <div><a href="/">logout</a></div>
+          <div><a href="#" @click="${this._logoutEvent}">logout</a></div>
         </div>
       `;
     } else {

@@ -22,6 +22,10 @@ ARTEFACT statics
       cp -r ./static/ ./dist/
 
 ARTEFACT web-components
+  STEP deps
+    COMMAND
+      npm install
+
   STEP build
     COMMAND
       npm run build
