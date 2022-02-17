@@ -7,8 +7,11 @@ export class LandingPage extends LitElement {
   @property({type: Boolean})
   loading = true
 
+  @property({type: Boolean})
+  loggedIn = false
+
   @property()
-  userName = "no-name"
+  userName = ""
   
   connectedCallback() {
     super.connectedCallback();
@@ -16,24 +19,43 @@ export class LandingPage extends LitElement {
     getUserData()
       .then(data => {
         this.loading = false;
+        this.loggedIn = true;
         this.userName = data.name;
       })
       .catch(err => {
         console.error(err);
-        redirectToLogin();
+
+        this.loading = false;
+        this.loggedIn = false;
+        this.userName = "";
       })
   }
 
   async _logOut() {
-    await logOut()
+    await logOut();
+
+    this.loading = false;
+    this.loggedIn = false;
+    this.userName = "";
+  }
+
+  async _login() {
     redirectToLogin()
+  }
+
+  content() {
+    if (this.loading || !this.loggedIn) {
+      return html``;
+    } else {
+      return html`<hello-world name="${this.userName}"></hello-world>`;
+    }
   }
 
   render() {
     return html`
-      <nav-bar ?authorised="${!this.loading}" @logout-event="${this._logOut}"></nav-bar>
+      <nav-bar ?loading="${this.loading}" ?authorised="${this.loggedIn}" @logout-event="${this._logOut}" @login-event="${this._login}"></nav-bar>
       <loading-page ?show="${this.loading}"></loading-page>
-      <hello-world name="${this.userName}"></hello-world>
+      ${ this.content() }
     `;
   }
 }

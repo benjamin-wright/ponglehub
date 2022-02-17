@@ -1,5 +1,5 @@
 import {html, css, LitElement} from 'lit';
-import {customElement, property} from 'lit/decorators';
+import {customElement, property} from 'lit/decorators.js';
 
 @customElement('nav-bar')
 export class NavBar extends LitElement {

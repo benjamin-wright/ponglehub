@@ -33,7 +33,7 @@ k8s_yaml('services/event-broker/crds/event-trigger.crd.yaml')
 
 custom_build(
   'db-operator',
-  'mudly ./services/db-operator+image && docker tag localhost:5000/db-operator $EXPECTED_REF',
+  'just ./services/db-operator/image $EXPECTED_REF',
   ['./services/db-operator'],
   ignore=['Tiltfile', './dist']
 )
@@ -63,14 +63,14 @@ k8s_yaml(helm(
 
 custom_build(
   'event-gateway',
-  'mudly ./services/event-gateway+image && docker tag localhost:5000/event-gateway $EXPECTED_REF',
+  'just ./services/event-gateway/image $EXPECTED_REF',
   ['./services/event-gateway'],
   ignore=['Tiltfile', './dist']
 )
 
 custom_build(
   'event-broker',
-  'mudly ./services/event-broker+image && docker tag localhost:5000/event-broker $EXPECTED_REF',
+  'just ./services/event-broker/image $EXPECTED_REF',
   ['./services/event-broker'],
   ignore=['Tiltfile', './dist']
 )
@@ -125,21 +125,21 @@ k8s_yaml(helm(
 
 custom_build(
   'landing-page',
-  'mudly ./static/landing-page+image && docker tag localhost:5000/landing-page $EXPECTED_REF',
+  'just ./static/landing-page/image $EXPECTED_REF',
   ['./static/landing-page'],
   ignore=['./dist']
 )
 
 custom_build(
   'naughts-and-crosses',
-  'mudly ./static/naughts-and-crosses+image && docker tag localhost:5000/naughts-and-crosses $EXPECTED_REF',
+  'just ./static/naughts-and-crosses/image $EXPECTED_REF',
   ['./static/naughts-and-crosses'],
   ignore=['./dist']
 )
 
 custom_build(
   'draughts',
-  'mudly ./static/draughts+image && docker tag localhost:5000/draughts $EXPECTED_REF',
+  'just ./static/draughts/image $EXPECTED_REF',
   ['./static/draughts'],
   ignore=['./dist']
 )
