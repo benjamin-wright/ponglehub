@@ -19,7 +19,3 @@
 ### Application
 
 ![](docs/pongle-architecture.png)
-
-### Game move events
-
-![](docs/pongle-game-move.png)
