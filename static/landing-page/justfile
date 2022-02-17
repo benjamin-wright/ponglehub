@@ -1,0 +1,19 @@
+clean:
+    rm -rf ./dist
+    mkdir -p dist/compiled
+    mkdir -p dist/js
+
+build: statics web-components
+
+statics:
+    cp -r ./static/ ./dist/
+
+web-components:
+    npm install
+    npm run build
+
+image IMAGE_TAG: build
+    DOCKER_BUILDKIT=1 docker build \
+        -f ../../docker/nginx.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        ./dist

@@ -1,16 +1,16 @@
 allow_k8s_contexts(['pongle'])
-load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+load('../../libraries/tilt/helm.Tiltfile', 'create_namespace')
 
 custom_build(
   'localhost:5000/db-operator',
-  'mudly +image && docker tag localhost:5000/db-operator $EXPECTED_REF',
+  'just image $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
 
 custom_build(
   'localhost:5000/db-operator-tests',
-  'mudly +integration && docker tag localhost:5000/db-operator-tests $EXPECTED_REF',
+  'just image-int $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
@@ -29,8 +29,8 @@ k8s_resource(
 
 k8s_yaml('crds/cockroach-db.crd.yaml')
 k8s_yaml('crds/cockroach-client.crd.yaml')
-k8s_yaml(namespace_yaml('int-db-operator'))
-k8s_yaml(namespace_yaml('test-namespace'))
+create_namespace('int-db-operator')
+create_namespace('test-namespace')
 
 k8s_yaml(helm(
   '../../helm',

@@ -1,0 +1,29 @@
+clean:
+    rm -rf ./dist
+    mkdir -p dist/compiled
+    mkdir -p dist/js
+
+build: statics web-components wasm
+
+statics:
+    cp -r ./static/ ./dist/
+
+web-components:
+    npm install
+    npm run build
+
+wasm:
+    mkdir -p dist/compiled
+    tinygo build -o dist/compiled/naughts-and-crosses.wasm -target wasm ./wasm/main.go
+
+image IMAGE_TAG: build
+    DOCKER_BUILDKIT=1 docker build \
+        -f ../../docker/nginx.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        ./dist
+
+run:
+    docker run -d --rm -p 3000:80 -v $(pwd)/dist:/usr/share/nginx/html --name naughts-and-crosses nginx:stable-alpine
+
+stop:
+    docker stop naughts-and-crosses

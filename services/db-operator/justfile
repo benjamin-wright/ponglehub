@@ -1,0 +1,27 @@
+start:
+    just ../../start
+
+stop:
+    just ../../stop
+
+build:
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/app/db-operator ./main.go
+
+image IMAGE_TAG: build
+    DOCKER_BUILDKIT=1 docker build \
+        -f ../../docker/go.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        --build-arg EXECUTABLE=db-operator \
+        ./dist/app
+
+build-int:
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go test -c -o dist/int/db-operator-tests ./integration
+
+image-int IMAGE_TAG: build-int
+    docker build \
+        -f ../../docker/go-test.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        --build-arg EXECUTABLE=db-operator-tests \
+        ./dist/int

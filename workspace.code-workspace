@@ -8,6 +8,10 @@
 			"name": "helm"
 		},
 		{
+			"path": "docker",
+			"name": "docker"
+		},
+		{
 			"path": "libraries/golang/postgres",
 			"name": "lib: postgres"
 		},
@@ -40,16 +44,20 @@
 			"name": "static: landing-page"
 		},
 		{
-			"path": "static/draughts-wasm",
+			"path": "static/draughts",
 			"name": "static: draughts"
 		},
 		{
-			"path": "static/draughts-wasm/wasm",
+			"path": "static/draughts/wasm",
 			"name": "wasm: draughts"
 		},
 		{
 			"path": "static/naughts-and-crosses",
 			"name": "static: naughts-and-crosses"
+		},
+		{
+			"path": "static/naughts-and-crosses/wasm",
+			"name": "wasm: naughts-and-crosses"
 		},
 		{
 			"path": "services/naughts-and-crosses",

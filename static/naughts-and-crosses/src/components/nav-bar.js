@@ -23,48 +23,17 @@ export class NavBar extends LitElement {
     a, a:visited {
       text-transform: uppercase;
       color: var(--default-background);
-      font-weight: bold;
-      text-decoration: none;
     }
   `;
 
   @property({type: Boolean})
   authorised = false;
 
-  @property({type: Boolean})
-  loading = true;
-
-  _logoutEvent(event) {
-    event.preventDefault();
-
-    let e = new CustomEvent('logout-event', {});
-    this.dispatchEvent(e);
-  }
-  
-  _loginEvent(event) {
-    event.preventDefault();
-
-    let e = new CustomEvent('login-event', {});
-    this.dispatchEvent(e);
-  }
-
-  button() {
-    if (this.loading) {
-      return html`<span></span>`;
-    }
-
-    if (this.authorised) {
-      return html`<div><a href="#" @click="${this._logoutEvent}">logout</a></div>`;
-    }
-
-    return html`<div><a href="#" @click="${this._loginEvent}">login</a></div>`;
-  }
-
   render() {
     return html`
       <div class="container">
         <div><a href="/"><span>LOGO</span></a></div>
-        ${ this.button() }
+        <div><a href="/">logout</a></div>
       </div>
     `;
   }

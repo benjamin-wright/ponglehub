@@ -1,0 +1,19 @@
+start:
+    just ../../start
+
+stop:
+    just ../../stop
+
+build:
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/event-recorder ./main.go
+
+image IMAGE_TAG: build
+    DOCKER_BUILDKIT=1 docker build \
+        -f ../../docker/go.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        --build-arg EXECUTABLE=event-recorder \
+        ./dist
+
+int-test:
+    go test -v ./integration

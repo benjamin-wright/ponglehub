@@ -3,14 +3,14 @@ load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
 custom_build(
   'localhost:5000/event-gateway',
-  'mudly +image && docker tag localhost:5000/event-gateway $EXPECTED_REF',
+  'just image $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
 
 custom_build(
   'localhost:5000/event-recorder',
-  'mudly ../event-recorder/+image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  'just ../event-recorder/image $EXPECTED_REF',
   ['../event-recorder'],
   ignore=['Tiltfile', './dist']
 )
@@ -37,14 +37,14 @@ k8s_yaml(namespace_yaml('int-event-gateway'))
 
 local_resource(
   'test',
-  'mudly +test',
+  'just test',
   auto_init=False,
   trigger_mode=TRIGGER_MODE_MANUAL
 )
 
 local_resource(
   'int-test',
-  'mudly +int-test',
+  'just int-test',
   env={
     'GATEWAY_URL': 'http://localhost:3000',
     'GATEWAY_EVENTS': 'http://localhost:3000/events',

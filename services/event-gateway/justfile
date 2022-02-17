@@ -1,0 +1,25 @@
+start:
+    just ../../start
+
+stop:
+    just ../../stop
+
+build:
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/event-gateway ./main.go
+    
+    rm -rf ./dist/html
+    cp -r ./templates ./dist/html
+
+image IMAGE_TAG: build
+    DOCKER_BUILDKIT=1 docker build \
+        -f ../../docker/go-static.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        --build-arg EXECUTABLE=event-gateway \
+        ./dist
+
+test:
+    go test -v ./internal/...
+
+int-test:
+    go test -v ./integration

@@ -6,7 +6,7 @@ k8s_kind('CockroachDB')
 
 custom_build(
   'db-operator',
-  'mudly +image && docker tag localhost:5000/db-operator $EXPECTED_REF',
+  'just image $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )

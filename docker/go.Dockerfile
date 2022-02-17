@@ -1,0 +1,4 @@
+FROM scratch
+ARG EXECUTABLE
+COPY ${EXECUTABLE} /app
+ENTRYPOINT [ "/app" ]

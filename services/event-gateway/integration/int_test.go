@@ -163,10 +163,10 @@ func TestInviteToken(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	for _, test := range []struct {
-		Name       string
-		Input      map[string]string
-		StatusCode int
-		Cookies    int
+		Name    string
+		Input   map[string]string
+		Url     string
+		Cookies int
 	}{
 		{
 			Name: "success",
@@ -175,14 +175,14 @@ func TestLogin(t *testing.T) {
 				"email":    "test@user.com",
 				"password": "new-password",
 			},
-			StatusCode: 200,
-			Cookies:    1,
+			Url:     "http://localhost:3000/redirected",
+			Cookies: 1,
 		},
 		{
-			Name:       "no args",
-			Input:      map[string]string{},
-			StatusCode: 400,
-			Cookies:    0,
+			Name:    "no args",
+			Input:   map[string]string{},
+			Url:     "http://localhost:3000/auth/login",
+			Cookies: 0,
 		},
 		{
 			Name: "wrong email",
@@ -191,8 +191,8 @@ func TestLogin(t *testing.T) {
 				"email":    "wrong@user.com",
 				"password": "new-password",
 			},
-			StatusCode: 401,
-			Cookies:    0,
+			Url:     "http://localhost:3000/auth/login",
+			Cookies: 0,
 		},
 		{
 			Name: "wrong password",
@@ -201,8 +201,8 @@ func TestLogin(t *testing.T) {
 				"email":    "test@user.com",
 				"password": "wrong-password",
 			},
-			StatusCode: 401,
-			Cookies:    0,
+			Url:     "http://localhost:3000/auth/login",
+			Cookies: 0,
 		},
 	} {
 		t.Run(test.Name, func(u *testing.T) {
@@ -232,7 +232,7 @@ func TestLogin(t *testing.T) {
 
 			testUrl = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
 			res = testClient.Post(t, testUrl, test.Input)
-			assert.Equal(t, test.StatusCode, res.StatusCode)
+			assert.Equal(t, test.Url, res.Request.URL.String())
 			urlObj, err := url.Parse(testUrl)
 			noErr(u, err)
 			assert.Equal(t, test.Cookies, len(testClient.CookieJar().Cookies(urlObj)))
