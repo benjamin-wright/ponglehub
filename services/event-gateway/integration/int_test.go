@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -170,6 +171,7 @@ func TestLogin(t *testing.T) {
 		{
 			Name: "success",
 			Input: map[string]string{
+				"redirect": "http://localhost:3000/redirected",
 				"email":    "test@user.com",
 				"password": "new-password",
 			},
@@ -185,6 +187,7 @@ func TestLogin(t *testing.T) {
 		{
 			Name: "wrong email",
 			Input: map[string]string{
+				"redirect": "http://localhost:3000/redirected",
 				"email":    "wrong@user.com",
 				"password": "new-password",
 			},
@@ -194,6 +197,7 @@ func TestLogin(t *testing.T) {
 		{
 			Name: "wrong password",
 			Input: map[string]string{
+				"redirect": "http://localhost:3000/redirected",
 				"email":    "test@user.com",
 				"password": "wrong-password",
 			},
@@ -214,10 +218,10 @@ func TestLogin(t *testing.T) {
 
 			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
 
-			url := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
+			testUrl := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
 			res := testClient.Post(
 				u,
-				url,
+				testUrl,
 				map[string]string{
 					"invite":   invite,
 					"password": "new-password",
@@ -226,10 +230,13 @@ func TestLogin(t *testing.T) {
 			)
 			assert.Equal(u, 200, res.StatusCode)
 
-			url = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
-			res = testClient.Post(t, url, test.Input)
+			testUrl = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
+			res = testClient.Post(t, testUrl, test.Input)
 			assert.Equal(t, test.StatusCode, res.StatusCode)
-			assert.Equal(t, test.Cookies, len(res.Cookies()))
+			urlObj, err := url.Parse(testUrl)
+			noErr(u, err)
+			assert.Equal(t, test.Cookies, len(testClient.CookieJar().Cookies(urlObj)))
+
 		})
 	}
 }
@@ -283,26 +290,28 @@ func TestProxying(t *testing.T) {
 			if test.LoggedIn {
 				url = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
 				res = testClient.Post(
-					t,
+					u,
 					url,
 					map[string]string{
+						"redirect": "http://localhost:3000/redirected",
 						"email":    "test@user.com",
 						"password": "new-password",
 					},
 				)
-				assert.Equal(t, 200, res.StatusCode)
+
+				assert.Equal(u, "http://localhost:3000/redirected", res.Request.URL.String())
 			}
 
 			err = eventClient.Send("test.event", "event 1")
 			if test.Unauthorized {
-				assert.Equal(t, events.UnauthorizedError, err)
+				assert.Equal(u, events.UnauthorizedError, err)
 			} else {
 				noErr(t, err)
 			}
 
 			time.Sleep(250 * time.Millisecond)
 			received := recorder.GetEvents(u, os.Getenv("RECORDER_URL"))
-			assert.Equal(t, test.Events, len(received))
+			assert.Equal(u, test.Events, len(received))
 		})
 	}
 }

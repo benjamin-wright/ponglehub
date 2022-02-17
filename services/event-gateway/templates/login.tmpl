@@ -75,6 +75,10 @@
 				<label class="password label" for="password">Password: </label>
 				<input class="password input" type="password" name="password" id="password" required>
 
+				{{ if .error }}
+				<p>an error</p>
+				{{ end }}
+
 				<input class="ok" type="submit" value="OK" >
 			</form>
 		</div>

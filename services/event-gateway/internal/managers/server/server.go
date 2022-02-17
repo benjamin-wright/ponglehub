@@ -219,7 +219,11 @@ func loginRoute(store *user_store.Store, tokens *tokens.Tokens, domain string) f
 		id, ok := store.GetID(body.Email)
 		if !ok {
 			logrus.Errorf("Login user not found: %s", body.Email)
-			c.Status(http.StatusUnauthorized)
+
+			c.HTML(http.StatusOK, "login.tmpl", gin.H{
+				"redirect": body.Redirect,
+				"error":    true,
+			})
 			return
 		}
 
@@ -232,7 +236,11 @@ func loginRoute(store *user_store.Store, tokens *tokens.Tokens, domain string) f
 
 		if !ok {
 			logrus.Errorf("Wrong password for user %s", body.Email)
-			c.Status(http.StatusUnauthorized)
+
+			c.HTML(http.StatusOK, "login.tmpl", gin.H{
+				"redirect": body.Redirect,
+				"error":    true,
+			})
 			return
 		}
 

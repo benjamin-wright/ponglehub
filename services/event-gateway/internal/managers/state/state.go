@@ -28,7 +28,7 @@ func Start(client *crds.UserClient, store *user_store.Store, tokens *tokens.Toke
 			if oldUser.Invited {
 				err := tokens.DeleteToken(oldUser.ID, "invite")
 				if err != nil {
-					logrus.Errorf("Error removing user: %+v")
+					logrus.Errorf("Error removing user: %+v", err)
 				}
 			}
 		},
