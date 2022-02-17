@@ -179,3 +179,12 @@ k8s_yaml(helm(
     'servers.draughts.resources.requests.memory=64Mi',
   ]
 ))
+
+# Utils
+
+local_resource(
+  'add_user',
+  'ponglehub users add --resource-name test-user --display-name pingu --email test@user.com --password password',
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
