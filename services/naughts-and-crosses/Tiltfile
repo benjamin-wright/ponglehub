@@ -6,21 +6,21 @@ k8s_yaml(namespace_yaml('int-naughts-and-crosses'))
 
 custom_build(
   'localhost:5000/naughts-and-crosses/migrations',
-  'mudly +migrations && docker tag localhost:5000/naughts-and-crosses/migrations $EXPECTED_REF',
+  'just image-migrations $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
 
 custom_build(
   'localhost:5000/naughts-and-crosses/server',
-  'mudly +server && docker tag localhost:5000/naughts-and-crosses/server $EXPECTED_REF',
+  'just image $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
 
 custom_build(
   'localhost:5000/event-recorder',
-  'mudly ../event-recorder/+image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  'just ../event-recorder/image $EXPECTED_REF',
   ['../event-recorder'],
   ignore=['Tiltfile', './dist']
 )
@@ -79,7 +79,7 @@ k8s_yaml(helm(
 
 local_resource(
   'int-test',
-  'mudly +int-test',
+  'just int-test',
   env={
     'RECORDER_URL': 'http://localhost:3001',
     'NAC_URL': 'http://localhost:3000',

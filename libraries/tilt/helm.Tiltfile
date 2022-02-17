@@ -28,5 +28,8 @@ metadata:
     istio-enabled: \"true\"
 """ % name)
 
+def create_namespace(name):
+    k8s_yaml(namespace_yaml(name))
+
 def envvar(name):
   return str(local("echo $%s" % name)).rstrip('\n')

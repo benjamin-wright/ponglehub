@@ -1,3 +1,0 @@
-ARTEFACT build
-  STEP build
-    COMMAND go build -o ../../bin/ponglehub .

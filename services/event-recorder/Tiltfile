@@ -3,7 +3,7 @@ load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
 
 custom_build(
   'localhost:5000/event-recorder',
-  'mudly +image && docker tag localhost:5000/event-recorder $EXPECTED_REF',
+  'just image $EXPECTED_REF',
   ['./'],
   ignore=['Tiltfile', './dist']
 )
@@ -16,7 +16,7 @@ k8s_resource(
 
 local_resource(
     'test',
-    'mudly +test',
+    'just int-test',
     env={
         'TEST_NAMESPACE': 'int-event-recorder',
         'BROKER_URL': 'http://localhost:3000',
