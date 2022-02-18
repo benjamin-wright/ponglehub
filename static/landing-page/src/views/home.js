@@ -1,13 +1,17 @@
 import '../css/global.css';
 import '../components/loading-page';
 import '../components/nav-bar';
+import '../components/hello-world';
 
 import {html, LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
-import { getUserData, redirectToLogin } from '../auth';
+import { logOut, getUserData } from '../auth';
 
-@customElement('index-view')
-export class IndexView extends LitElement {
+@customElement('home-view')
+export class HomeView extends LitElement {
+  @property()
+  userName = ""
+
   @property({type: Boolean})
   loading = true
   
@@ -15,30 +19,33 @@ export class IndexView extends LitElement {
     super.connectedCallback();
 
     getUserData()
-      .then(() => {
-        window.location = "/home";
+      .then(data => {
+        this.loading = false;
+        this.userName = data.name;
       })
       .catch(err => {
         console.error(err);
         this.loading = false;
+        this.userName = "";
       })
   }
 
-  async _login() {
-    redirectToLogin()
+  async _logOut() {
+    await logOut();
+    window.location = '/';
   }
 
   content() {
     if (this.loading) {
       return html`<loading-page ?show="${this.loading}"></loading-page>`;
     } else {
-      return html``;
+      return html`<hello-world name="${this.userName}"></hello-world>`;
     }
   }
 
   render() {
     return html`
-      <nav-bar ?loading="${this.loading}" ?authorised="${false}" @login-event="${this._login}"></nav-bar>
+      <nav-bar ?loading="${this.loading}" ?authorised="${true}" @logout-event="${this._logOut}"></nav-bar>
       ${ this.content() }
     `;
   }

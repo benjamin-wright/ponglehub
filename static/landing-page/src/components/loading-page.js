@@ -17,18 +17,11 @@ export class LoadingPage extends LitElement {
     }
   `;
 
-  @property({type: Boolean})
-  show = true;
-
   render() {
-    if (this.show) {
-      return html`
-        <div>
-          <p>loading...</p>
-        </div>
-      `;
-    } else {
-      return '';
-    }
+    return html`
+      <div>
+        <p>loading...</p>
+      </div>
+    `;
   }
 }
