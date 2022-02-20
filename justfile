@@ -12,7 +12,6 @@ create-cluster:
     if ! k3d cluster list | grep -qw {{ cluster_name }}; then
         k3d cluster create {{ cluster_name }} \
             --registry-create {{ registry_name }}:0.0.0.0:{{ registry_port }} \
-            --k3s-arg "--disable=traefik@server:0" \
             --kubeconfig-update-default=false \
             -p "80:80@loadbalancer" \
             --wait;

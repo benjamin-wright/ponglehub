@@ -167,36 +167,6 @@ spec:
   selector:
     app: {{ $name }}
   type: ClusterIP
-{{- if not (empty $server.host) }}
----
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  annotations:
-    ingress.kubernetes.io/ssl-redirect: "true"
-{{- if not $server.noAuth }}
-    ingress.kubernetes.io/auth-url: http://gatekeeper.ponglehub.svc.cluster.local/loggedIn
-    ingress.kubernetes.io/auth-type: forward
-{{- end }}
-  labels:
-    app: {{ $name }}
-  name: {{ $name }}
-  namespace: {{ $root.Release.Namespace }}
-spec:
-  rules:
-  - host: {{ required "must provide a host!" $server.host }}
-    http:
-      paths:
-      - backend:
-          serviceName: {{ $name }}
-          servicePort: 80
-        path: /
-        pathType: ImplementationSpecific
-  tls:
-  - hosts:
-    - {{ $server.host }}
-    secretName: ssl-secret
-{{- end }}
 {{- if not (empty $server.rbac) }}
 {{- if $server.rbac.clusterWide }}
 ---
@@ -266,4 +236,59 @@ subjects:
   namespace: {{ $root.Release.Namespace }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{- $hosts := list }}
+{{- range $name, $server := .Values.servers }}
+
+{{- if not (empty $server.host) }}
+{{- $hosts = append $hosts (dict "host" $server.host "stripPrefix" $server.stripPrefix "path" $server.path "priority" $server.priority "service" $name ) }}
+{{- end }}
+
+{{- if $server.stripPrefix }}
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $name }}
+spec:
+  stripPrefix:
+    prefixes:
+      - {{ $server.path }}
+{{- end }}
+{{- end }}
+
+{{- if (gt (len $hosts) 0) }}
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ $root.Release.Name }}
+spec:
+  routes:
+  {{ range $host := $hosts }}
+  - kind: Rule
+    {{- if $host.path }}
+    match: "Host(`{{ $host.host }}`) && PathPrefix(`{{ $host.path }}`)"
+    {{- else }}
+    match: "Host(`{{ $host.host }}`)"
+    {{- end }}
+    {{- if $host.stripPrefix }}
+    middlewares:
+    - name: {{ $host.service }}
+    {{- end }}
+    {{- if $host.priority }}
+    priority: {{ $host.priority }}
+    {{- end }}
+    services:
+    - kind: Service
+      name: {{ $host.service }}
+      namespace: {{ $root.Release.Namespace }}
+      passHostHeader: true
+      port: 80
+      responseForwarding:
+        flushInterval: 1ms
+      scheme: http
+      strategy: RoundRobin
+  {{- end }}
 {{- end }}

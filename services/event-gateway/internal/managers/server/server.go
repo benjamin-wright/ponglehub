@@ -26,10 +26,8 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
-			"http://localhost:3000",
-			"http://localhost:3001",
-			"http://localhost:3002",
-			"http://localhost:7000",
+			"http://ponglehub.co.uk",
+			"http://games.ponglehub.co.uk",
 		},
 		AllowMethods:     []string{"POST", "GET"},
 		AllowHeaders:     []string{"Origin", "Content-Type"},

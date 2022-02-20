@@ -10,37 +10,23 @@ import {Auth} from '@pongle/auth';
 export class IndexView extends LitElement {
   static styles = css``;
 
-  @state()
-  private loading: boolean;
-
   private auth: Auth;
+
+  @state()
+  private userName: string;
 
   constructor() {
     super();
     
     this.auth = new Auth(window.localStorage);
-    this.loading = !this.auth.loggedIn();
   }
-  
+
   connectedCallback() {
     super.connectedCallback();
 
-    if (this.loading) {
-      this.auth.load()
-        .then(() => this.loading = false)
-        .catch(() => this.auth.logIn());
-    }
-  }
-
-  private content(): TemplateResult<1> {
-    if (this.loading) {
-      return html`
-        <center-panel height="calc(100% - 3.1em)">
-          <p>loading...</p>
-        </center-panel>`;
-    } else {
-      return html`<h1>Lets play Naughts and Crosses!</h1>`;
-    }
+    this.auth.init()
+      .then(data => this.userName = data.name)
+      .catch(() => this.auth.logIn());
   }
 
   private async logOut() {
@@ -50,8 +36,8 @@ export class IndexView extends LitElement {
 
   render() {
     return html`
-      <nav-bar .loading="${this.loading}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
-      ${ this.content() }
+      <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
+      <h1>Lets play Naughts and Crosses!</h1>
     `;
   }
 }

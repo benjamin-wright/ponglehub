@@ -24,22 +24,17 @@ export class HomeView extends LitElement {
 
   @property()
   userName = "";
-
-  @property({type: Boolean})
-  loading = true;
   
   connectedCallback() {
     super.connectedCallback();
 
-    this.auth
-      .restore()
+    this.auth.init()
       .then(data => {
-        this.loading = false;
         this.userName = data.name;
       })
       .catch(err => {
         console.error(err);
-        window.location.href = '/';
+        this.auth.logIn();
       })
   }
 
@@ -54,29 +49,21 @@ export class HomeView extends LitElement {
   }
 
   private content() {
-    if (this.loading) {
-      return html`
-        <center-panel height="calc(100% - 3.1em)">
-          <p>loading...</p>
-        </center-panel>
-      `;
-    } else {
-      return html`
-        <center-panel height="calc(100% - 3.1em)">
-          <a href="/naughts-and-crosses">
-            <img src="/assets/naughts-and-crosses.png" width="128" height="128" />
-          </a>
-          <a href="/draughts">
-            <img src="/assets/draughts.png" width="128" height="128" />
-          </a>
-        </center-panel>
-      `;
-    }
+    return html`
+      <center-panel height="calc(100% - 3.1em)">
+        <a href="/naughts-and-crosses">
+          <img src="/assets/naughts-and-crosses.png" width="128" height="128" />
+        </a>
+        <a href="/draughts">
+          <img src="/assets/draughts.png" width="128" height="128" />
+        </a>
+      </center-panel>
+    `;
   }
 
   render() {
     return html`
-      <nav-bar .loading="${this.loading}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
+      <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
       ${ this.content() }
     `;
   }

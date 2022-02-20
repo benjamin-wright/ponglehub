@@ -39,15 +39,13 @@ export class IndexView extends LitElement {
       return
     }
 
-    if (this.auth.loading()) {
-      this.auth.load()
+    this.auth.init()
       .then(() => {
-          window.location.href = "/home";
-        }).catch(err => {
-          console.warn('failed to load user data:', err);
-          this.loading = false;
-        });
-    }
+        window.location.href = "/home";
+      }).catch(err => {
+        console.warn('failed to load user data:', err);
+        this.loading = false;
+      });
   }
 
   private async login() {

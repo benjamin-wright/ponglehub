@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const authUrl = "http://localhost:4000";
+const authUrl = "http://ponglehub.co.uk";
 
 export interface UserData {
   name: string
@@ -24,15 +24,24 @@ export class Auth {
     this.storage = storage;
   }
 
-  loggedIn(): boolean {
-    return !!this.storage.getItem('userData');
-  }
-
   loading(): boolean {
     return this.storage.getItem('loading') == 'true';
   }
 
-  async restore(): Promise<UserData> {
+  loggedIn(): boolean {
+    return !!this.storage.getItem('userData');
+  }
+
+  async init(): Promise<UserData> {
+    if (this.loading()) {
+      const userData = await this.load(); 
+
+      this.storage.removeItem('loading');
+      this.storage.setItem('userData', JSON.stringify(userData));
+
+      return userData;
+    }
+
     const userString = this.storage.getItem('userData');
     if (userString == null) {
       throw new Error('userData not found');
@@ -41,11 +50,7 @@ export class Auth {
     return parseUserData(userString);
   }
 
-  async load(): Promise<UserData> {
-    if (!this.loading()) {
-      throw new Error('tried to load user data without logging in');
-    }
-
+  private async load(): Promise<UserData> {
     const response = await axios.get(`${authUrl}/auth/user`, {
       withCredentials: true,
     });
@@ -61,9 +66,6 @@ export class Auth {
     const data: UserData = {
       name: response.data.name
     };
-
-    this.storage.removeItem('loading');
-    this.storage.setItem('userData', JSON.stringify(data));
 
     return data;
   }

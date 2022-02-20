@@ -26,10 +26,3 @@ image IMAGE_TAG: build
         -f ../../docker/nginx.Dockerfile \
         -t {{IMAGE_TAG}} \
         ./dist
-
-start IMAGE_TAG:
-    just image {{IMAGE_TAG}}
-    docker run -d --rm -p 7003:80 -v $(pwd)/dist:/usr/share/nginx/html --name nac {{IMAGE_TAG}}
-
-stop:
-    docker stop nac
