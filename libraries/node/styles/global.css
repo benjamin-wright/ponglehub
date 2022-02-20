@@ -1,10 +1,12 @@
 :root {
     --default-background: #dbeeff;
     --default-foreground: #2c3e50;
+    --default-highlight: #5ad8ff;
 }
 
 html, body {
     background: var(--default-background);
     margin: 0;
     padding: 0;
+    height: 100%;
 }

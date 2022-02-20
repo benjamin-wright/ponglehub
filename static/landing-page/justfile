@@ -5,11 +5,16 @@ clean:
 
 build: statics web-components
 
+deps:
+    npm install
+
+watch: deps
+    npm run watch
+
 statics:
     cp -r ./static/ ./dist/
 
-web-components:
-    npm install
+web-components: deps
     npm run build
 
 image IMAGE_TAG: build
@@ -18,3 +23,11 @@ image IMAGE_TAG: build
         -f ../../docker/nginx.Dockerfile \
         -t {{IMAGE_TAG}} \
         ./dist
+
+start:
+    just image landing-page
+    -docker stop landing-page
+    docker run --name landing-page --hostname landing-page --rm -it -d -v $(pwd)/dist:/usr/share/nginx/html -p 7001:80 landing-page
+
+stop:
+    -docker stop landing-page

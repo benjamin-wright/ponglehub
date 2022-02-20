@@ -29,41 +29,41 @@ export class NavBar extends LitElement {
   `;
 
   @property({type: Boolean})
-  authorised = false;
+  authorised: boolean;
 
   @property({type: Boolean})
-  loading = true;
+  loading: boolean;
 
-  _logoutEvent(event) {
+  private logoutEvent(event: Event) {
     event.preventDefault();
 
     let e = new CustomEvent('logout-event', {});
     this.dispatchEvent(e);
   }
   
-  _loginEvent(event) {
+  private loginEvent(event: Event) {
     event.preventDefault();
 
     let e = new CustomEvent('login-event', {});
     this.dispatchEvent(e);
   }
 
-  button() {
+  private button() {
     if (this.loading) {
       return html`<span></span>`;
     }
 
     if (this.authorised) {
-      return html`<div><a href="#" @click="${this._logoutEvent}">logout</a></div>`;
+      return html`<div><a href="#" @click="${this.logoutEvent}">logout</a></div>`;
     }
 
-    return html`<div><a href="#" @click="${this._loginEvent}">login</a></div>`;
+    return html`<div><a href="#" @click="${this.loginEvent}">login</a></div>`;
   }
 
   render() {
     return html`
       <div class="container">
-        <div><a href="/"><span>LOGO</span></a></div>
+        <div><a href="/"><span>PONGLEHUB</span></a></div>
         ${ this.button() }
       </div>
     `;

@@ -40,6 +40,22 @@
 			"name": "lib: messaging"
 		},
 		{
+			"path": "libraries/node/auth",
+			"name": "lib: auth"
+		},
+		{
+			"path": "libraries/node/styles",
+			"name": "lib: styles"
+		},
+		{
+			"path": "libraries/node/components",
+			"name": "lib: components"
+		},
+		{
+			"path": "libraries/node/panels",
+			"name": "lib: panels"
+		},
+		{
 			"path": "static/landing-page",
 			"name": "static: landing-page"
 		},

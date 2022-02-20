@@ -8,9 +8,14 @@ build: statics web-components wasm
 statics:
     cp -r ./static/ ./dist/
 
-web-components:
+deps:
     npm install
+
+web-components: deps
     npm run build
+
+watch: deps
+    npm run watch
 
 wasm:
     mkdir -p dist/compiled
@@ -22,8 +27,9 @@ image IMAGE_TAG: build
         -t {{IMAGE_TAG}} \
         ./dist
 
-run:
-    docker run -d --rm -p 3000:80 -v $(pwd)/dist:/usr/share/nginx/html --name naughts-and-crosses nginx:stable-alpine
+start IMAGE_TAG:
+    just image {{IMAGE_TAG}}
+    docker run -d --rm -p 7003:80 -v $(pwd)/dist:/usr/share/nginx/html --name nac {{IMAGE_TAG}}
 
 stop:
-    docker stop naughts-and-crosses
+    docker stop nac

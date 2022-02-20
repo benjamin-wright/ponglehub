@@ -21,8 +21,9 @@ image IMAGE_TAG: build
         -t {{IMAGE_TAG}} \
         ./dist
 
-run:
-    docker run -d --rm -p 3000:80 -v $(pwd)/dist:/usr/share/nginx/html --name draughts nginx:stable-alpine
+start IMAGE_TAG:
+    just image {{IMAGE_TAG}}
+    docker run -d --rm -p 7002:80 -v $(pwd)/dist:/usr/share/nginx/html --name draughts {{IMAGE_TAG}}
 
 stop:
     docker stop draughts
