@@ -6,7 +6,8 @@ import (
 )
 
 type Route struct {
-	Filter []string
+	Filter string
+	Parts  []string
 	URL    string
 }
 
@@ -22,14 +23,15 @@ func New() Router {
 
 func (r *Router) Add(filter string, url string) {
 	r.routes = append(r.routes, Route{
-		Filter: strings.Split(filter, "."),
+		Filter: filter,
+		Parts:  strings.Split(filter, "."),
 		URL:    url,
 	})
 }
 
 func (r *Router) Remove(filter string, url string) error {
 	for idx, route := range r.routes {
-		if strings.Join(route.Filter, ".") == filter && route.URL == url {
+		if route.Filter == filter && route.URL == url {
 			r.routes[idx] = r.routes[len(r.routes)-1]
 			r.routes = r.routes[:len(r.routes)-1]
 			return nil
@@ -44,26 +46,42 @@ func (r *Router) GetURLs(eventType string) []string {
 
 	for _, route := range r.routes {
 		typeParts := strings.Split(eventType, ".")
+		lenFilterParts := len(route.Parts)
 
-		lenTypeParts := len(typeParts)
-		lenFilterParts := len(route.Filter)
-		isOpenWildcard := route.Filter[len(route.Filter)-1] == "*"
-
-		if lenTypeParts > lenFilterParts && isOpenWildcard {
-			typeParts = typeParts[:lenFilterParts]
-		} else if lenTypeParts != lenFilterParts {
-			continue
-		}
-
+		matchIndex := 0
+		doubleWild := false
 		mismatch := false
-		for idx, _ := range route.Filter {
-			if route.Filter[idx] != "*" && route.Filter[idx] != typeParts[idx] {
-				mismatch = true
-				break
+
+		for _, part := range typeParts {
+			if matchIndex < lenFilterParts {
+				if route.Parts[matchIndex] == "*" {
+					matchIndex += 1
+					doubleWild = false
+					continue
+				}
+
+				if route.Parts[matchIndex] == "**" {
+					matchIndex += 1
+					doubleWild = true
+					continue
+				}
+
+				if route.Parts[matchIndex] == part {
+					matchIndex += 1
+					doubleWild = false
+					continue
+				}
 			}
+
+			if doubleWild {
+				continue
+			}
+
+			mismatch = true
+			break
 		}
 
-		if mismatch {
+		if mismatch || matchIndex != lenFilterParts {
 			continue
 		}
 

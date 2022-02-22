@@ -63,14 +63,24 @@ func TestSomething(t *testing.T) {
 			expected: []string{"test.event", "other.event"},
 		},
 		{
-			name:     "closed wildcard filtering",
+			name:     "enclosed wildcard filtering",
 			filters:  []string{"test.*.resp"},
 			expected: []string{"test.event.resp", "test.random.resp"},
 		},
 		{
-			name:     "open wildcard filtering",
+			name:     "variable length enclosed wildcard filtering",
+			filters:  []string{"test.**.resp"},
+			expected: []string{"test.event.resp", "test.event.longer.resp", "test.random.resp"},
+		},
+		{
+			name:     "final segment wildcard filtering",
 			filters:  []string{"test.*"},
-			expected: []string{"test.event", "test.event.resp", "test.event.random", "test.random", "test.random.resp"},
+			expected: []string{"test.event", "test.random"},
+		},
+		{
+			name:     "final segment variable length wildcard filtering",
+			filters:  []string{"test.**"},
+			expected: []string{"test.event", "test.event.resp", "test.event.random", "test.event.longer.resp", "test.random", "test.random.resp"},
 		},
 		{
 			name:     "no filters",
@@ -85,7 +95,7 @@ func TestSomething(t *testing.T) {
 
 			recorder.Clear(u, RECORDER_SERVER)
 
-			for _, event := range []string{"test", "test.event", "test.event.resp", "test.event.random", "test.random", "test.random.resp", "other", "other.event", "other.event.resp"} {
+			for _, event := range []string{"test", "test.event", "test.event.resp", "test.event.random", "test.event.longer.resp", "test.random", "test.random.resp", "other", "other.event", "other.event.resp"} {
 				err = sender.Send(event, "some event data")
 				if err != nil {
 					assert.NoError(u, err)
