@@ -43,9 +43,9 @@ func (r *Router) Remove(filter string, url string) error {
 
 func (r *Router) GetURLs(eventType string) []string {
 	urls := []string{}
+	typeParts := strings.Split(eventType, ".")
 
 	for _, route := range r.routes {
-		typeParts := strings.Split(eventType, ".")
 		lenFilterParts := len(route.Parts)
 
 		matchIndex := 0

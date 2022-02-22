@@ -53,7 +53,7 @@ func TestSomething(t *testing.T) {
 		expected []string
 	}{
 		{
-			name:     "normal filtering",
+			name:     "normal filter",
 			filters:  []string{"test.event"},
 			expected: []string{"test.event"},
 		},
