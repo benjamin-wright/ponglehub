@@ -53,7 +53,7 @@ func main() {
 			return
 		}
 
-		logrus.Infof("Stored event: %s", event.Type())
+		logrus.Infof("Stored event '%s' for user '%s'", event.Type(), userId)
 	})
 	if err != nil {
 		logrus.Fatalf("Failed to start event listener: %+v", err)

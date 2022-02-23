@@ -22,13 +22,6 @@ k8s_resource(
 k8s_yaml(namespace_yaml('int-event-responder'))
 
 local_resource(
-  'test',
-  'just test',
-  auto_init=False,
-  trigger_mode=TRIGGER_MODE_MANUAL
-)
-
-local_resource(
   'int-test',
   'just int-test',
   env={
@@ -37,7 +30,7 @@ local_resource(
   },
   auto_init=False,
   trigger_mode=TRIGGER_MODE_MANUAL,
-  resource_deps=['responder']
+  resource_deps=['responder', 'redis']
 )
 
 k8s_yaml(helm(

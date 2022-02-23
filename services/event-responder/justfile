@@ -15,8 +15,5 @@ image IMAGE_TAG: build
         --build-arg EXECUTABLE=event-responder \
         ./dist
 
-test:
-    go test -v ./internal/...
-
 int-test:
     go test -v --count 1 ./integration
