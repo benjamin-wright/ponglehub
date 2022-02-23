@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -22,9 +23,9 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 		logrus.Fatalf("Failed to create broker client: %+v", err)
 	}
 
-	r := gin.Default()
+	engine := gin.Default()
 
-	r.Use(cors.New(cors.Config{
+	engine.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://ponglehub.co.uk",
 			"http://games.ponglehub.co.uk",
@@ -35,37 +36,67 @@ func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *u
 		AllowCredentials: true,
 	}))
 
-	r.LoadHTMLGlob("/html/*")
+	engine.LoadHTMLGlob("/html/*")
 
-	r.POST("/events", eventsRoute(tokens, domain, eventClient))
-	r.GET("/auth/user", userRoute(tokens, domain, crdClient, store))
-	r.GET("/auth/login", loginHTML)
-	r.POST("/auth/login", loginRoute(store, tokens, domain))
-	r.POST("/auth/logout", logoutRoute(tokens, domain))
-	r.GET("/auth/set-password", setPasswordHTML)
-	r.POST("/auth/set-password", setPasswordRoute(store, crdClient, tokens))
+	engine.GET("/events", eventsGetRoute(tokens, domain))
+	engine.POST("/events", eventsPostRoute(tokens, domain, eventClient))
+	engine.GET("/auth/user", userRoute(tokens, domain, crdClient, store))
+	engine.GET("/auth/login", loginHTML)
+	engine.POST("/auth/login", loginRoute(store, tokens, domain))
+	engine.POST("/auth/logout", logoutRoute(tokens, domain))
+	engine.GET("/auth/set-password", setPasswordHTML)
+	engine.POST("/auth/set-password", setPasswordRoute(store, crdClient, tokens))
 
-	srv := &http.Server{
+	server := &http.Server{
 		Addr:    "0.0.0.0:80",
-		Handler: r,
+		Handler: engine,
 	}
 
 	go func() {
 		// service connections
-		if err := srv.ListenAndServe(); err != nil {
-			logrus.Fatalf("Error starting server: %+v\n", err)
+		if err := server.ListenAndServe(); err != nil {
+			logrus.Fatalf("Error starting external server: %+v\n", err)
 		}
 	}()
 
 	return func() {
-		err := srv.Close()
+		err := server.Close()
 		if err != nil {
 			logrus.Errorf("Error closing server: %+v", err)
 		}
 	}
 }
 
-func eventsRoute(tokens *tokens.Tokens, domain string, client *events.Events) func(c *gin.Context) {
+func eventsGetRoute(tokens *tokens.Tokens, domain string) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		subject, err := loggedIn(c, tokens, domain)
+		if err != nil {
+			return
+		}
+
+		messages, err := tokens.GetResponses(subject)
+		if err != nil {
+			logrus.Errorf("Failed to get messages: %+v", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		if len(messages) == 0 {
+			logrus.Infof("No new messages for user %s", subject)
+			c.Status(http.StatusNoContent)
+			return
+		}
+
+		c.JSON(
+			http.StatusOK,
+			gin.H{
+				"messages": messages,
+			},
+		)
+	}
+}
+
+func eventsPostRoute(tokens *tokens.Tokens, domain string, client *events.Events) func(c *gin.Context) {
 	ctx := context.Background()
 	p, err := cloudevents.NewHTTP()
 	if err != nil {
@@ -86,36 +117,44 @@ func eventsRoute(tokens *tokens.Tokens, domain string, client *events.Events) fu
 	}
 
 	return func(c *gin.Context) {
-		token, err := c.Cookie("ponglehub.login")
-		if err == http.ErrNoCookie {
-			c.Status(http.StatusUnauthorized)
-			return
-		}
-
+		subject, err := loggedIn(c, tokens, domain)
 		if err != nil {
-			logrus.Errorf("Error getting cookie: %+v", err)
-			c.Status(http.StatusInternalServerError)
 			return
 		}
 
-		claims, err := tokens.Parse(token)
-		if err != nil {
-			logrus.Errorf("Error parsing cookie: %+v", err)
-			c.Status(http.StatusUnauthorized)
-			return
-		}
-
-		if claims.Kind != "login" {
-			logrus.Errorf("Accessed with non login cookie: %s", claims.Kind)
-			c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
-			c.Status(http.StatusUnauthorized)
-			return
-		}
-
-		c.Request.Header.Add("ce-userid", claims.Subject)
-
+		c.Request.Header.Add("ce-userid", subject)
 		h.ServeHTTP(c.Writer, c.Request)
 	}
+}
+
+func loggedIn(c *gin.Context, tokens *tokens.Tokens, domain string) (string, error) {
+	token, err := c.Cookie("ponglehub.login")
+	if err == http.ErrNoCookie {
+		c.Status(http.StatusUnauthorized)
+		return "", err
+	}
+
+	if err != nil {
+		logrus.Errorf("Error getting cookie: %+v", err)
+		c.Status(http.StatusInternalServerError)
+		return "", err
+	}
+
+	claims, err := tokens.Parse(token)
+	if err != nil {
+		logrus.Errorf("Error parsing cookie: %+v", err)
+		c.Status(http.StatusUnauthorized)
+		return "", err
+	}
+
+	if claims.Kind != "login" {
+		logrus.Errorf("Accessed with non login cookie: %s", claims.Kind)
+		c.SetCookie("ponglehub.login", "", 0, "/", domain, false, true)
+		c.Status(http.StatusUnauthorized)
+		return "", errors.New("something")
+	}
+
+	return claims.Subject, nil
 }
 
 func userRoute(tokens *tokens.Tokens, domain string, users *crds.UserClient, store *user_store.Store) func(c *gin.Context) {

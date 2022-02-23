@@ -2,7 +2,7 @@ import '@pongle/styles/global.css';
 import '@pongle/components/nav-bar';
 import '@pongle/panels/center-panel';
 
-import {html, css, LitElement, TemplateResult} from 'lit';
+import {html, css, LitElement} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {Auth} from '@pongle/auth';
 

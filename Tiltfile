@@ -127,39 +127,42 @@ k8s_yaml(helm(
 custom_build(
   'landing-page',
   'just ./static/landing-page/image $EXPECTED_REF',
-  ['./static/landing-page'],
-  ignore=['./dist']
+  ['./static/landing-page/dist'],
+  live_update=[
+    sync('./static/landing-page/dist', '/usr/share/nginx/html')
+  ]
 )
 
 custom_build(
   'naughts-and-crosses',
   'just ./static/naughts-and-crosses/image $EXPECTED_REF',
-  ['./static/naughts-and-crosses'],
-  ignore=['./dist']
+  ['./static/naughts-and-crosses/dist'],
+  live_update=[
+    sync('./static/naughts-and-crosses/dist', '/usr/share/nginx/html')
+  ]
 )
 
 custom_build(
   'draughts',
   'just ./static/draughts/image $EXPECTED_REF',
-  ['./static/draughts'],
-  ignore=['./dist']
+  ['./static/draughts/dist'],
+  live_update=[
+    sync('./static/draughts/dist', '/usr/share/nginx/html')
+  ]
 )
 
 k8s_resource(
   'landing-page',
-  trigger_mode=TRIGGER_MODE_MANUAL,
   port_forwards=["3000:80"]
 )
 
 k8s_resource(
   'naughts-and-crosses',
-  trigger_mode=TRIGGER_MODE_MANUAL,
   port_forwards=["3001:80"]
 )
 
 k8s_resource(
   'draughts',
-  trigger_mode=TRIGGER_MODE_MANUAL,
   port_forwards=["3002:80"]
 )
 

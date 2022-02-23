@@ -36,8 +36,8 @@
 			"name": "srv: event-gateway"
 		},
 		{
-			"path": "libraries/node/messaging",
-			"name": "lib: messaging"
+			"path": "services/event-responder",
+			"name": "srv: event-responder"
 		},
 		{
 			"path": "libraries/node/auth",
@@ -70,10 +70,6 @@
 		{
 			"path": "static/naughts-and-crosses",
 			"name": "static: naughts-and-crosses"
-		},
-		{
-			"path": "static/naughts-and-crosses/wasm",
-			"name": "wasm: naughts-and-crosses"
 		},
 		{
 			"path": "services/naughts-and-crosses",

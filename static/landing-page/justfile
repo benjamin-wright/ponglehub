@@ -3,19 +3,14 @@ clean:
     mkdir -p dist/compiled
     mkdir -p dist/js
 
-build: statics web-components
-
 deps:
     npm install
 
+build: deps
+    npm run build
+
 watch: deps
     npm run watch
-
-statics:
-    cp -r ./static/ ./dist/
-
-web-components: deps
-    npm run build
 
 image IMAGE_TAG: build
     just ../../libraries/images/nginx/image

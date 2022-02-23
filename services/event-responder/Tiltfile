@@ -1,0 +1,54 @@
+allow_k8s_contexts(['pongle'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+
+custom_build(
+  'localhost:5000/event-responder',
+  'just image $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+k8s_resource(
+  'responder',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  port_forwards=["3000:80"]
+)
+
+k8s_resource(
+  'redis',
+  port_forwards=["6379:6379"]
+)
+
+k8s_yaml(namespace_yaml('int-event-responder'))
+
+local_resource(
+  'test',
+  'just test',
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+local_resource(
+  'int-test',
+  'just int-test',
+  env={
+    'RESPONDER_URL': 'http://localhost:3000',
+    'REDIS_URL': 'localhost:6379'
+  },
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=['responder']
+)
+
+k8s_yaml(helm(
+  '../../helm',
+  name='event-responder',
+  namespace='int-event-responder',
+  set=[
+    'redis.redis.storage=256Mi',
+    'servers.responder.image=localhost:5000/event-responder',
+    'servers.responder.env.REDIS_URL="redis:6379"',
+    'servers.responder.resources.limits.memory=64Mi',
+    'servers.responder.resources.requests.memory=64Mi',
+  ]
+))

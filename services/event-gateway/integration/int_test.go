@@ -169,7 +169,7 @@ func TestLogin(t *testing.T) {
 		Cookies int
 	}{
 		{
-			Name: "success",
+			Name: "successes",
 			Input: map[string]string{
 				"redirect": "http://localhost:3000/redirected",
 				"email":    "test@user.com",

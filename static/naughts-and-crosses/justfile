@@ -3,15 +3,10 @@ clean:
     mkdir -p dist/compiled
     mkdir -p dist/js
 
-build: statics web-components wasm
-
-statics:
-    cp -r ./static/ ./dist/
-
 deps:
     npm install
 
-web-components: deps
+build: deps
     npm run build
 
 watch: deps

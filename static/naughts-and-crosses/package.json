@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "copy-webpack-plugin": "^10.2.4",
     "css-loader": "^6.6.0",
     "lit": "^2.1.4",
     "style-loader": "^3.3.1",
@@ -22,6 +23,8 @@
     "@pongle/auth": "file:../../libraries/node/auth",
     "@pongle/components": "file:../../libraries/node/components",
     "@pongle/panels": "file:../../libraries/node/panels",
-    "@pongle/styles": "file:../../libraries/node/styles"
+    "@pongle/styles": "file:../../libraries/node/styles",
+    "axios": "^0.26.0",
+    "cloudevents": "^5.3.2"
   }
 }

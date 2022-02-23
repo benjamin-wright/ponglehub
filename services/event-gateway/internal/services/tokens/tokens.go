@@ -41,6 +41,28 @@ func New(keyfile string, redisUrl string) (*Tokens, error) {
 	return &tokens, nil
 }
 
+func (t *Tokens) GetResponses(id string) ([]string, error) {
+	key := fmt.Sprintf("%s.responses", id)
+	value, err := t.redis.SMembers(context.Background(), key).Result()
+	if err == redis.Nil {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to fetch responses: %+v", err)
+	}
+
+	return value, nil
+}
+
+func (t *Tokens) RemoveResponses(id string, responses []interface{}) error {
+	key := fmt.Sprintf("%s.responses", id)
+	err := t.redis.SRem(context.Background(), key, responses...).Err()
+	if err != nil {
+		return fmt.Errorf("failed to clear responses: %+v", err)
+	}
+
+	return nil
+}
+
 func (t *Tokens) DeleteToken(id string, kind string) error {
 	key := fmt.Sprintf("%s.%s", id, kind)
 	err := t.redis.Del(context.Background(), key).Err()
