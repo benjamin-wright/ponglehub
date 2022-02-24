@@ -75,6 +75,13 @@ custom_build(
   ignore=['Tiltfile', './dist']
 )
 
+custom_build(
+  'event-responder',
+  'just ./services/event-responder/image $EXPECTED_REF',
+  ['./services/event-responder'],
+  ignore=['Tiltfile', './dist']
+)
+
 k8s_resource(
   'gateway',
   trigger_mode=TRIGGER_MODE_MANUAL,
@@ -83,6 +90,11 @@ k8s_resource(
 
 k8s_resource(
   'broker',
+  trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+k8s_resource(
+  'responder',
   trigger_mode=TRIGGER_MODE_MANUAL
 )
 
@@ -119,6 +131,10 @@ k8s_yaml(helm(
     'servers.broker.rbac.clusterWide=true',
     'servers.broker.resources.limits.memory=32Mi',
     'servers.broker.resources.requests.memory=32Mi',
+    'servers.responder.image=event-responder',
+    'servers.responder.env.REDIS_URL="redis:6379"',
+    'servers.responder.resources.limits.memory=32Mi',
+    'servers.responder.resources.requests.memory=32Mi',
   ]
 ))
 

@@ -43,14 +43,14 @@ func New(keyfile string, redisUrl string) (*Tokens, error) {
 
 func (t *Tokens) GetResponses(id string) ([]string, error) {
 	key := fmt.Sprintf("%s.responses", id)
-	value, err := t.redis.SMembers(context.Background(), key).Result()
+	values, err := t.redis.LRange(context.Background(), key, 0, -1).Result()
 	if err == redis.Nil {
 		return nil, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to fetch responses: %+v", err)
 	}
 
-	return value, nil
+	return values, nil
 }
 
 func (t *Tokens) RemoveResponses(id string, responses []interface{}) error {
