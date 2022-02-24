@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -53,9 +54,11 @@ func (t *Tokens) GetResponses(id string) ([]string, error) {
 	return values, nil
 }
 
-func (t *Tokens) RemoveResponses(id string, responses []interface{}) error {
+func (t *Tokens) RemoveResponses(id string, items int64) error {
+	logrus.Infof("Removing %d items from %s", items, id)
+
 	key := fmt.Sprintf("%s.responses", id)
-	err := t.redis.SRem(context.Background(), key, responses...).Err()
+	err := t.redis.LTrim(context.Background(), key, items, -1).Err()
 	if err != nil {
 		return fmt.Errorf("failed to clear responses: %+v", err)
 	}

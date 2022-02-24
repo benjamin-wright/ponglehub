@@ -38,6 +38,20 @@ func (t *TestClient) CookieJar() http.CookieJar {
 	return t.jar
 }
 
+func (t *TestClient) Get(u *testing.T, url string) *http.Response {
+	req, err := http.NewRequest(
+		"GET",
+		url,
+		nil,
+	)
+	noErr(u, err)
+
+	res, err := t.client.Do(req)
+	noErr(u, err)
+
+	return res
+}
+
 func (t *TestClient) Post(u *testing.T, url string, data map[string]string) *http.Response {
 	json_data, err := json.Marshal(data)
 	noErr(u, err)

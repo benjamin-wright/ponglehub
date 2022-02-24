@@ -1,8 +1,10 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"testing"
@@ -48,6 +50,18 @@ func clients(t *testing.T) (*crds.UserClient, *redis.Redis, *test_client.TestCli
 	noErr(t, err)
 
 	return crdClient, redis, testClient, eventClient
+}
+
+func makeUser(t *testing.T, crdClient *crds.UserClient) crds.User {
+	crdClient.Delete("test-user")
+	user, err := crdClient.Create(crds.User{
+		Name:    "test-user",
+		Display: "test user",
+		Email:   "test@user.com",
+	})
+	noErr(t, err)
+
+	return user
 }
 
 func TestInviteToken(t *testing.T) {
@@ -139,14 +153,7 @@ func TestInviteToken(t *testing.T) {
 		t.Run(test.Name, func(u *testing.T) {
 			crdClient, redisClient, testClient, _ := clients(u)
 
-			crdClient.Delete("test-user")
-			user, err := crdClient.Create(crds.User{
-				Name:    "test-user",
-				Display: "test user",
-				Email:   "test@user.com",
-			})
-			noErr(u, err)
-
+			user := makeUser(u, crdClient)
 			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
 
 			if test.Prep != nil {
@@ -159,6 +166,20 @@ func TestInviteToken(t *testing.T) {
 			assert.Equal(u, test.StatusCode, res.StatusCode)
 		})
 	}
+}
+
+func setPassword(t *testing.T, testClient *test_client.TestClient, inviteToken string) {
+	testUrl := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
+	res := testClient.Post(
+		t,
+		testUrl,
+		map[string]string{
+			"invite":   inviteToken,
+			"password": "new-password",
+			"confirm":  "new-password",
+		},
+	)
+	assert.Equal(t, 200, res.StatusCode)
 }
 
 func TestLogin(t *testing.T) {
@@ -208,30 +229,12 @@ func TestLogin(t *testing.T) {
 		t.Run(test.Name, func(u *testing.T) {
 			crdClient, redisClient, testClient, _ := clients(u)
 
-			crdClient.Delete("test-user")
-			user, err := crdClient.Create(crds.User{
-				Name:    "test-user",
-				Display: "test user",
-				Email:   "test@user.com",
-			})
-			noErr(u, err)
-
+			user := makeUser(u, crdClient)
 			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
+			setPassword(u, testClient, invite)
 
-			testUrl := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
-			res := testClient.Post(
-				u,
-				testUrl,
-				map[string]string{
-					"invite":   invite,
-					"password": "new-password",
-					"confirm":  "new-password",
-				},
-			)
-			assert.Equal(u, 200, res.StatusCode)
-
-			testUrl = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
-			res = testClient.Post(t, testUrl, test.Input)
+			testUrl := fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
+			res := testClient.Post(t, testUrl, test.Input)
 			assert.Equal(t, test.Url, res.Request.URL.String())
 			urlObj, err := url.Parse(testUrl)
 			noErr(u, err)
@@ -239,6 +242,21 @@ func TestLogin(t *testing.T) {
 
 		})
 	}
+}
+
+func login(t *testing.T, testClient *test_client.TestClient) {
+	url := fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
+	res := testClient.Post(
+		t,
+		url,
+		map[string]string{
+			"redirect": "http://localhost:3000/redirected",
+			"email":    "test@user.com",
+			"password": "new-password",
+		},
+	)
+
+	assert.Equal(t, "http://localhost:3000/redirected", res.Request.URL.String())
 }
 
 func TestProxying(t *testing.T) {
@@ -265,44 +283,15 @@ func TestProxying(t *testing.T) {
 			crdClient, redisClient, testClient, eventClient := clients(u)
 			recorder.Clear(u, os.Getenv("RECORDER_URL"))
 
-			crdClient.Delete("test-user")
-			user, err := crdClient.Create(crds.User{
-				Name:    "test-user",
-				Display: "test user",
-				Email:   "test@user.com",
-			})
-			noErr(u, err)
-
+			user := makeUser(u, crdClient)
 			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
-
-			url := fmt.Sprintf("%s/auth/set-password", os.Getenv("GATEWAY_URL"))
-			res := testClient.Post(
-				u,
-				url,
-				map[string]string{
-					"invite":   invite,
-					"password": "new-password",
-					"confirm":  "new-password",
-				},
-			)
-			assert.Equal(u, 200, res.StatusCode)
+			setPassword(u, testClient, invite)
 
 			if test.LoggedIn {
-				url = fmt.Sprintf("%s/auth/login", os.Getenv("GATEWAY_URL"))
-				res = testClient.Post(
-					u,
-					url,
-					map[string]string{
-						"redirect": "http://localhost:3000/redirected",
-						"email":    "test@user.com",
-						"password": "new-password",
-					},
-				)
-
-				assert.Equal(u, "http://localhost:3000/redirected", res.Request.URL.String())
+				login(u, testClient)
 			}
 
-			err = eventClient.Send("test.event", "event 1")
+			err := eventClient.Send("test.event", "event 1")
 			if test.Unauthorized {
 				assert.Equal(u, events.UnauthorizedError, err)
 			} else {
@@ -312,6 +301,66 @@ func TestProxying(t *testing.T) {
 			time.Sleep(250 * time.Millisecond)
 			received := recorder.GetEvents(u, os.Getenv("RECORDER_URL"))
 			assert.Equal(u, test.Events, len(received))
+		})
+	}
+}
+
+func TestEventResponses(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		messages       []interface{}
+		expectedStatus int
+		expectedResult []string
+	}{
+		{
+			name:           "empty",
+			messages:       []interface{}{},
+			expectedStatus: 204,
+		},
+		{
+			name:           "one message",
+			messages:       []interface{}{"event 1"},
+			expectedStatus: 200,
+			expectedResult: []string{"event 1"},
+		},
+		{
+			name:           "two messages",
+			messages:       []interface{}{"event 1", "event 2"},
+			expectedStatus: 200,
+			expectedResult: []string{"event 1", "event 2"},
+		},
+	} {
+		t.Run(test.name, func(u *testing.T) {
+			crdClient, redisClient, testClient, _ := clients(u)
+
+			user := makeUser(u, crdClient)
+			invite := redisClient.WaitForKey(u, fmt.Sprintf("%s.%s", user.ID, "invite"))
+			setPassword(u, testClient, invite)
+			login(u, testClient)
+
+			redisClient.ClearResponses(u, user.ID)
+			redisClient.AddResponses(u, user.ID, test.messages)
+
+			url := fmt.Sprintf("%s/events", os.Getenv("GATEWAY_URL"))
+			res := testClient.Get(u, url)
+
+			assert.Equal(u, test.expectedStatus, res.StatusCode)
+
+			body, err := ioutil.ReadAll(res.Body)
+			noErr(u, err)
+
+			if test.expectedResult != nil {
+				response := struct{ Messages []string }{}
+				err = json.Unmarshal(body, &response)
+				noErr(u, err)
+
+				assert.Equal(u, test.expectedResult, response.Messages)
+			} else {
+				assert.Equal(u, []byte{}, body)
+			}
+
+			messages := redisClient.GetResponses(u, user.ID)
+			assert.Equal(u, []string{}, messages)
 		})
 	}
 }

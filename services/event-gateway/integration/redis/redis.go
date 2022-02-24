@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -22,6 +23,38 @@ func New() *Redis {
 	})
 
 	return &Redis{client: rdb}
+}
+
+func (r *Redis) AddResponses(t *testing.T, id string, responses []interface{}) {
+	if len(responses) == 0 {
+		return
+	}
+
+	key := fmt.Sprintf("%s.responses", id)
+	err := r.client.RPush(context.Background(), key, responses...).Err()
+	if err != nil {
+		assert.FailNow(t, "failed to add responses", err)
+	}
+}
+
+func (r *Redis) ClearResponses(t *testing.T, id string) {
+	key := fmt.Sprintf("%s.responses", id)
+	err := r.client.Del(context.Background(), key).Err()
+	if err != nil {
+		assert.FailNow(t, "failed to clear responses", err)
+	}
+}
+
+func (r *Redis) GetResponses(t *testing.T, id string) []string {
+	key := fmt.Sprintf("%s.responses", id)
+	values, err := r.client.LRange(context.Background(), key, 0, -1).Result()
+	if err == redis.Nil {
+		return nil
+	} else if err != nil {
+		assert.Fail(t, "failed to fetch responses:", err)
+	}
+
+	return values
 }
 
 func (r *Redis) DeleteKey(t *testing.T, key string) {

@@ -133,6 +133,7 @@ k8s_yaml(helm(
     'servers.broker.resources.requests.memory=32Mi',
     'servers.responder.image=event-responder',
     'servers.responder.env.REDIS_URL="redis:6379"',
+    'servers.responder.events={\'**.response\'}',
     'servers.responder.resources.limits.memory=32Mi',
     'servers.responder.resources.requests.memory=32Mi',
   ]

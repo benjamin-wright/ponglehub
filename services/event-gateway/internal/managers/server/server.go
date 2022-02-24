@@ -87,6 +87,13 @@ func eventsGetRoute(tokens *tokens.Tokens, domain string) func(c *gin.Context) {
 			return
 		}
 
+		err = tokens.RemoveResponses(subject, int64(len(messages)))
+		if err != nil {
+			logrus.Errorf("Failed to clean up messages: %+v", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
 		c.JSON(
 			http.StatusOK,
 			gin.H{
@@ -223,16 +230,19 @@ func userRoute(tokens *tokens.Tokens, domain string, users *crds.UserClient, sto
 			return
 		}
 
-		c.JSON(200, gin.H{
-			"name": user.Display,
-		})
+		c.JSON(
+			http.StatusOK,
+			gin.H{
+				"name": user.Display,
+			},
+		)
 	}
 }
 
 func loginHTML(c *gin.Context) {
 	url, ok := c.GetQuery("redirect")
 	if !ok {
-		c.Status(400)
+		c.Status(http.StatusBadRequest)
 		return
 	}
 
@@ -363,7 +373,7 @@ func logoutRoute(tokens *tokens.Tokens, domain string) func(c *gin.Context) {
 func setPasswordHTML(c *gin.Context) {
 	token, ok := c.GetQuery("token")
 	if !ok {
-		c.Status(400)
+		c.Status(http.StatusBadRequest)
 		return
 	}
 

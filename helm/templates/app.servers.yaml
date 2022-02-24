@@ -167,6 +167,18 @@ spec:
   selector:
     app: {{ $name }}
   type: ClusterIP
+{{- if not (empty $server.events) }}
+apiVersion: ponglehub.co.uk/v1alpha1
+kind: EventTrigger
+metadata:
+  name: {{ $name }}
+spec:
+  filters:
+  {{- range $server.events }}
+  - {{ . }}
+  {{- end }}
+  url: http://{{ $name }}.{{ $root.Release.Namespace }}.svc.cluster.local
+{{- end }}
 {{- if not (empty $server.rbac) }}
 {{- if $server.rbac.clusterWide }}
 ---
