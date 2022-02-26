@@ -74,7 +74,7 @@ func newGame(client *events.Events, db *database.Database, userId string, event 
 		return fmt.Errorf("failed to create new game: %+v", err)
 	}
 
-	err = client.Send("naughts-and-crosses.new-game-id", map[string]string{"id": id})
+	err = client.Send("naughts-and-crosses.new-game.response", map[string]string{"id": id})
 	if err != nil {
 		return fmt.Errorf("failed to send new game id event: %+v", err)
 	}

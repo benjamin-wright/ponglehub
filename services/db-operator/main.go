@@ -9,14 +9,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/operators/db/internal/crds"
 	"ponglehub.co.uk/operators/db/internal/deployments"
-	"ponglehub.co.uk/operators/db/internal/manager"
-	"ponglehub.co.uk/operators/db/internal/types"
+	"ponglehub.co.uk/operators/db/internal/reconciler"
 )
-
-var addDeployment = manager.AddDeployment
-var deleteDeployment = manager.DeleteDeployment
-var addClient = manager.AddClient
-var deleteClient = manager.DeleteClient
 
 func main() {
 	logrus.Infof("Starting operator...")
@@ -33,80 +27,14 @@ func main() {
 		logrus.Fatalf("Failed to start operator client: %+v", err)
 	}
 
-	_, clientStopper := crdClient.ClientListen(
-		func(newClient types.Client) {
-			logrus.Infof("Adding client: %s:%s (%s)", newClient.Database, newClient.Name, newClient.Namespace)
+	events := make(chan interface{}, 5)
+	actions := make(chan interface{}, 5)
 
-			err := addClient(crdClient, newClient)
-			if err != nil {
-				logrus.Errorf("Adding client failed: %+v", err)
-				return
-			}
-
-			logrus.Infof("Client %s for database %s (%s) added", newClient.Name, newClient.Database, newClient.Namespace)
-		},
-		func(oldClient types.Client, newClient types.Client) {
-			logrus.Infof("Updating client: %+v -> %+v", oldClient, newClient)
-		},
-		func(oldClient types.Client) {
-			logrus.Infof("Deleting client: %s:%s (%s)", oldClient.Database, oldClient.Name, oldClient.Namespace)
-
-			deleteClient(deplClient, oldClient)
-
-			logrus.Infof("Client %s:%s (%s) deleted", oldClient.Database, oldClient.Name, oldClient.Namespace)
-		},
-	)
-
-	_, dbStopper := crdClient.DBListen(
-		func(newDB types.Database) {
-			logrus.Infof("Adding database: %+v", newDB)
-
-			err := addDeployment(deplClient, newDB)
-			if err != nil {
-				logrus.Errorf("Adding DB failed: %+v", err)
-				return
-			}
-
-			logrus.Infof("Database %s (%s) added", newDB.Name, newDB.Namespace)
-		},
-		func(oldDB types.Database, newDB types.Database) {
-			logrus.Infof("Updating database: %+v -> %+v", oldDB, newDB)
-		},
-		func(oldDB types.Database) {
-			logrus.Infof("Deleteting database %s (%s)", oldDB.Name, oldDB.Namespace)
-
-			deleteDeployment(deplClient, oldDB)
-
-			logrus.Infof("Database %s (%s) deleted", oldDB.Name, oldDB.Namespace)
-		},
-	)
-
-	_, deplStopper := deplClient.Listen(
-		func(name string, namespace string, ready bool) {
-			logrus.Infof("Database database %s (%s) updated", name, namespace)
-
-			if err := crdClient.DBUpdate(name, namespace, ready); err != nil {
-				logrus.Errorf("Failed to update CRD status: %s (%s) - %+v", name, namespace, err)
-				return
-			}
-
-			if ready {
-				clients, err := crdClient.ClientList(namespace)
-				if err != nil {
-					logrus.Errorf("Failed to list client CRDs: %+v", err)
-					return
-				}
-
-				for _, client := range clients {
-					logrus.Infof("Updating client %s (%s)", client.Name, namespace)
-					err := addClient(crdClient, client)
-					if err != nil {
-						logrus.Errorf("Adding client failed: %+v", err)
-					}
-				}
-			}
-		},
-	)
+	_, clientStopper := crdClient.ClientListen(events)
+	_, dbStopper := crdClient.DBListen(events)
+	_, statefulsetStopper := deplClient.ListenStatefulSets(events)
+	_, serviceStopper := deplClient.ListenService(events)
+	reconcilerStopper := reconciler.Start(events, actions)
 
 	logrus.Infof("Running...")
 
@@ -120,7 +48,9 @@ func main() {
 
 	clientStopper <- struct{}{}
 	dbStopper <- struct{}{}
-	deplStopper <- struct{}{}
+	statefulsetStopper <- struct{}{}
+	serviceStopper <- struct{}{}
+	reconcilerStopper <- struct{}{}
 
 	log.Println("Stopped")
 }

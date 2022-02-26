@@ -28,12 +28,14 @@ custom_build(
 k8s_resource(
     'nac-migrations',
     trigger_mode=TRIGGER_MODE_MANUAL,
+    auto_init=False,
     resource_deps=[ 'db']
 )
 
 k8s_resource(
     'nac',
     trigger_mode=TRIGGER_MODE_MANUAL,
+    auto_init=False,
     port_forwards=["3000:80"],
     resource_deps=[ 'db']
 )

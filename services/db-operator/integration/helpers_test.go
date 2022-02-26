@@ -62,7 +62,7 @@ func (h *helpers) createClient(t *testing.T, client types.Client) {
 }
 
 func waitFor(t *testing.T, name string, f func() bool) {
-	ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
 	finished := ctx.Done()
 
 	for {

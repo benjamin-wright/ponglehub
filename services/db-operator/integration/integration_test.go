@@ -16,6 +16,7 @@ func Test(t *testing.T) {
 
 	t.Run("Runs a database", simpleSetup)
 	t.Run("Can connect", canConnect)
+	t.Run("Out of order", outOfOrderConnect)
 }
 
 func simpleSetup(t *testing.T) {
@@ -45,28 +46,64 @@ func simpleSetup(t *testing.T) {
 
 func canConnect(t *testing.T) {
 	testDB := types.Database{
-		Name:      "test-db",
+		Name:      "test-1-db",
 		Namespace: "test-namespace",
 		Storage:   "2G",
 	}
 
 	testClient := types.Client{
-		Name:       "test-client",
-		Deployment: "test-db",
+		Name:       "test-1-client",
+		Deployment: "test-1-db",
 		Username:   "test_client",
 		Namespace:  "test-namespace",
-		Database:   "auth_test",
-		Secret:     "test-secret",
+		Database:   "auth_1_test",
+		Secret:     "test-1-secret",
 		Ready:      false,
 	}
 
 	helper := newHelper(t)
 	helper.ensureNoDB(t, testDB)
+	helper.ensureNoClient(t, testClient)
+
 	helper.createDb(t, testDB)
 	helper.waitForRunning(t, testDB)
 
-	helper.ensureNoClient(t, testClient)
 	helper.createClient(t, testClient)
+	helper.waitForClientSecret(t, testClient)
+
+	_, err := connect.Connect(connect.ConnectConfig{
+		Host:     fmt.Sprintf("%s.%s.svc.cluster.local", testDB.Name, testDB.Namespace),
+		Port:     26257,
+		Username: testClient.Username,
+		Database: testClient.Database,
+	})
+	assert.NoError(t, err)
+}
+
+func outOfOrderConnect(t *testing.T) {
+	testDB := types.Database{
+		Name:      "other-db",
+		Namespace: "test-namespace",
+		Storage:   "2G",
+	}
+
+	testClient := types.Client{
+		Name:       "other-client",
+		Deployment: "other-db",
+		Username:   "other_client",
+		Namespace:  "test-namespace",
+		Database:   "other_test",
+		Secret:     "other-secret",
+		Ready:      false,
+	}
+
+	helper := newHelper(t)
+	helper.ensureNoClient(t, testClient)
+	helper.ensureNoDB(t, testDB)
+
+	helper.createClient(t, testClient)
+	helper.createDb(t, testDB)
+	helper.waitForRunning(t, testDB)
 	helper.waitForClientSecret(t, testClient)
 
 	_, err := connect.Connect(connect.ConnectConfig{

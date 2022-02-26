@@ -75,7 +75,7 @@ func TestNewGameEvent(t *testing.T) {
 	)
 	noErr(t, err)
 
-	recorder.WaitForEvent(t, os.Getenv("RECORDER_URL"), "naughts-and-crosses.new-game-id")
+	recorder.WaitForEvent(t, os.Getenv("RECORDER_URL"), "naughts-and-crosses.new-game.response")
 
 	games, err := db.ListGames(userId)
 	noErr(t, err)

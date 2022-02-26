@@ -183,22 +183,38 @@ k8s_resource(
   port_forwards=["3002:80"]
 )
 
-k8s_yaml(namespace_yaml('static-files'))
+k8s_yaml(namespace_yaml('apps'))
+
 k8s_yaml(helm(
   'helm',
-  name='ui',
-  namespace='static-files',
+  name='landing',
+  namespace='apps',
   set=[
     'servers.landing-page.image=landing-page',
     'servers.landing-page.resources.limits.memory=64Mi',
     'servers.landing-page.resources.requests.memory=64Mi',
     'servers.landing-page.host=games.ponglehub.co.uk',
+  ]
+))
+
+k8s_yaml(helm(
+  'helm',
+  name='naughts-and-crosses',
+  namespace='apps',
+  set=[
     'servers.naughts-and-crosses.image=naughts-and-crosses',
     'servers.naughts-and-crosses.resources.limits.memory=64Mi',
     'servers.naughts-and-crosses.resources.requests.memory=64Mi',
     'servers.naughts-and-crosses.host=games.ponglehub.co.uk',
     'servers.naughts-and-crosses.path=/naughts-and-crosses',
     'servers.naughts-and-crosses.stripPrefix=true',
+  ]
+))
+k8s_yaml(helm(
+  'helm',
+  name='draughts',
+  namespace='apps',
+  set=[
     'servers.draughts.image=draughts',
     'servers.draughts.resources.limits.memory=64Mi',
     'servers.draughts.resources.requests.memory=64Mi',

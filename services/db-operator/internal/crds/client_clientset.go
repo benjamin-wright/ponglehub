@@ -2,7 +2,9 @@ package crds
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,8 +12,21 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
-	"ponglehub.co.uk/operators/db/internal/types"
 )
+
+type Client struct {
+	Name       string
+	Namespace  string
+	Deployment string
+	Database   string
+	Username   string
+	Secret     string
+	Ready      bool
+}
+
+func (client Client) Key() string {
+	return fmt.Sprintf("%s_%s", client.Namespace, client.Name)
+}
 
 func (c *DBClient) clientList(opts v1.ListOptions) (*CockroachClientList, error) {
 	result := CockroachClientList{}
@@ -25,7 +40,7 @@ func (c *DBClient) clientList(opts v1.ListOptions) (*CockroachClientList, error)
 	return &result, err
 }
 
-func (c *DBClient) ClientList(namespace string) ([]types.Client, error) {
+func (c *DBClient) ClientList(namespace string) ([]Client, error) {
 	result := CockroachClientList{}
 	err := c.restClient.
 		Get().
@@ -35,9 +50,14 @@ func (c *DBClient) ClientList(namespace string) ([]types.Client, error) {
 		Do(context.TODO()).
 		Into(&result)
 
-	clients := []types.Client{}
+	clients := []Client{}
 	for _, client := range result.Items {
-		clients = append(clients, clientFromApi(&client))
+		c, err := clientFromApi(&client)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing client: %+v", err)
+		}
+
+		clients = append(clients, c)
 	}
 
 	return clients, err
@@ -52,7 +72,7 @@ func (c *DBClient) clientWatch(opts v1.ListOptions) (watch.Interface, error) {
 		Watch(context.TODO())
 }
 
-func (c *DBClient) ClientCreate(client types.Client) error {
+func (c *DBClient) ClientCreate(client Client) error {
 	clientObj := CockroachClient{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      client.Name,
@@ -84,7 +104,7 @@ func (c *DBClient) ClientCreate(client types.Client) error {
 	return nil
 }
 
-func (c *DBClient) ClientGet(name string, namespace string) (types.Client, error) {
+func (c *DBClient) ClientGet(name string, namespace string) (Client, error) {
 	client := CockroachClient{}
 
 	err := c.restClient.
@@ -97,10 +117,15 @@ func (c *DBClient) ClientGet(name string, namespace string) (types.Client, error
 		Into(&client)
 
 	if err != nil {
-		return types.Client{}, err
+		return Client{}, fmt.Errorf("error fetching cockroachclient: %+v", err)
 	}
 
-	return clientFromApi(&client), nil
+	clientObj, err := clientFromApi(&client)
+	if err != nil {
+		return Client{}, fmt.Errorf("error parsing cockroach client: %+v", err)
+	}
+
+	return clientObj, nil
 }
 
 func (c *DBClient) ClientDelete(name string, namespace string) error {
@@ -149,22 +174,35 @@ func (c *DBClient) ClientUpdate(name string, namespace string, ready bool) error
 		Error()
 }
 
-func clientFromApi(client *CockroachClient) types.Client {
-	return types.Client{
+func clientFromApi(client *CockroachClient) (Client, error) {
+	if client == nil {
+		return Client{}, errors.New("cannot parse client from nil")
+	}
+
+	return Client{
 		Name:       client.Name,
 		Username:   client.Spec.Username,
 		Namespace:  client.Namespace,
 		Deployment: client.Spec.Deployment,
 		Database:   client.Spec.Database,
 		Ready:      client.Status.Ready,
-	}
+	}, nil
 }
 
-type ClientAddedHandler func(client types.Client)
-type ClientUpdatedHandler func(oldClient types.Client, newClient types.Client)
-type ClientDeletedHandler func(client types.Client)
+type ClientAddedEvent struct {
+	New Client
+}
 
-func (c *DBClient) ClientListen(added ClientAddedHandler, updated ClientUpdatedHandler, deleted ClientDeletedHandler) (cache.Store, chan<- struct{}) {
+type ClientUpdatedEvent struct {
+	Old Client
+	New Client
+}
+
+type ClientDeletedEvent struct {
+	Old Client
+}
+
+func (c *DBClient) ClientListen(events chan<- interface{}) (cache.Store, chan<- struct{}) {
 	clientStore, clientController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(lo v1.ListOptions) (result runtime.Object, err error) {
@@ -175,21 +213,40 @@ func (c *DBClient) ClientListen(added ClientAddedHandler, updated ClientUpdatedH
 			},
 		},
 		&CockroachClient{},
-		0,
+		time.Second*20,
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				added(clientFromApi(obj.(*CockroachClient)))
+			AddFunc: func(newObj interface{}) {
+				newClient, err := clientFromApi(newObj.(*CockroachClient))
+				if err != nil {
+					logrus.Errorf("failed to parse new client: %+v", err)
+					return
+				}
+
+				events <- ClientAddedEvent{New: newClient}
 			},
 			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				oldClient := oldObj.(*CockroachClient)
-				newClient := newObj.(*CockroachClient)
-
-				if oldClient.Generation != newClient.Generation {
-					updated(clientFromApi(oldClient), clientFromApi(newClient))
+				oldClient, err := clientFromApi(oldObj.(*CockroachClient))
+				if err != nil {
+					logrus.Errorf("failed to parse old client: %+v", err)
+					return
 				}
+
+				newClient, err := clientFromApi(newObj.(*CockroachClient))
+				if err != nil {
+					logrus.Errorf("failed to parse new client: %+v", err)
+					return
+				}
+
+				events <- ClientUpdatedEvent{Old: oldClient, New: newClient}
 			},
-			DeleteFunc: func(obj interface{}) {
-				deleted(clientFromApi(obj.(*CockroachClient)))
+			DeleteFunc: func(oldObj interface{}) {
+				oldClient, err := clientFromApi(oldObj.(*CockroachClient))
+				if err != nil {
+					logrus.Errorf("failed to parse old client: %+v", err)
+					return
+				}
+
+				events <- ClientDeletedEvent{Old: oldClient}
 			},
 		},
 	)

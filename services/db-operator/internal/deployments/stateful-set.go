@@ -3,109 +3,104 @@ package deployments
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
-	"ponglehub.co.uk/operators/db/internal/types"
 )
 
-var emptyDB = types.Database{}
+type StatefulSet struct {
+	Name      string
+	Namespace string
+	Storage   string
+	Ready     bool
+}
 
-func fromSS(ss appsv1.StatefulSet) (types.Database, error) {
+func (statefulset StatefulSet) Key() string {
+	return fmt.Sprintf("%s_%s", statefulset.Namespace, statefulset.Name)
+}
+
+func fromSS(ss *appsv1.StatefulSet) (StatefulSet, error) {
 	volumes := ss.Spec.VolumeClaimTemplates
 
 	if len(volumes) != 1 {
-		return emptyDB, fmt.Errorf("bad database deployment %s (%s), expected 1 volume got %d", ss.Name, ss.Namespace, len(volumes))
+		return StatefulSet{}, fmt.Errorf("bad database statefulset %s (%s), expected 1 volume got %d", ss.Name, ss.Namespace, len(volumes))
 	}
 
 	request := volumes[0].Spec.Resources.Requests.Storage()
 	if request == nil {
-		return emptyDB, fmt.Errorf("bad database deployment %s (%s), expected a storage request, got none", ss.Name, ss.Namespace)
+		return StatefulSet{}, fmt.Errorf("bad database statefulset %s (%s), expected a storage request, got none", ss.Name, ss.Namespace)
 	}
 
-	return types.Database{
+	return StatefulSet{
 		Namespace: ss.Namespace,
 		Name:      ss.Name,
 		Storage:   request.String(),
+		Ready:     ss.Status.Replicas == ss.Status.ReadyReplicas,
 	}, nil
 }
 
-func (d *DeploymentsClient) GetDeployments(namespace string) ([]types.Database, error) {
-	deployments, err := d.clientset.AppsV1().
-		StatefulSets(namespace).
+func (d *DeploymentsClient) ListStatefulSets() ([]StatefulSet, error) {
+	statefulSetList, err := d.clientset.AppsV1().
+		StatefulSets("").
 		List(context.TODO(), v1.ListOptions{
 			LabelSelector: "db-operator.ponglehub.co.uk/owned=true",
 		})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to list database deployments: %+v", err)
+		return nil, fmt.Errorf("failed to list database statefulsets: %+v", err)
 	}
 
-	databases := []types.Database{}
+	statefulSets := []StatefulSet{}
 
-	for _, deployment := range deployments.Items {
-		db, err := fromSS(deployment)
+	for _, statefulSet := range statefulSetList.Items {
+		db, err := fromSS(&statefulSet)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse stateful set: %+v", err)
 		}
 
-		databases = append(databases, db)
+		statefulSets = append(statefulSets, db)
 	}
 
-	return databases, nil
+	return statefulSets, nil
 }
 
-func (d *DeploymentsClient) GetDeployment(namespace string, name string) (types.Database, error) {
-	deployment, err := d.clientset.AppsV1().
-		StatefulSets(namespace).
-		Get(context.TODO(), name, v1.GetOptions{})
-
-	if err != nil {
-		return emptyDB, fmt.Errorf("failed to get database deployments: %+v", err)
-	}
-
-	database, err := fromSS(*deployment)
-	if err != nil {
-		return emptyDB, fmt.Errorf("failed to parse stateful set: %+v", err)
-	}
-
-	return database, nil
-}
-
-func (d *DeploymentsClient) DeleteDeployment(database types.Database) error {
+func (d *DeploymentsClient) DeleteStatefulSet(statefulSet StatefulSet) error {
 	err := d.clientset.AppsV1().
-		StatefulSets(database.Namespace).
-		Delete(context.TODO(), database.Name, v1.DeleteOptions{})
+		StatefulSets(statefulSet.Namespace).
+		Delete(context.TODO(), statefulSet.Name, v1.DeleteOptions{})
 
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to delete database deployment: %+v", err)
+		return fmt.Errorf("failed to delete statefulset deployment: %+v", err)
 	}
 
-	pvcName := fmt.Sprintf("%s-%s-0", database.Name, database.Name)
-	err = d.clientset.CoreV1().PersistentVolumeClaims(database.Namespace).Delete(context.TODO(), pvcName, v1.DeleteOptions{})
+	pvcName := fmt.Sprintf("%s-%s-0", statefulSet.Name, statefulSet.Name)
+	err = d.clientset.CoreV1().PersistentVolumeClaims(statefulSet.Namespace).Delete(context.TODO(), pvcName, v1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to delete database PVC: %+v", err)
+		return fmt.Errorf("failed to delete statefulset PVC: %+v", err)
 	}
 
 	return nil
 }
 
-func (d *DeploymentsClient) AddDeployment(database types.Database) error {
-	size, err := resource.ParseQuantity(database.Storage)
+func (d *DeploymentsClient) AddStatefulSet(statefulSet StatefulSet) error {
+	size, err := resource.ParseQuantity(statefulSet.Storage)
 	if err != nil {
-		return fmt.Errorf("failed to parse database storage requirement: %+v", err)
+		return fmt.Errorf("failed to parse statefulset storage requirement: %+v", err)
 	}
 
-	deployment := appsv1.StatefulSet{
+	statefulSetObject := appsv1.StatefulSet{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      database.Name,
-			Namespace: database.Namespace,
+			Name:      statefulSet.Name,
+			Namespace: statefulSet.Namespace,
 			Labels: map[string]string{
 				"db-operator.ponglehub.co.uk/owned": "true",
 			},
@@ -113,13 +108,13 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 		Spec: appsv1.StatefulSetSpec{
 			Selector: &v1.LabelSelector{
 				MatchLabels: map[string]string{
-					"db-operator.ponglehub.co.uk/deployment": database.Name,
+					"db-operator.ponglehub.co.uk/deployment": statefulSet.Name,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: v1.ObjectMeta{
 					Labels: map[string]string{
-						"db-operator.ponglehub.co.uk/deployment": database.Name,
+						"db-operator.ponglehub.co.uk/deployment": statefulSet.Name,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -139,9 +134,20 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      database.Name,
+									Name:      statefulSet.Name,
 									MountPath: "/cockroach/cockroach-data",
 								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/health?ready=1",
+										Port: intstr.FromInt(8080),
+									},
+								},
+								InitialDelaySeconds: 10,
+								PeriodSeconds:       5,
+								FailureThreshold:    2,
 							},
 						},
 					},
@@ -150,8 +156,8 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 				{
 					ObjectMeta: v1.ObjectMeta{
-						Name:      database.Name,
-						Namespace: database.Namespace,
+						Name:      statefulSet.Name,
+						Namespace: statefulSet.Namespace,
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -166,16 +172,29 @@ func (d *DeploymentsClient) AddDeployment(database types.Database) error {
 		},
 	}
 
-	_, err = d.clientset.AppsV1().StatefulSets(database.Namespace).Create(context.TODO(), &deployment, v1.CreateOptions{})
+	_, err = d.clientset.AppsV1().StatefulSets(statefulSet.Namespace).Create(context.TODO(), &statefulSetObject, v1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to deploy database: %+v", err)
+		return fmt.Errorf("failed to deploy statefulSet: %+v", err)
 	}
 
 	return nil
 }
 
-func (c *DeploymentsClient) Listen(readyChanged func(namespace string, name string, ready bool)) (cache.Store, chan<- struct{}) {
-	dbStore, dbController := cache.NewInformer(
+type StatefulSetAddedEvent struct {
+	New StatefulSet
+}
+
+type StatefulSetUpdatedEvent struct {
+	Old StatefulSet
+	New StatefulSet
+}
+
+type StatefulSetDeletedEvent struct {
+	Old StatefulSet
+}
+
+func (c *DeploymentsClient) ListenStatefulSets(events chan<- interface{}) (cache.Store, chan<- struct{}) {
+	ssStore, ssController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(lo v1.ListOptions) (result runtime.Object, err error) {
 				lo.LabelSelector = "db-operator.ponglehub.co.uk/owned=true"
@@ -187,31 +206,50 @@ func (c *DeploymentsClient) Listen(readyChanged func(namespace string, name stri
 			},
 		},
 		&appsv1.StatefulSet{},
-		0,
+		time.Minute,
 		cache.ResourceEventHandlerFuncs{
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				oldSS := oldObj.(*appsv1.StatefulSet)
+			AddFunc: func(newObj interface{}) {
 				newSS := newObj.(*appsv1.StatefulSet)
-
-				if oldSS.ResourceVersion == newSS.ResourceVersion {
+				newSSObj, err := fromSS(newSS)
+				if err != nil {
+					logrus.Errorf("Failed to parse new statefulset: %+v", err)
 					return
 				}
 
-				readyChanged(
-					newSS.Name,
-					newSS.Namespace,
-					newSS.Status.Replicas == newSS.Status.ReadyReplicas && newSS.Status.Replicas > 0,
-				)
+				events <- StatefulSetAddedEvent{New: newSSObj}
+			},
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+				oldSS := oldObj.(*appsv1.StatefulSet)
+				oldSSObj, err := fromSS(oldSS)
+				if err != nil {
+					logrus.Errorf("Failed to parse updated old statefulset: %+v", err)
+					return
+				}
+
+				newSS := newObj.(*appsv1.StatefulSet)
+				newSSObj, err := fromSS(newSS)
+				if err != nil {
+					logrus.Errorf("Failed to parse updated new statefulset: %+v", err)
+					return
+				}
+
+				events <- StatefulSetUpdatedEvent{New: newSSObj, Old: oldSSObj}
 			},
 			DeleteFunc: func(obj interface{}) {
-				ss := obj.(*appsv1.StatefulSet)
-				readyChanged(ss.Name, ss.Namespace, false)
+				oldSS := obj.(*appsv1.StatefulSet)
+				oldSSObj, err := fromSS(oldSS)
+				if err != nil {
+					logrus.Errorf("Failed to parse deleted statefulset: %+v", err)
+					return
+				}
+
+				events <- StatefulSetDeletedEvent{Old: oldSSObj}
 			},
 		},
 	)
 
 	stopper := make(chan struct{})
-	go dbController.Run(stopper)
+	go ssController.Run(stopper)
 
-	return dbStore, stopper
+	return ssStore, stopper
 }
