@@ -25,3 +25,6 @@ image-int IMAGE_TAG: build-int
         -t {{IMAGE_TAG}} \
         --build-arg EXECUTABLE=db-operator-tests \
         ./dist/int
+
+test:
+    go test -v ./internal/...
