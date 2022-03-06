@@ -128,6 +128,24 @@ func TestReconcile(t *testing.T) {
 				actions.AddService{Service: deployments.Service{Name: "my-db", Namespace: "hi"}},
 			},
 		},
+		{
+			name: "statefulset readiness update doesn't create set action",
+			setup: func(u *testing.T, r *Reconciler) {
+				r.SetDatabase(crds.Database{Name: "my-db", Namespace: "hi", Storage: "1Gi"})
+				r.SetStatefulSet(deployments.StatefulSet{Name: "my-db", Namespace: "hi", Storage: "1Gi", Ready: true})
+				r.SetService(deployments.Service{Name: "my-db", Namespace: "hi"})
+			},
+			expected: []interface{}{},
+		}, {
+			name: "no actions after update",
+			setup: func(u *testing.T, r *Reconciler) {
+				r.SetDatabase(crds.Database{Name: "my-db", Namespace: "hi", Storage: "1Gi"})
+				r.Reconcile(make(chan<- interface{}, 2))
+				r.SetService(deployments.Service{Name: "my-db", Namespace: "hi"})
+				r.SetStatefulSet(deployments.StatefulSet{Name: "my-db", Namespace: "hi", Storage: "1Gi"})
+			},
+			expected: []interface{}{},
+		},
 	} {
 		t.Run(test.name, func(u *testing.T) {
 			r := New()

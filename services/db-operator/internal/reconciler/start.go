@@ -8,7 +8,7 @@ import (
 
 func Start(events <-chan interface{}, actions chan<- interface{}) chan<- interface{} {
 	stopper := make(chan interface{})
-	reconciler := &Reconciler{}
+	reconciler := New()
 
 	go func() {
 		running := true
@@ -18,6 +18,7 @@ func Start(events <-chan interface{}, actions chan<- interface{}) chan<- interfa
 			select {
 			case <-stopper:
 				running = false
+				logrus.Info("Stopped reconciler")
 			case e := <-events:
 				logrus.Infof("EVENT: %T", e)
 
@@ -46,6 +47,12 @@ func Start(events <-chan interface{}, actions chan<- interface{}) chan<- interfa
 					changed = reconciler.SetStatefulSet(event.New)
 				case deployments.StatefulSetDeletedEvent:
 					changed = reconciler.RemoveStatefulSet(event.Old)
+				case deployments.ClientSecretAddedEvent:
+					changed = reconciler.SetClientSecret(event.New)
+				case deployments.ClientSecretUpdatedEvent:
+					changed = reconciler.SetClientSecret(event.New)
+				case deployments.ClientSecretDeletedEvent:
+					changed = reconciler.RemoveClientSecret(event.Old)
 				default:
 					logrus.Errorf("unrecognised event: %+v", event)
 				}
