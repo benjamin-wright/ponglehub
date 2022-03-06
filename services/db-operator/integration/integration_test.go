@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/lib/postgres/pkg/connect"
 	"ponglehub.co.uk/operators/db/internal/crds"
-	"ponglehub.co.uk/operators/db/internal/types"
 )
 
 func Test(t *testing.T) {
@@ -20,7 +19,7 @@ func Test(t *testing.T) {
 }
 
 func simpleSetup(t *testing.T) {
-	testDB := types.Database{
+	testDB := crds.Database{
 		Name:      "test-db",
 		Namespace: "test-namespace",
 		Storage:   "2G",
@@ -34,7 +33,7 @@ func simpleSetup(t *testing.T) {
 
 	assert.Equal(
 		t,
-		types.Database{
+		crds.Database{
 			Name:      "test-db",
 			Namespace: "test-namespace",
 			Storage:   "2G",
@@ -45,13 +44,13 @@ func simpleSetup(t *testing.T) {
 }
 
 func canConnect(t *testing.T) {
-	testDB := types.Database{
+	testDB := crds.Database{
 		Name:      "test-1-db",
 		Namespace: "test-namespace",
 		Storage:   "2G",
 	}
 
-	testClient := types.Client{
+	testClient := crds.Client{
 		Name:       "test-1-client",
 		Deployment: "test-1-db",
 		Username:   "test_client",
@@ -81,13 +80,13 @@ func canConnect(t *testing.T) {
 }
 
 func outOfOrderConnect(t *testing.T) {
-	testDB := types.Database{
+	testDB := crds.Database{
 		Name:      "other-db",
 		Namespace: "test-namespace",
 		Storage:   "2G",
 	}
 
-	testClient := types.Client{
+	testClient := crds.Client{
 		Name:       "other-client",
 		Deployment: "other-db",
 		Username:   "other_client",

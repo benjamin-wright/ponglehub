@@ -28,3 +28,6 @@ image-int IMAGE_TAG: build-int
 
 test:
     go test -v ./internal/...
+
+int-test:
+    go test -v ./integration/...

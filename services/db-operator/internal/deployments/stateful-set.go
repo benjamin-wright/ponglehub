@@ -24,10 +24,6 @@ type StatefulSet struct {
 	Ready     bool
 }
 
-func (statefulset StatefulSet) Key() string {
-	return fmt.Sprintf("%s_%s", statefulset.Namespace, statefulset.Name)
-}
-
 func fromSS(ss *appsv1.StatefulSet) (StatefulSet, error) {
 	volumes := ss.Spec.VolumeClaimTemplates
 
@@ -74,6 +70,7 @@ func (d *DeploymentsClient) ListStatefulSets() ([]StatefulSet, error) {
 }
 
 func (d *DeploymentsClient) DeleteStatefulSet(statefulSet StatefulSet) error {
+	logrus.Infof("Deleting stateful set %s (%s)", statefulSet.Name, statefulSet.Namespace)
 	err := d.clientset.AppsV1().
 		StatefulSets(statefulSet.Namespace).
 		Delete(context.TODO(), statefulSet.Name, v1.DeleteOptions{})
@@ -92,6 +89,7 @@ func (d *DeploymentsClient) DeleteStatefulSet(statefulSet StatefulSet) error {
 }
 
 func (d *DeploymentsClient) AddStatefulSet(statefulSet StatefulSet) error {
+	logrus.Infof("Creating stateful set %s (%s)", statefulSet.Name, statefulSet.Namespace)
 	size, err := resource.ParseQuantity(statefulSet.Storage)
 	if err != nil {
 		return fmt.Errorf("failed to parse statefulset storage requirement: %+v", err)
@@ -139,7 +137,7 @@ func (d *DeploymentsClient) AddStatefulSet(statefulSet StatefulSet) error {
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/health?ready=1",
 										Port: intstr.FromInt(8080),
@@ -193,7 +191,7 @@ type StatefulSetDeletedEvent struct {
 	Old StatefulSet
 }
 
-func (c *DeploymentsClient) ListenStatefulSets(events chan<- interface{}) (cache.Store, chan<- struct{}) {
+func (c *DeploymentsClient) ListenStatefulSets(events chan<- interface{}) (StatefulSetStore, chan<- struct{}) {
 	ssStore, ssController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(lo v1.ListOptions) (result runtime.Object, err error) {
@@ -208,48 +206,14 @@ func (c *DeploymentsClient) ListenStatefulSets(events chan<- interface{}) (cache
 		&appsv1.StatefulSet{},
 		time.Minute,
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(newObj interface{}) {
-				newSS := newObj.(*appsv1.StatefulSet)
-				newSSObj, err := fromSS(newSS)
-				if err != nil {
-					logrus.Errorf("Failed to parse new statefulset: %+v", err)
-					return
-				}
-
-				events <- StatefulSetAddedEvent{New: newSSObj}
-			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				oldSS := oldObj.(*appsv1.StatefulSet)
-				oldSSObj, err := fromSS(oldSS)
-				if err != nil {
-					logrus.Errorf("Failed to parse updated old statefulset: %+v", err)
-					return
-				}
-
-				newSS := newObj.(*appsv1.StatefulSet)
-				newSSObj, err := fromSS(newSS)
-				if err != nil {
-					logrus.Errorf("Failed to parse updated new statefulset: %+v", err)
-					return
-				}
-
-				events <- StatefulSetUpdatedEvent{New: newSSObj, Old: oldSSObj}
-			},
-			DeleteFunc: func(obj interface{}) {
-				oldSS := obj.(*appsv1.StatefulSet)
-				oldSSObj, err := fromSS(oldSS)
-				if err != nil {
-					logrus.Errorf("Failed to parse deleted statefulset: %+v", err)
-					return
-				}
-
-				events <- StatefulSetDeletedEvent{Old: oldSSObj}
-			},
+			AddFunc:    func(newObj interface{}) { events <- true },
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) { events <- true },
+			DeleteFunc: func(obj interface{}) { events <- true },
 		},
 	)
 
 	stopper := make(chan struct{})
 	go ssController.Run(stopper)
 
-	return ssStore, stopper
+	return StatefulSetStore{store: ssStore}, stopper
 }

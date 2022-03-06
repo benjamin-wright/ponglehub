@@ -8,23 +8,24 @@ custom_build(
   ignore=['Tiltfile', './dist']
 )
 
-custom_build(
-  'localhost:5000/db-operator-tests',
-  'just image-int $EXPECTED_REF',
-  ['./'],
-  ignore=['Tiltfile', './dist']
-)
-
 k8s_resource(
   'operator',
   trigger_mode=TRIGGER_MODE_MANUAL
 )
 
-k8s_resource(
+local_resource(
   'test',
+  'just int-test',
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
   resource_deps=['operator']
+)
+
+local_resource(
+  'unit',
+  'just test',
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
 )
 
 k8s_yaml('crds/cockroach-db.crd.yaml')
@@ -44,11 +45,6 @@ k8s_yaml(helm(
     'servers.operator.rbac.verbs={get,list,watch,create,update,delete}',
     'servers.operator.rbac.clusterWide=true',
     'servers.operator.resources.limits.memory=64Mi',
-    'servers.operator.resources.requests.memory=64Mi',
-    'test.image=localhost:5000/db-operator-tests',
-    'test.rbac.apiGroups={ponglehub.co.uk,}',
-    'test.rbac.resources={cockroachdbs,cockroachclients,secrets}',
-    'test.rbac.verbs={get,create,update,delete,deletecollection}',
-    'test.rbac.clusterWide=true'
+    'servers.operator.resources.requests.memory=64Mi'
   ]
 ))

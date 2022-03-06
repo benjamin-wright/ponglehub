@@ -189,19 +189,6 @@ func clientFromApi(client *CockroachClient) (Client, error) {
 	}, nil
 }
 
-type ClientAddedEvent struct {
-	New Client
-}
-
-type ClientUpdatedEvent struct {
-	Old Client
-	New Client
-}
-
-type ClientDeletedEvent struct {
-	Old Client
-}
-
 func (c *DBClient) ClientListen(events chan<- interface{}) (cache.Store, chan<- struct{}) {
 	clientStore, clientController := cache.NewInformer(
 		&cache.ListWatch{
@@ -215,39 +202,9 @@ func (c *DBClient) ClientListen(events chan<- interface{}) (cache.Store, chan<- 
 		&CockroachClient{},
 		time.Second*20,
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(newObj interface{}) {
-				newClient, err := clientFromApi(newObj.(*CockroachClient))
-				if err != nil {
-					logrus.Errorf("failed to parse new client: %+v", err)
-					return
-				}
-
-				events <- ClientAddedEvent{New: newClient}
-			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				oldClient, err := clientFromApi(oldObj.(*CockroachClient))
-				if err != nil {
-					logrus.Errorf("failed to parse old client: %+v", err)
-					return
-				}
-
-				newClient, err := clientFromApi(newObj.(*CockroachClient))
-				if err != nil {
-					logrus.Errorf("failed to parse new client: %+v", err)
-					return
-				}
-
-				events <- ClientUpdatedEvent{Old: oldClient, New: newClient}
-			},
-			DeleteFunc: func(oldObj interface{}) {
-				oldClient, err := clientFromApi(oldObj.(*CockroachClient))
-				if err != nil {
-					logrus.Errorf("failed to parse old client: %+v", err)
-					return
-				}
-
-				events <- ClientDeletedEvent{Old: oldClient}
-			},
+			AddFunc:    func(newObj interface{}) { events <- true },
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) { events <- true },
+			DeleteFunc: func(oldObj interface{}) { events <- true },
 		},
 	)
 

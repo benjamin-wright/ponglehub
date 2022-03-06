@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,8 +109,8 @@ type ServiceDeletedEvent struct {
 	Old Service
 }
 
-func (c *DeploymentsClient) ListenService(events chan<- interface{}) (cache.Store, chan<- struct{}) {
-	serviceStore, serviceController := cache.NewInformer(
+func (c *DeploymentsClient) ListenService(events chan<- interface{}) (ServiceStore, chan<- struct{}) {
+	store, serviceController := cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(lo v1.ListOptions) (result runtime.Object, err error) {
 				lo.LabelSelector = "db-operator.ponglehub.co.uk/owned=true"
@@ -125,48 +124,14 @@ func (c *DeploymentsClient) ListenService(events chan<- interface{}) (cache.Stor
 		&corev1.Service{},
 		time.Minute,
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(newObj interface{}) {
-				newService := newObj.(*corev1.Service)
-				newServiceObj, err := fromService(newService)
-				if err != nil {
-					logrus.Errorf("Failed to parse new service: %+v", err)
-					return
-				}
-
-				events <- ServiceAddedEvent{New: newServiceObj}
-			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				oldService := oldObj.(*corev1.Service)
-				oldServiceObj, err := fromService(oldService)
-				if err != nil {
-					logrus.Errorf("Failed to parse updated old service: %+v", err)
-					return
-				}
-
-				newService := newObj.(*corev1.Service)
-				newServiceObj, err := fromService(newService)
-				if err != nil {
-					logrus.Errorf("Failed to parse updated new service: %+v", err)
-					return
-				}
-
-				events <- ServiceUpdatedEvent{New: newServiceObj, Old: oldServiceObj}
-			},
-			DeleteFunc: func(obj interface{}) {
-				oldService := obj.(*corev1.Service)
-				oldServiceObj, err := fromService(oldService)
-				if err != nil {
-					logrus.Errorf("Failed to parse deleted service: %+v", err)
-					return
-				}
-
-				events <- ServiceDeletedEvent{Old: oldServiceObj}
-			},
+			AddFunc:    func(newObj interface{}) { events <- true },
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) { events <- true },
+			DeleteFunc: func(obj interface{}) { events <- true },
 		},
 	)
 
 	stopper := make(chan struct{})
 	go serviceController.Run(stopper)
 
-	return serviceStore, stopper
+	return ServiceStore{store: store}, stopper
 }

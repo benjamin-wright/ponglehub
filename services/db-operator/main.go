@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/operators/db/internal/crds"
 	"ponglehub.co.uk/operators/db/internal/deployments"
-	"ponglehub.co.uk/operators/db/internal/implementer"
 	"ponglehub.co.uk/operators/db/internal/reconciler"
 )
 
@@ -29,15 +28,24 @@ func main() {
 	}
 
 	events := make(chan interface{}, 5)
-	actions := make(chan interface{}, 5)
 
-	_, clientStopper := crdClient.ClientListen(events)
-	_, dbStopper := crdClient.DBListen(events)
-	_, statefulsetStopper := deplClient.ListenStatefulSets(events)
-	_, serviceStopper := deplClient.ListenService(events)
-	_, secretStopper := deplClient.ListenClientSecret(events)
-	reconcilerStopper := reconciler.Start(events, actions)
-	implementerStopper := implementer.Start(actions)
+	databaseStore, dbStopper := crdClient.DBListen(events)
+	clientStore, clientStopper := crdClient.ClientListen(events)
+	statefulSetStore, statefulsetStopper := deplClient.ListenStatefulSets(events)
+	serviceStore, serviceStopper := deplClient.ListenService(events)
+	secretStore, secretStopper := deplClient.ListenClientSecret(events)
+
+	r := reconciler.New(
+		crdClient,
+		deplClient,
+		databaseStore,
+		clientStore,
+		statefulSetStore,
+		serviceStore,
+		secretStore,
+	)
+
+	reconcilerStopper := r.Start(events)
 
 	logrus.Infof("Running...")
 
@@ -55,7 +63,6 @@ func main() {
 	serviceStopper <- struct{}{}
 	secretStopper <- struct{}{}
 	reconcilerStopper <- struct{}{}
-	implementerStopper <- struct{}{}
 
 	log.Println("Stopped")
 }

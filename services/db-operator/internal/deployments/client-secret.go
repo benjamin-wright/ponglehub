@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,43 +65,9 @@ func (c *DeploymentsClient) ListenClientSecret(events chan<- interface{}) (cache
 		&corev1.Secret{},
 		time.Minute,
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(newObj interface{}) {
-				newClientSecret := newObj.(*corev1.Secret)
-				newClientSecretObj, err := fromSecret(newClientSecret)
-				if err != nil {
-					logrus.Errorf("Failed to parse new service: %+v", err)
-					return
-				}
-
-				events <- ClientSecretAddedEvent{New: newClientSecretObj}
-			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				oldClientSecret := oldObj.(*corev1.Secret)
-				oldClientSecretObj, err := fromSecret(oldClientSecret)
-				if err != nil {
-					logrus.Errorf("Failed to parse updated old service: %+v", err)
-					return
-				}
-
-				newClientSecret := newObj.(*corev1.Secret)
-				newClientSecretObj, err := fromSecret(newClientSecret)
-				if err != nil {
-					logrus.Errorf("Failed to parse updated new service: %+v", err)
-					return
-				}
-
-				events <- ClientSecretUpdatedEvent{New: newClientSecretObj, Old: oldClientSecretObj}
-			},
-			DeleteFunc: func(obj interface{}) {
-				oldClientSecret := obj.(*corev1.Secret)
-				oldClientSecretObj, err := fromSecret(oldClientSecret)
-				if err != nil {
-					logrus.Errorf("Failed to parse deleted service: %+v", err)
-					return
-				}
-
-				events <- ClientSecretDeletedEvent{Old: oldClientSecretObj}
-			},
+			AddFunc:    func(newObj interface{}) { events <- true },
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) { events <- true },
+			DeleteFunc: func(obj interface{}) { events <- true },
 		},
 	)
 

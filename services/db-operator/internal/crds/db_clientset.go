@@ -157,19 +157,6 @@ func (c *DBClient) DBUpdate(name string, namespace string, ready bool) error {
 		Error()
 }
 
-type DatabaseAddedEvent struct {
-	New Database
-}
-
-type DatabaseUpdatedEvent struct {
-	Old Database
-	New Database
-}
-
-type DatabaseDeletedEvent struct {
-	Old Database
-}
-
 func (c *DBClient) DBListen(events chan<- interface{}) (cache.Store, chan<- struct{}) {
 	dbStore, dbController := cache.NewInformer(
 		&cache.ListWatch{
@@ -183,35 +170,9 @@ func (c *DBClient) DBListen(events chan<- interface{}) (cache.Store, chan<- stru
 		&CockroachDB{},
 		time.Second*10,
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(newObj interface{}) {
-				newDb, err := dbFromApi(newObj.(*CockroachDB))
-				if err != nil {
-					logrus.Errorf("Error")
-				}
-
-				events <- DatabaseAddedEvent{New: newDb}
-			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-				oldDb, err := dbFromApi(oldObj.(*CockroachDB))
-				if err != nil {
-					logrus.Errorf("Error")
-				}
-
-				newDb, err := dbFromApi(newObj.(*CockroachDB))
-				if err != nil {
-					logrus.Errorf("Error")
-				}
-
-				events <- DatabaseUpdatedEvent{Old: oldDb, New: newDb}
-			},
-			DeleteFunc: func(oldObj interface{}) {
-				oldDb, err := dbFromApi(oldObj.(*CockroachDB))
-				if err != nil {
-					logrus.Errorf("Error")
-				}
-
-				events <- DatabaseDeletedEvent{Old: oldDb}
-			},
+			AddFunc:    func(newObj interface{}) { events <- true },
+			UpdateFunc: func(oldObj interface{}, newObj interface{}) { events <- true },
+			DeleteFunc: func(oldObj interface{}) { events <- true },
 		},
 	)
 

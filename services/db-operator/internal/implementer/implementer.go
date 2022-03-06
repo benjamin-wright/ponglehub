@@ -1,18 +1,37 @@
 package implementer
 
+import (
+	"github.com/sirupsen/logrus"
+	"ponglehub.co.uk/operators/db/internal/crds"
+	"ponglehub.co.uk/operators/db/internal/deployments"
+)
+
 type Implementer struct {
-	actions    []interface{}
-	NextAction chan interface{}
+	crdClient  *crds.Client
+	deplClient *deployments.DeploymentsClient
 }
 
-func New() *Implementer {
-	return &Implementer{}
+func New(crdClient *crds.Client, deplClient *deployments.DeploymentsClient) *Implementer {
+	return &Implementer{
+		crdClient:  crdClient,
+		deplClient: deplClient,
+	}
 }
 
-func (i *Implementer) AddAction(action interface{}) {
-	i.actions = append(i.actions, action)
+func (i *Implementer) DeleteStatefulSets(sets map[string]deployments.StatefulSet) {
+	for _, set := range sets {
+		err := i.deplClient.DeleteStatefulSet(set)
+		if err != nil {
+			logrus.Errorf("Failed to delete stateful set: %s (%s)", set.Name, set.Namespace)
+		}
+	}
 }
 
-func (i *Implementer) DoAction(action interface{}) {
-
+func (i *Implementer) AddStatefulSets(sets map[string]deployments.StatefulSet) {
+	for _, set := range sets {
+		err := i.deplClient.AddStatefulSet(set)
+		if err != nil {
+			logrus.Errorf("Failed to delete stateful set: %s (%s)", set.Name, set.Namespace)
+		}
+	}
 }
