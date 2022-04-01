@@ -13,29 +13,23 @@ type Reconciler struct {
 	crdClient    *crds.DBClient
 	deplClient   *deployments.DeploymentsClient
 	databases    cache.Store
-	clients      cache.Store
 	statefulSets deployments.StatefulSetStore
 	services     deployments.ServiceStore
-	secrets      cache.Store
 }
 
 func New(
 	crdClient *crds.DBClient,
 	deplClient *deployments.DeploymentsClient,
 	databases cache.Store,
-	clients cache.Store,
 	statefulSets deployments.StatefulSetStore,
 	services deployments.ServiceStore,
-	secrets cache.Store,
 ) *Reconciler {
 	return &Reconciler{
 		crdClient:    crdClient,
 		deplClient:   deplClient,
 		databases:    databases,
-		clients:      clients,
 		statefulSets: statefulSets,
 		services:     services,
-		secrets:      secrets,
 	}
 }
 
@@ -55,25 +49,20 @@ func (r *Reconciler) Start(
 				running = false
 				logrus.Infof("stopped reconciler")
 			case <-events:
-				logrus.Infof("update")
-				timer = time.After(5 * time.Second)
+				timer = time.After(1 * time.Second)
 			case <-timer:
-				logrus.Infof("reconciling")
-				requestedStatefulSets, _ := requestedDatabases(r.databases)
+				timer = time.After(60 * time.Second)
+
+				requestedStatefulSets, requestedServices := requestedDatabases(r.databases)
 
 				statefulSetsToAdd, statefulSetsToDelete := processStatefulSets(requestedStatefulSets, r.statefulSets)
+				r.applyStatefulSets(statefulSetsToAdd, statefulSetsToDelete)
 
-				for _, set := range statefulSetsToDelete {
-					if err := r.deplClient.DeleteStatefulSet(set); err != nil {
-						logrus.Errorf("Failed to delete stateful set: %+v", err)
-					}
-				}
+				servicesToAdd, servicesToDelete := processServices(requestedServices, r.services)
+				r.applyServices(servicesToAdd, servicesToDelete)
 
-				for _, set := range statefulSetsToAdd {
-					if err := r.deplClient.AddStatefulSet(set); err != nil {
-						logrus.Errorf("Failed to create stateful set: %+v", err)
-					}
-				}
+				dbUpdates := r.databaseStatusUpdates()
+				r.applyDatabaseUpdates(dbUpdates)
 			}
 		}
 	}(stopper)
@@ -136,7 +125,8 @@ func processStatefulSets(
 	}
 
 	for _, key := range actual.ListKeys() {
-		if item, ok := requested[key]; !ok {
+		if _, ok := requested[key]; !ok {
+			item, _ := actual.GetByKey(key)
 			toDelete[key] = item
 		}
 	}
@@ -144,159 +134,100 @@ func processStatefulSets(
 	return toAdd, toDelete
 }
 
-// func New() *Reconciler {
-// 	return &Reconciler{
-// 		requestedDatabases: map[string]crds.Database{},
-// 		requestedClients:   map[string]crds.Client{},
-// 		actualStatefulSets: map[string]deployments.StatefulSet{},
-// 		actualServices:     map[string]deployments.Service{},
-// 		actualSecrets:      map[string]deployments.ClientSecret{},
-// 		actualClients:      map[string]database.Client{},
-// 		pendingActions:     map[string]action{},
-// 	}
-// }
+func (r *Reconciler) applyStatefulSets(toAdd map[string]deployments.StatefulSet, toDelete map[string]deployments.StatefulSet) {
+	for _, set := range toDelete {
+		if err := r.deplClient.DeleteStatefulSet(set); err != nil {
+			logrus.Errorf("Failed to delete stateful set: %+v", err)
+		}
+	}
 
-// func (r *Reconciler) SetDatabase(database crds.Database) bool {
-// 	key := database.Key()
+	for _, set := range toAdd {
+		if err := r.deplClient.AddStatefulSet(set); err != nil {
+			logrus.Errorf("Failed to create stateful set: %+v", err)
+		}
+	}
+}
 
-// 	if existing, ok := r.requestedDatabases[key]; ok {
-// 		if existing == database {
-// 			return false
-// 		}
-// 	}
+func processServices(
+	requested map[string]deployments.Service,
+	actual deployments.ServiceStore,
+) (map[string]deployments.Service, map[string]deployments.Service) {
+	toAdd := map[string]deployments.Service{}
+	toDelete := map[string]deployments.Service{}
 
-// 	r.requestedDatabases[key] = database
-// 	return true
-// }
+	for key, requestedSet := range requested {
+		setNew := false
 
-// func (r *Reconciler) RemoveDatabase(database crds.Database) bool {
-// 	key := database.Key()
+		_, ok := actual.GetByKey(key)
 
-// 	if _, ok := r.requestedDatabases[key]; ok {
-// 		delete(r.requestedDatabases, key)
-// 		return true
-// 	}
+		if !ok {
+			setNew = true
+		}
 
-// 	return false
-// }
+		if setNew {
+			toAdd[key] = requestedSet
+		}
+	}
 
-// func (r *Reconciler) SetClient(client crds.Client) bool {
-// 	key := client.Key()
+	for _, key := range actual.ListKeys() {
+		if _, ok := requested[key]; !ok {
+			item, _ := actual.GetByKey(key)
+			toDelete[key] = item
+		}
+	}
 
-// 	if existing, ok := r.requestedClients[key]; ok {
-// 		if existing == client {
-// 			return false
-// 		}
-// 	}
+	return toAdd, toDelete
+}
 
-// 	r.requestedClients[key] = client
-// 	return true
-// }
+func (r *Reconciler) applyServices(toAdd map[string]deployments.Service, toDelete map[string]deployments.Service) {
+	for _, service := range toDelete {
+		if err := r.deplClient.DeleteService(service); err != nil {
+			logrus.Errorf("Failed to delete service: %+v", err)
+		}
+	}
 
-// func (r *Reconciler) RemoveClient(client crds.Client) bool {
-// 	key := client.Key()
+	for _, service := range toAdd {
+		if err := r.deplClient.AddService(service); err != nil {
+			logrus.Errorf("Failed to create service: %+v", err)
+		}
+	}
+}
 
-// 	if _, ok := r.requestedClients[key]; ok {
-// 		delete(r.requestedClients, key)
-// 		return true
-// 	}
+func (r *Reconciler) databaseStatusUpdates() []deployments.StatefulSet {
+	updates := []deployments.StatefulSet{}
 
-// 	return false
-// }
+	for _, key := range r.statefulSets.ListKeys() {
+		set, _ := r.statefulSets.GetByKey(key)
+		dbObj, exists, err := r.databases.GetByKey(key)
 
-// func (r *Reconciler) SetStatefulSet(statefulset deployments.StatefulSet) bool {
-// 	key := statefulset.Key()
+		if err != nil {
+			logrus.Errorf("Error getting CockroachDB for %s, while checking for status updates", key)
+			continue
+		}
 
-// 	if existing, ok := r.actualStatefulSets[key]; ok {
-// 		if existing == statefulset {
-// 			return false
-// 		}
-// 	}
+		if !exists {
+			logrus.Warnf("stateful set without CockroachDB: %s", key)
+			continue
+		}
 
-// 	r.actualStatefulSets[key] = statefulset
-// 	r.removeAction(SET_ACTION, statefulset)
-// 	return true
-// }
+		db, ok := dbObj.(*crds.CockroachDB)
+		if !ok {
+			logrus.Errorf("Error converting %T into *CockroachDB", db)
+			continue
+		}
 
-// func (r *Reconciler) RemoveStatefulSet(statefulset deployments.StatefulSet) bool {
-// 	key := statefulset.Key()
+		if db.Status.Ready != set.Ready {
+			updates = append(updates, set)
+		}
+	}
 
-// 	if _, ok := r.actualStatefulSets[key]; ok {
-// 		delete(r.actualStatefulSets, key)
-// 		r.removeAction(DELETE_ACTION, statefulset)
-// 		return true
-// 	}
+	return updates
+}
 
-// 	return false
-// }
-
-// func (r *Reconciler) SetService(service deployments.Service) bool {
-// 	key := service.Key()
-
-// 	if existing, ok := r.actualServices[key]; ok {
-// 		if existing == service {
-// 			return false
-// 		}
-// 	}
-
-// 	r.actualServices[key] = service
-// 	return true
-// }
-
-// func (r *Reconciler) RemoveService(service deployments.Service) bool {
-// 	key := service.Key()
-
-// 	if _, ok := r.actualServices[key]; ok {
-// 		delete(r.actualServices, key)
-// 		return true
-// 	}
-
-// 	return false
-// }
-
-// func (r *Reconciler) SetClientSecret(client deployments.ClientSecret) bool {
-// 	key := client.Key()
-
-// 	if existing, ok := r.actualSecrets[key]; ok {
-// 		if existing == client {
-// 			return false
-// 		}
-// 	}
-
-// 	r.actualSecrets[key] = client
-// 	return true
-// }
-
-// func (r *Reconciler) RemoveClientSecret(client deployments.ClientSecret) bool {
-// 	key := client.Key()
-
-// 	if _, ok := r.actualSecrets[key]; ok {
-// 		delete(r.actualSecrets, key)
-// 		return true
-// 	}
-
-// 	return false
-// }
-
-// func (r *Reconciler) addAction(code actionCode, object keyable) {
-// 	key := fmt.Sprintf("%d:%T:%s", code, object, object.Key())
-// 	r.pendingActions[key] = action{code, object}
-// }
-
-// func (r *Reconciler) removeAction(code actionCode, object keyable) {
-// 	key := fmt.Sprintf("%d:%T:%s", code, object, object.Key())
-// 	if actual, ok := r.pendingActions[key]; ok && actual.obj == object {
-// 		delete(r.pendingActions, key)
-// 	}
-// }
-
-// func (r *Reconciler) Reconcile(actions chan<- interface{}) {
-// 	requestedStatefulSets, requestedServices := getDatabaseRequests(r.requestedDatabases)
-// 	requestedClients := getClientRequests(r.requestedClients, r.actualStatefulSets)
-// 	requestedSecrets := getSecretRequests(r.requestedClients, r.actualClients)
-
-// 	r.processStatefulSets(actions, requestedStatefulSets, r.actualStatefulSets, r.pendingActions)
-// 	r.processServices(actions, requestedServices, r.actualServices, r.pendingActions)
-// 	r.processClients(actions, requestedClients, r.actualClients, r.pendingActions)
-// 	r.processSecrets(actions, requestedSecrets, r.actualSecrets, r.pendingActions)
-// }
+func (r *Reconciler) applyDatabaseUpdates(updates []deployments.StatefulSet) {
+	for _, db := range updates {
+		if err := r.crdClient.DBUpdate(db.Name, db.Namespace, db.Ready); err != nil {
+			logrus.Errorf("Failed updating CRD status: %+v", err)
+		}
+	}
+}

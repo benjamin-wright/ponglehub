@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -115,6 +116,10 @@ func (c *DBClient) ClientGet(name string, namespace string) (Client, error) {
 		VersionedParams(&v1.GetOptions{}, scheme.ParameterCodec).
 		Do(context.TODO()).
 		Into(&client)
+
+	if k8sErrors.IsNotFound(err) {
+		return Client{}, err
+	}
 
 	if err != nil {
 		return Client{}, fmt.Errorf("error fetching cockroachclient: %+v", err)

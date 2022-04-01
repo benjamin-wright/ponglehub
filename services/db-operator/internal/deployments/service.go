@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,6 +50,7 @@ func (d *DeploymentsClient) HasService(config Service) (bool, error) {
 }
 
 func (d *DeploymentsClient) AddService(config Service) error {
+	logrus.Infof("Creating service %s (%s)", config.Name, config.Namespace)
 	service := corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
 			Name: config.Name,
@@ -84,6 +86,7 @@ func (d *DeploymentsClient) AddService(config Service) error {
 }
 
 func (d *DeploymentsClient) DeleteService(config Service) error {
+	logrus.Infof("Deleting service %s (%s)", config.Name, config.Namespace)
 	err := d.clientset.CoreV1().Services(config.Namespace).Delete(context.TODO(), config.Name, v1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {

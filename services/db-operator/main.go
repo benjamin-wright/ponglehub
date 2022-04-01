@@ -27,22 +27,22 @@ func main() {
 		logrus.Fatalf("Failed to start operator client: %+v", err)
 	}
 
+	// dbClient := database.New()
+
 	events := make(chan interface{}, 5)
 
 	databaseStore, dbStopper := crdClient.DBListen(events)
-	clientStore, clientStopper := crdClient.ClientListen(events)
+	_, clientStopper := crdClient.ClientListen(events)
 	statefulSetStore, statefulsetStopper := deplClient.ListenStatefulSets(events)
 	serviceStore, serviceStopper := deplClient.ListenService(events)
-	secretStore, secretStopper := deplClient.ListenClientSecret(events)
+	_, secretStopper := deplClient.ListenClientSecret(events)
 
 	r := reconciler.New(
 		crdClient,
 		deplClient,
 		databaseStore,
-		clientStore,
 		statefulSetStore,
 		serviceStore,
-		secretStore,
 	)
 
 	reconcilerStopper := r.Start(events)

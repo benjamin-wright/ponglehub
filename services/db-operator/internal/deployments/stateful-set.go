@@ -40,7 +40,7 @@ func fromSS(ss *appsv1.StatefulSet) (StatefulSet, error) {
 		Namespace: ss.Namespace,
 		Name:      ss.Name,
 		Storage:   request.String(),
-		Ready:     ss.Status.Replicas == ss.Status.ReadyReplicas,
+		Ready:     ss.Status.Replicas == ss.Status.ReadyReplicas && ss.Status.Replicas > 0,
 	}, nil
 }
 
