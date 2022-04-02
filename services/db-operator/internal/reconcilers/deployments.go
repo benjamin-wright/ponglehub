@@ -1,4 +1,4 @@
-package reconciler
+package reconcilers
 
 import (
 	"time"
@@ -9,7 +9,7 @@ import (
 	"ponglehub.co.uk/operators/db/internal/deployments"
 )
 
-type Reconciler struct {
+type DeploymentReconciler struct {
 	crdClient    *crds.DBClient
 	deplClient   *deployments.DeploymentsClient
 	databases    cache.Store
@@ -17,14 +17,14 @@ type Reconciler struct {
 	services     deployments.ServiceStore
 }
 
-func New(
+func NewDeploymentReconciler(
 	crdClient *crds.DBClient,
 	deplClient *deployments.DeploymentsClient,
 	databases cache.Store,
 	statefulSets deployments.StatefulSetStore,
 	services deployments.ServiceStore,
-) *Reconciler {
-	return &Reconciler{
+) *DeploymentReconciler {
+	return &DeploymentReconciler{
 		crdClient:    crdClient,
 		deplClient:   deplClient,
 		databases:    databases,
@@ -33,7 +33,7 @@ func New(
 	}
 }
 
-func (r *Reconciler) Start(
+func (r *DeploymentReconciler) Start(
 	events <-chan interface{},
 ) chan<- interface{} {
 
@@ -47,7 +47,7 @@ func (r *Reconciler) Start(
 			select {
 			case <-stopper:
 				running = false
-				logrus.Infof("stopped reconciler")
+				logrus.Infof("stopped deployment reconciler")
 			case <-events:
 				timer = time.After(1 * time.Second)
 			case <-timer:
@@ -134,7 +134,7 @@ func processStatefulSets(
 	return toAdd, toDelete
 }
 
-func (r *Reconciler) applyStatefulSets(toAdd map[string]deployments.StatefulSet, toDelete map[string]deployments.StatefulSet) {
+func (r *DeploymentReconciler) applyStatefulSets(toAdd map[string]deployments.StatefulSet, toDelete map[string]deployments.StatefulSet) {
 	for _, set := range toDelete {
 		if err := r.deplClient.DeleteStatefulSet(set); err != nil {
 			logrus.Errorf("Failed to delete stateful set: %+v", err)
@@ -179,7 +179,7 @@ func processServices(
 	return toAdd, toDelete
 }
 
-func (r *Reconciler) applyServices(toAdd map[string]deployments.Service, toDelete map[string]deployments.Service) {
+func (r *DeploymentReconciler) applyServices(toAdd map[string]deployments.Service, toDelete map[string]deployments.Service) {
 	for _, service := range toDelete {
 		if err := r.deplClient.DeleteService(service); err != nil {
 			logrus.Errorf("Failed to delete service: %+v", err)
@@ -193,7 +193,7 @@ func (r *Reconciler) applyServices(toAdd map[string]deployments.Service, toDelet
 	}
 }
 
-func (r *Reconciler) databaseStatusUpdates() []deployments.StatefulSet {
+func (r *DeploymentReconciler) databaseStatusUpdates() []deployments.StatefulSet {
 	updates := []deployments.StatefulSet{}
 
 	for _, key := range r.statefulSets.ListKeys() {
@@ -224,7 +224,7 @@ func (r *Reconciler) databaseStatusUpdates() []deployments.StatefulSet {
 	return updates
 }
 
-func (r *Reconciler) applyDatabaseUpdates(updates []deployments.StatefulSet) {
+func (r *DeploymentReconciler) applyDatabaseUpdates(updates []deployments.StatefulSet) {
 	for _, db := range updates {
 		if err := r.crdClient.DBUpdate(db.Name, db.Namespace, db.Ready); err != nil {
 			logrus.Errorf("Failed updating CRD status: %+v", err)

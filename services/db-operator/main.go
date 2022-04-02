@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/operators/db/internal/crds"
 	"ponglehub.co.uk/operators/db/internal/deployments"
-	"ponglehub.co.uk/operators/db/internal/reconciler"
+	"ponglehub.co.uk/operators/db/internal/reconcilers"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 	serviceStore, serviceStopper := deplClient.ListenService(events)
 	_, secretStopper := deplClient.ListenClientSecret(events)
 
-	r := reconciler.New(
+	r := reconcilers.NewDeploymentReconciler(
 		crdClient,
 		deplClient,
 		databaseStore,
