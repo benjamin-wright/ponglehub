@@ -27,7 +27,7 @@ func getConnection(config *pgx.ConnConfig) *pgx.Conn {
 			}
 		}
 
-		if connection != nil {
+		if connection == nil {
 			logrus.Warnf("Failed to connect: %+v", err)
 		}
 

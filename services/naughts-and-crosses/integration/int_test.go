@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
 
@@ -51,12 +50,24 @@ func initClients(t *testing.T) (*database.Database, *events.Events) {
 	return db, eventClient
 }
 
-func assertJson(t *testing.T, expected map[string]interface{}, actual string) {
-	parsed := map[string]interface{}{}
-	err := json.Unmarshal([]byte(actual), &parsed)
+func TestListGames(t *testing.T) {
+	db, eventClient := initClients(t)
+
+	recorder.Clear(t, os.Getenv("RECORDER_URL"))
+	noErr(t, db.Clear())
+
+	userId := uuid.New().String()
+
+	err := eventClient.Send(
+		"naughts-and-crosses.list-games",
+		nil,
+		map[string]interface{}{"userid": userId},
+	)
 	noErr(t, err)
 
-	assert.Equal(t, expected, parsed)
+	event := recorder.WaitForEvent(t, os.Getenv("RECORDER_URL"), "naughts-and-crosses.list-games.response")
+
+	assert.Equal(t, "", event)
 }
 
 func TestNewGameEvent(t *testing.T) {

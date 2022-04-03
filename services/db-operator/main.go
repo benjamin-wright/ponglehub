@@ -36,7 +36,6 @@ func main() {
 	clientStore, clientStopper := crdClient.ClientListen(events)
 	statefulSetStore, statefulsetStopper := deplClient.ListenStatefulSets(events)
 	serviceStore, serviceStopper := deplClient.ListenService(events)
-	_, secretStopper := deplClient.ListenClientSecret(events)
 
 	dbReconciler := reconcilers.NewDeploymentReconciler(
 		crdClient,
@@ -71,7 +70,6 @@ func main() {
 	dbStopper <- struct{}{}
 	statefulsetStopper <- struct{}{}
 	serviceStopper <- struct{}{}
-	secretStopper <- struct{}{}
 	dbReconcilerStopper <- struct{}{}
 	clientReconcilerStopper <- struct{}{}
 

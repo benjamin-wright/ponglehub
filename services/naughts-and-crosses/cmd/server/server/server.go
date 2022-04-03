@@ -32,6 +32,8 @@ func New(client *events.Events, db *database.Database) (*Server, error) {
 		}
 
 		switch event.Type() {
+		case "naughts-and-crosses.list-games":
+			err = listGames(client, db, userId, event)
 		case "naughts-and-crosses.new-game":
 			err = newGame(client, db, userId, event)
 		case "naughts-and-crosses.mark":
@@ -56,6 +58,24 @@ func New(client *events.Events, db *database.Database) (*Server, error) {
 
 func (s *Server) Stop() {
 	s.cancelFunc()
+}
+
+func listGames(client *events.Events, db *database.Database, userId string, event event.Event) error {
+	games, err := db.ListGames(userId)
+	if err != nil {
+		return fmt.Errorf("failed to list games: %+v", err)
+	}
+
+	err = client.Send(
+		"naughts-and-crosses.list-games.response",
+		map[string]interface{}{"games": games},
+		map[string]interface{}{"userid": userId},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to send new game id event: %+v", err)
+	}
+
+	return nil
 }
 
 type NewGameEvent struct {
