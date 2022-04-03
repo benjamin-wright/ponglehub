@@ -44,6 +44,8 @@ func (h *helpers) ensureNoDB(t *testing.T, db crds.Database) {
 		assert.NoError(t, err)
 		t.FailNow()
 	}
+
+	time.Sleep(2 * time.Second)
 }
 
 func (h *helpers) createDb(t *testing.T, db crds.Database) {
@@ -112,6 +114,8 @@ func (h *helpers) ensureNoClient(t *testing.T, client crds.Client) {
 		assert.NoError(t, err)
 		t.FailNow()
 	}
+
+	time.Sleep(2 * time.Second)
 }
 
 func (h *helpers) waitForClientSecret(t *testing.T, client crds.Client) {

@@ -227,7 +227,7 @@ func (r *DeploymentReconciler) databaseStatusUpdates() []deployments.StatefulSet
 func (r *DeploymentReconciler) applyDatabaseUpdates(updates []deployments.StatefulSet) {
 	for _, db := range updates {
 		if err := r.crdClient.DBUpdate(db.Name, db.Namespace, db.Ready); err != nil {
-			logrus.Errorf("Failed updating CRD status: %+v", err)
+			logrus.Errorf("Failed updating cockroachdb CRD status: %+v", err)
 		}
 	}
 }

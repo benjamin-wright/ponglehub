@@ -21,10 +21,14 @@ func getConnection(config *pgx.ConnConfig) *pgx.Conn {
 			attempts += 1
 			connection, err = pgx.ConnectConfig(context.Background(), config)
 			if err != nil {
-				logrus.Warnf("error connecting to the database: %+v", err)
+				logrus.Debugf("Error connecting to the database: %+v", err)
 			} else {
 				break
 			}
+		}
+
+		if connection != nil {
+			logrus.Warnf("Failed to connect: %+v", err)
 		}
 
 		finished <- connection

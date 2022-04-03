@@ -142,7 +142,7 @@ func (c *DBClient) DBUpdate(name string, namespace string, ready bool) error {
 		return nil
 	}
 
-	logrus.Infof("Updating CRD status: %s (%s) -> ready: %t", name, namespace, ready)
+	logrus.Infof("Updating Database CRD status: %s (%s) -> ready: %t", name, namespace, ready)
 	db.Status.Ready = ready
 
 	return c.restClient.

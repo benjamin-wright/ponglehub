@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
 	"ponglehub.co.uk/operators/db/internal/crds"
+	"ponglehub.co.uk/operators/db/internal/database"
 	"ponglehub.co.uk/operators/db/internal/deployments"
 	"ponglehub.co.uk/operators/db/internal/reconcilers"
 )
@@ -27,25 +28,34 @@ func main() {
 		logrus.Fatalf("Failed to start operator client: %+v", err)
 	}
 
-	// dbClient := database.New()
+	dbClient := database.New()
 
 	events := make(chan interface{}, 5)
 
 	databaseStore, dbStopper := crdClient.DBListen(events)
-	_, clientStopper := crdClient.ClientListen(events)
+	clientStore, clientStopper := crdClient.ClientListen(events)
 	statefulSetStore, statefulsetStopper := deplClient.ListenStatefulSets(events)
 	serviceStore, serviceStopper := deplClient.ListenService(events)
 	_, secretStopper := deplClient.ListenClientSecret(events)
 
-	r := reconcilers.NewDeploymentReconciler(
+	dbReconciler := reconcilers.NewDeploymentReconciler(
 		crdClient,
 		deplClient,
 		databaseStore,
 		statefulSetStore,
 		serviceStore,
 	)
+	dbReconcilerStopper := dbReconciler.Start(events)
 
-	reconcilerStopper := r.Start(events)
+	clientReconciler := reconcilers.NewClientReconciler(
+		crdClient,
+		deplClient,
+		dbClient,
+		databaseStore,
+		clientStore,
+		statefulSetStore,
+	)
+	clientReconcilerStopper := clientReconciler.Start(events)
 
 	logrus.Infof("Running...")
 
@@ -62,7 +72,8 @@ func main() {
 	statefulsetStopper <- struct{}{}
 	serviceStopper <- struct{}{}
 	secretStopper <- struct{}{}
-	reconcilerStopper <- struct{}{}
+	dbReconcilerStopper <- struct{}{}
+	clientReconcilerStopper <- struct{}{}
 
 	log.Println("Stopped")
 }

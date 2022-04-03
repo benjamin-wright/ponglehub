@@ -1,46 +1,17 @@
 package integration
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
-	"ponglehub.co.uk/lib/postgres/pkg/connect"
 	"ponglehub.co.uk/operators/db/internal/crds"
 )
 
 func Test(t *testing.T) {
 	crds.AddToScheme(scheme.Scheme)
 
-	t.Run("Runs a database", simpleSetup)
 	t.Run("Can connect", canConnect)
 	t.Run("Out of order", outOfOrderConnect)
-}
-
-func simpleSetup(t *testing.T) {
-	testDB := crds.Database{
-		Name:      "test-db",
-		Namespace: "test-namespace",
-		Storage:   "2G",
-	}
-
-	helper := newHelper(t)
-	helper.ensureNoDB(t, testDB)
-	helper.createDb(t, testDB)
-	helper.waitForRunning(t, testDB)
-	result := helper.getDb(t, testDB)
-
-	assert.Equal(
-		t,
-		crds.Database{
-			Name:      "test-db",
-			Namespace: "test-namespace",
-			Storage:   "2G",
-			Ready:     true,
-		},
-		result,
-	)
 }
 
 func canConnect(t *testing.T) {
@@ -69,14 +40,6 @@ func canConnect(t *testing.T) {
 
 	helper.createClient(t, testClient)
 	helper.waitForClientSecret(t, testClient)
-
-	_, err := connect.Connect(connect.ConnectConfig{
-		Host:     fmt.Sprintf("%s.%s.svc.cluster.local", testDB.Name, testDB.Namespace),
-		Port:     26257,
-		Username: testClient.Username,
-		Database: testClient.Database,
-	})
-	assert.NoError(t, err)
 }
 
 func outOfOrderConnect(t *testing.T) {
@@ -104,12 +67,4 @@ func outOfOrderConnect(t *testing.T) {
 	helper.createDb(t, testDB)
 	helper.waitForRunning(t, testDB)
 	helper.waitForClientSecret(t, testClient)
-
-	_, err := connect.Connect(connect.ConnectConfig{
-		Host:     fmt.Sprintf("%s.%s.svc.cluster.local", testDB.Name, testDB.Namespace),
-		Port:     26257,
-		Username: testClient.Username,
-		Database: testClient.Database,
-	})
-	assert.NoError(t, err)
 }

@@ -28,6 +28,10 @@ func Initialize(config connect.ConnectConfig, database string, username string) 
 	return migrations.Initialize(config, database, username)
 }
 
+func UnInitialize(config connect.ConnectConfig, database string, username string) error {
+	return migrations.UnInitialize(config, database, username)
+}
+
 func Migrate(config connect.ConnectConfig, queries []types.Migration) error {
 	return migrations.Migrate(config, queries)
 }

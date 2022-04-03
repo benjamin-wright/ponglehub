@@ -41,12 +41,12 @@ func (d *AdminConn) CreateUser(username string) error {
 		}
 
 		if existing == username {
-			logrus.Infof("User %s already exists!", username)
+			logrus.Infof("User %s already exists", username)
 			return nil
 		}
 	}
 
-	logrus.Infof("Creating user %s!", username)
+	logrus.Infof("Creating user %s", username)
 	if _, err := d.conn.Exec(context.Background(), "CREATE USER $1", username); err != nil {
 		return fmt.Errorf("failed to create database user: %+v", err)
 	}
@@ -70,7 +70,7 @@ func (d *AdminConn) DropUser(username string) error {
 		if existing == username {
 			rows.Close()
 
-			logrus.Infof("Deleting user %s!", username)
+			logrus.Infof("Deleting user %s", username)
 			if _, err := d.conn.Exec(context.Background(), "DROP USER $1", username); err != nil {
 				return fmt.Errorf("failed to drop database user: %+v", err)
 			}
@@ -79,7 +79,7 @@ func (d *AdminConn) DropUser(username string) error {
 		}
 	}
 
-	logrus.Infof("User %s doesn't exist!", username)
+	logrus.Infof("User %s doesn't exist", username)
 	return nil
 }
 
@@ -97,12 +97,12 @@ func (d *AdminConn) CreateDatabase(database string) error {
 		}
 
 		if existing == database {
-			logrus.Infof("Database %s already exists!", database)
+			logrus.Infof("Database %s already exists", database)
 			return nil
 		}
 	}
 
-	logrus.Infof("Creating database %s!", database)
+	logrus.Infof("Creating database %s", database)
 	if _, err := d.conn.Exec(context.Background(), fmt.Sprintf("CREATE DATABASE %s", database)); err != nil {
 		return fmt.Errorf("failed to create database: %+v", err)
 	}
@@ -126,7 +126,7 @@ func (d *AdminConn) DropDatabase(database string) error {
 		if existing == database {
 			rows.Close()
 
-			logrus.Infof("Dropping database %s!", database)
+			logrus.Infof("Dropping database %s", database)
 			if _, err := d.conn.Exec(context.Background(), fmt.Sprintf("DROP DATABASE %s", database)); err != nil {
 				return fmt.Errorf("failed to drop database: %+v", err)
 			}
@@ -135,7 +135,7 @@ func (d *AdminConn) DropDatabase(database string) error {
 		}
 	}
 
-	logrus.Infof("Database %s didn't exist!", database)
+	logrus.Infof("Database %s didn't exist", database)
 	return nil
 }
 
@@ -145,7 +145,7 @@ func (d *AdminConn) GrantPermissions(username string, database string) error {
 		return fmt.Errorf("failed to grant permissions: %+v", err)
 	}
 
-	logrus.Infof("Granted '%s' permission to read/write to '%s'!", username, database)
+	logrus.Infof("Granted '%s' permission to read/write to '%s'", username, database)
 
 	return nil
 }
@@ -171,11 +171,11 @@ func (d *AdminConn) RevokePermissions(username string, database string) error {
 				return fmt.Errorf("failed to revoke permissions: %+v", err)
 			}
 
-			logrus.Infof("Revoked '%s' permission to read/write from '%s'!", username, database)
+			logrus.Infof("Revoked '%s' permission to read/write from '%s'", username, database)
 			return nil
 		}
 	}
 
-	logrus.Infof("User '%s' doesn't exist!", username)
+	logrus.Infof("User '%s' doesn't exist", username)
 	return nil
 }

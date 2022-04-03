@@ -13,6 +13,7 @@ import (
 type ClientReconciler struct {
 	crdClient    *crds.DBClient
 	deplClient   *deployments.DeploymentsClient
+	dbClient     *database.DatabaseClient
 	databases    cache.Store
 	clients      cache.Store
 	statefulSets deployments.StatefulSetStore
@@ -21,6 +22,7 @@ type ClientReconciler struct {
 func NewClientReconciler(
 	crdClient *crds.DBClient,
 	deplClient *deployments.DeploymentsClient,
+	dbClient *database.DatabaseClient,
 	databases cache.Store,
 	clients cache.Store,
 	statefulSets deployments.StatefulSetStore,
@@ -28,6 +30,7 @@ func NewClientReconciler(
 	return &ClientReconciler{
 		crdClient:    crdClient,
 		deplClient:   deplClient,
+		dbClient:     dbClient,
 		databases:    databases,
 		clients:      clients,
 		statefulSets: statefulSets,
@@ -54,8 +57,12 @@ func (r *ClientReconciler) Start(
 			case <-timer:
 				timer = time.After(60 * time.Second)
 
-				requestedClients := requestedClients(r.databases, r.clients)
-				clientsToAdd, clientsToRemove := processClients(requestedClients, r.clients)
+				requestedClients := requestedClients(r.databases, r.clients, r.dbClient)
+				clientsToAdd, clientsToRemove := processClients(requestedClients, r.dbClient)
+				r.applyClients(clientsToAdd, clientsToRemove)
+
+				clientUpdates := r.clientStatusUpdates()
+				r.applyClientUpdates(clientUpdates)
 			}
 		}
 	}(stopper)
@@ -63,7 +70,7 @@ func (r *ClientReconciler) Start(
 	return stopper
 }
 
-func requestedClients(databases cache.Store, clients cache.Store) map[string]database.Client {
+func requestedClients(databases cache.Store, clients cache.Store, dbClient *database.DatabaseClient) map[string]database.Client {
 	requests := map[string]database.Client{}
 
 	for _, client := range clients.List() {
@@ -81,27 +88,111 @@ func requestedClients(databases cache.Store, clients cache.Store) map[string]dat
 				continue
 			}
 
-			if cli.Namespace == db.Namespace && cli.Spec.Deployment == db.Name {
+			if cli.Namespace == db.Namespace && cli.Spec.Deployment == db.Name && db.Status.Ready {
 				found = true
 				break
 			}
 		}
 
-		if !found {
-			continue
-		}
-
-		key := cli.Namespace + "/" + cli.Name
-		requests[key] = database.Client{
+		newClient := database.Client{
 			Username:   cli.Spec.Username,
 			Deployment: cli.Spec.Deployment,
 			Database:   cli.Spec.Database,
+			Namespace:  cli.Namespace,
 		}
+
+		if !found {
+			if dbClient.HasClient(newClient) {
+				dbClient.PruneClient(newClient)
+			}
+
+			continue
+		}
+
+		requests[newClient.Key()] = newClient
 	}
 
 	return requests
 }
 
-func processClients(requested map[string]database.Client, clients cache.Store) (map[string]database.Client, map[string]database.Client) {
-	return nil, nil
+func processClients(requested map[string]database.Client, clients *database.DatabaseClient) (map[string]database.Client, map[string]database.Client) {
+	toAdd := map[string]database.Client{}
+	toRemove := map[string]database.Client{}
+
+	for key, client := range requested {
+		if !clients.HasClient(client) {
+			toAdd[key] = client
+		}
+	}
+
+	for key, existing := range clients.ListClients() {
+		missing := true
+		for _, client := range requested {
+			if client == existing {
+				missing = false
+				break
+			}
+		}
+
+		if missing {
+			toRemove[key] = existing
+		}
+	}
+
+	return toAdd, toRemove
+}
+
+func (r *ClientReconciler) applyClients(toAdd map[string]database.Client, toRemove map[string]database.Client) {
+	for _, client := range toAdd {
+		r.dbClient.CreateClient(client)
+	}
+
+	for _, client := range toRemove {
+		r.dbClient.DeleteClient(client)
+	}
+}
+
+type ClientUpdate struct {
+	Name      string
+	Namespace string
+	Ready     bool
+}
+
+func (r *ClientReconciler) clientStatusUpdates() []ClientUpdate {
+	updates := []ClientUpdate{}
+
+	for _, client := range r.clients.List() {
+		cli, ok := client.(*crds.CockroachClient)
+		if !ok {
+			logrus.Warnf("Failed to convert client: %T", cli)
+			continue
+		}
+
+		requested := database.Client{
+			Username:   cli.Spec.Username,
+			Deployment: cli.Spec.Deployment,
+			Database:   cli.Spec.Database,
+			Namespace:  cli.Namespace,
+		}
+
+		exists := r.dbClient.HasClient(requested)
+
+		if exists && !cli.Status.Ready {
+			updates = append(updates, ClientUpdate{Name: cli.Name, Namespace: cli.Namespace, Ready: true})
+		}
+
+		if !exists && cli.Status.Ready {
+			updates = append(updates, ClientUpdate{Name: cli.Name, Namespace: cli.Namespace, Ready: false})
+		}
+	}
+
+	return updates
+}
+
+func (r *ClientReconciler) applyClientUpdates(updates []ClientUpdate) {
+	for _, update := range updates {
+		if err := r.crdClient.ClientUpdate(update.Name, update.Namespace, update.Ready); err != nil {
+			logrus.Errorf("Failed updating cockroachclient CRD status: %+v", err)
+		}
+	}
 }
