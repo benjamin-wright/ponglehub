@@ -31,6 +31,8 @@ func New(client *events.Events, db *database.Database) (*Server, error) {
 			return
 		}
 
+		logrus.Infof("Got event: %s", event.Type())
+
 		switch event.Type() {
 		case "naughts-and-crosses.list-games":
 			err = listGames(client, db, userId, event)

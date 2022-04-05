@@ -29,6 +29,7 @@ func New() (*Database, error) {
 }
 
 func (d *Database) Clear() error {
+	logrus.Info("Clearing all game data")
 	cmd, err := d.conn.Exec(context.TODO(), "DELETE FROM games")
 	if err != nil {
 		return fmt.Errorf("error clearing games table: %+v", err)
@@ -39,6 +40,7 @@ func (d *Database) Clear() error {
 }
 
 func (d *Database) NewGame(player1 string, player2 string) (string, error) {
+	logrus.Infof("Creating new game for %s vs %s", player1, player2)
 	row := d.conn.QueryRow(context.TODO(), "INSERT INTO games (player1, player2, turn, marks) VALUES ($1, $2, 0, '---------') RETURNING id;", player1, player2)
 
 	var id uuid.UUID
@@ -51,6 +53,20 @@ func (d *Database) NewGame(player1 string, player2 string) (string, error) {
 	return id.String(), nil
 }
 
+func (d *Database) InsertGame(game Game) error {
+	logrus.Infof("Inserting game for %s vs %s", game.Player1, game.Player2)
+	_, err := d.conn.Exec(
+		context.TODO(),
+		"INSERT INTO games (id, player1, player2, turn, marks) VALUES ($1, $2, $3, $4, '---------') RETURNING id;",
+		game.ID, game.Player1, game.Player2, game.Turn,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to add new game: %+v", err)
+	}
+
+	return nil
+}
+
 type Game struct {
 	ID      uuid.UUID
 	Player1 uuid.UUID
@@ -59,6 +75,7 @@ type Game struct {
 }
 
 func (d *Database) ListGames(player string) ([]Game, error) {
+	logrus.Infof("Listing games for user %s", player)
 	rows, err := d.conn.Query(context.TODO(), "SELECT id, player1, player2, turn FROM games WHERE player1=$1 OR player2=$1", player)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching games data: %+v", err)

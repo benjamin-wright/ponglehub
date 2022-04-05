@@ -1,10 +1,13 @@
 package integration
 
 import (
+	"encoding/json"
+	"io"
 	"os"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/events/recorder/pkg/recorder"
 	"ponglehub.co.uk/games/naughts-and-crosses/pkg/database"
@@ -50,27 +53,84 @@ func initClients(t *testing.T) (*database.Database, *events.Events) {
 	return db, eventClient
 }
 
+func getExpected(t *testing.T, games []database.Game) string {
+	expected := map[string]interface{}{
+		"games": games,
+	}
+
+	data, err := json.Marshal(expected)
+	if err != nil {
+		assert.NoError(t, err)
+	}
+
+	return string(data)
+}
+
 func TestListGames(t *testing.T) {
+	logrus.SetOutput(io.Discard)
+
 	db, eventClient := initClients(t)
+	userId := uuid.New()
+	otherPlayer := uuid.New()
+	randomPlayer := uuid.New()
 
-	recorder.Clear(t, os.Getenv("RECORDER_URL"))
-	noErr(t, db.Clear())
+	for _, test := range []struct {
+		name     string
+		existing []database.Game
+		expected string
+	}{
+		{
+			name:     "empty",
+			expected: getExpected(t, []database.Game{}),
+		},
+		{
+			name: "one game",
+			existing: []database.Game{
+				{ID: uuid.MustParse("00000000-0000-0000-0000-000000000000"), Player1: userId, Player2: otherPlayer, Turn: 0},
+			},
+			expected: getExpected(t, []database.Game{
+				{ID: uuid.MustParse("00000000-0000-0000-0000-000000000000"), Player1: userId, Player2: otherPlayer, Turn: 0},
+			}),
+		},
+		{
+			name: "ignore other users games",
+			existing: []database.Game{
+				{ID: uuid.MustParse("00000000-0000-0000-0000-000000000000"), Player1: userId, Player2: otherPlayer, Turn: 0},
+				{ID: uuid.MustParse("10000000-0000-0000-0000-000000000000"), Player1: otherPlayer, Player2: userId, Turn: 0},
+				{ID: uuid.MustParse("20000000-0000-0000-0000-000000000000"), Player1: randomPlayer, Player2: otherPlayer, Turn: 0},
+			},
+			expected: getExpected(t, []database.Game{
+				{ID: uuid.MustParse("00000000-0000-0000-0000-000000000000"), Player1: userId, Player2: otherPlayer, Turn: 0},
+				{ID: uuid.MustParse("10000000-0000-0000-0000-000000000000"), Player1: otherPlayer, Player2: userId, Turn: 0},
+			}),
+		},
+	} {
+		t.Run(test.name, func(u *testing.T) {
+			recorder.Clear(u, os.Getenv("RECORDER_URL"))
+			noErr(u, db.Clear())
 
-	userId := uuid.New().String()
+			for _, game := range test.existing {
+				err := db.InsertGame(game)
+				noErr(u, err)
+			}
 
-	err := eventClient.Send(
-		"naughts-and-crosses.list-games",
-		nil,
-		map[string]interface{}{"userid": userId},
-	)
-	noErr(t, err)
+			err := eventClient.Send(
+				"naughts-and-crosses.list-games",
+				nil,
+				map[string]interface{}{"userid": userId.String()},
+			)
+			noErr(u, err)
 
-	event := recorder.WaitForEvent(t, os.Getenv("RECORDER_URL"), "naughts-and-crosses.list-games.response")
+			event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.list-games.response")
 
-	assert.Equal(t, "", event)
+			assert.Equal(u, test.expected, event)
+		})
+	}
 }
 
 func TestNewGameEvent(t *testing.T) {
+	logrus.SetOutput(io.Discard)
+
 	db, eventClient := initClients(t)
 
 	recorder.Clear(t, os.Getenv("RECORDER_URL"))
