@@ -155,14 +155,8 @@ custom_build(
 )
 
 k8s_resource(
-  'landing-page',
-  port_forwards=["3000:80"]
-)
-
-k8s_resource(
   'naughts-and-crosses-static',
-  new_name='nac: static',
-  port_forwards=["3001:80"]
+  new_name='nac: static'
 )
 
 k8s_resource(
@@ -185,11 +179,6 @@ k8s_resource(
   'db',
   extra_pod_selectors=[{'db-operator.ponglehub.co.uk/deployment': 'db'}],
   port_forwards=["26257:26257"]
-)
-
-k8s_resource(
-  'draughts',
-  port_forwards=["3002:80"]
 )
 
 k8s_yaml(namespace_yaml('apps'))
