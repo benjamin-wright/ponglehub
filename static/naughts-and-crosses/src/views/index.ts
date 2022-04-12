@@ -4,13 +4,16 @@ import '@pongle/panels/center-panel';
 
 import {html, css, LitElement} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {until} from 'lit/directives/until.js';
 import {Auth} from '@pongle/auth';
+import {Game} from '../services/game';
 
 @customElement('index-view')
 export class IndexView extends LitElement {
   static styles = css``;
 
   private auth: Auth;
+  private game: Game;
 
   @state()
   private userName: string;
@@ -19,6 +22,7 @@ export class IndexView extends LitElement {
     super();
     
     this.auth = new Auth(window.localStorage);
+    this.game = new Game();
   }
 
   connectedCallback() {
@@ -29,15 +33,31 @@ export class IndexView extends LitElement {
       .catch(() => this.auth.logIn());
   }
 
+  private async load() {
+    const data = await this.game.getGames()
+    
+    return html`
+      <h1>Lets play Naughts and Crosses!</h1>
+      <p>got the data: ${JSON.stringify(data)}!</p>
+    `;
+  }
+
   private async logOut() {
     await this.auth.logOut();
-    window.location.href="http://localhost:7000";
+    window.location.href="http://games.ponglehub.co.uk";
   }
 
   render() {
     return html`
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
-      <h1>Lets play Naughts and Crosses!</h1>
+      ${
+        until(
+          this.load(),
+          html`
+            <p>waiting...</p>
+          `
+        )
+      }
     `;
   }
 }

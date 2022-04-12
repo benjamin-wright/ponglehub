@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -48,7 +49,9 @@ func main() {
 
 	client, tokens, store := getServices()
 
-	stopServer := server.Start("BROKER_URL", getEnv("TOKEN_DOMAIN"), client, store, tokens)
+	origins := strings.Split(getEnv("ALLOWED_ORIGINS"), ",")
+
+	stopServer := server.Start("BROKER_URL", getEnv("TOKEN_DOMAIN"), origins, client, store, tokens)
 	defer stopServer()
 
 	stopListener := state.Start(client, store, tokens)

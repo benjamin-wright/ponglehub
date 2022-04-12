@@ -17,7 +17,7 @@ import (
 	"ponglehub.co.uk/lib/events"
 )
 
-func Start(brokerEnv string, domain string, crdClient *crds.UserClient, store *user_store.Store, tokens *tokens.Tokens) func() {
+func Start(brokerEnv string, domain string, origins []string, crdClient *crds.UserClient, store *user_store.Store, tokens *tokens.Tokens) func() {
 	eventClient, err := events.New(events.EventsArgs{BrokerEnv: brokerEnv})
 	if err != nil {
 		logrus.Fatalf("Failed to create broker client: %+v", err)

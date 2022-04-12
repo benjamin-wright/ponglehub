@@ -1,5 +1,6 @@
 const path = require("path");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
   entry: {
@@ -30,6 +31,10 @@ module.exports = {
         patterns: [
             { from: './static', to: './' }
         ]
+    }),
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': 'production',
+      'process.env.NODE_DEBUG': '"console"'
     })
   ]
 };
