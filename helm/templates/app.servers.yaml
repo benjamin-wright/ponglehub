@@ -168,6 +168,7 @@ spec:
     app: {{ $name }}
   type: ClusterIP
 {{- if not (empty $server.events) }}
+---
 apiVersion: ponglehub.co.uk/v1alpha1
 kind: EventTrigger
 metadata:

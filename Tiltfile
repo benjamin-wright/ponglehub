@@ -84,7 +84,7 @@ k8s_yaml(helm(
     'redis.redis.storage=256Mi',
     'secrets.gateway-key.keyfile=abcdefg',
     'servers.gateway.image=event-gateway',
-    'servers.gateway.env.BROKER_URL="http://gateway:80"',
+    'servers.gateway.env.BROKER_URL="http://broker:80"',
     'servers.gateway.env.REDIS_URL="redis:6379"',
     'servers.gateway.env.KEY_FILE="/secrets/keyfile"',
     'servers.gateway.env.TOKEN_DOMAIN="ponglehub.co.uk"',
@@ -215,12 +215,13 @@ k8s_yaml(helm(
     'jobs.naughts-and-crosses-migrations.resources.limits.memory=64Mi',
     'jobs.naughts-and-crosses-migrations.resources.requests.memory=64Mi',
     'servers.naughts-and-crosses-server.image=naughts-and-crosses-server',
-    'servers.naughts-and-crosses-server.env.BROKER_URL="http://broker:80"',
+    'servers.naughts-and-crosses-server.env.BROKER_URL="http://broker.auth-service.svc.cluster.local:80"',
     'servers.naughts-and-crosses-server.db.cluster=db',
     'servers.naughts-and-crosses-server.db.username=nac_user',
     'servers.naughts-and-crosses-server.db.database=naughts_and_crosses',
     'servers.naughts-and-crosses-server.resources.limits.memory=64Mi',
-    'servers.naughts-and-crosses-server.resources.requests.memory=64Mi'
+    'servers.naughts-and-crosses-server.resources.requests.memory=64Mi',
+    'servers.naughts-and-crosses-server.events={\'naughts-and-crosses.*\'}',
   ]
 ))
 k8s_yaml(helm(

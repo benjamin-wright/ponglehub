@@ -30,8 +30,12 @@ func Start(brokerEnv string, domain string, origins []string, crdClient *crds.Us
 			"http://ponglehub.co.uk",
 			"http://games.ponglehub.co.uk",
 		},
-		AllowMethods:     []string{"POST", "GET"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowMethods: []string{"POST", "GET"},
+		AllowHeaders: []string{
+			"Origin", "Content-Type", "ce-dataschema",
+			"ce-id", "ce-source", "ce-specversion",
+			"ce-subject", "ce-time", "ce-type",
+		},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))

@@ -4,9 +4,8 @@ import '@pongle/panels/center-panel';
 
 import {html, css, LitElement} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
-import {until} from 'lit/directives/until.js';
 import {Auth} from '@pongle/auth';
-import {Game} from '../services/game';
+import {Game} from './services/game';
 
 @customElement('index-view')
 export class IndexView extends LitElement {
@@ -27,19 +26,19 @@ export class IndexView extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.game.refresh();
 
     this.auth.init()
       .then(data => this.userName = data.name)
       .catch(() => this.auth.logIn());
+
+    this.game.start();
   }
 
-  private async load() {
-    const data = await this.game.getGames()
-    
-    return html`
-      <h1>Lets play Naughts and Crosses!</h1>
-      <p>got the data: ${JSON.stringify(data)}!</p>
-    `;
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    this.game.stop();
   }
 
   private async logOut() {
@@ -50,14 +49,7 @@ export class IndexView extends LitElement {
   render() {
     return html`
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
-      ${
-        until(
-          this.load(),
-          html`
-            <p>waiting...</p>
-          `
-        )
-      }
+      <h1>Lets play Naughts and Crosses!</h1>
     `;
   }
 }
