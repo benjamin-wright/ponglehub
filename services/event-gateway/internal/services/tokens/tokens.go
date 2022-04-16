@@ -42,6 +42,37 @@ func New(keyfile string, redisUrl string) (*Tokens, error) {
 	return &tokens, nil
 }
 
+func (t *Tokens) WatchResponses(id string) (<-chan string, chan<- struct{}, error) {
+	key := fmt.Sprintf("%s.responses", id)
+	pubsub := t.redis.PSubscribe(context.TODO(), key)
+
+	if pubsub == nil {
+		return nil, nil, fmt.Errorf("failed to create redis pubsub for key: %s", key)
+	}
+
+	responses := make(chan string)
+	stopper := make(chan struct{})
+
+	go func(responses chan<- string, stopper <-chan struct{}, pubsub *redis.PubSub) {
+		events := pubsub.Channel()
+		for {
+			select {
+			case msg := <-events:
+				if msg == nil {
+					logrus.Errorf("pubsub closed for key: %s", key)
+					return
+				}
+
+				responses <- msg.Payload
+			case <-stopper:
+				return
+			}
+		}
+	}(responses, stopper, pubsub)
+
+	return responses, stopper, nil
+}
+
 func (t *Tokens) GetResponses(id string) ([]string, error) {
 	key := fmt.Sprintf("%s.responses", id)
 	values, err := t.redis.LRange(context.Background(), key, 0, -1).Result()

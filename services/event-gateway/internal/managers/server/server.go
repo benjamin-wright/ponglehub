@@ -1,15 +1,15 @@
 package server
 
 import (
-	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/events/gateway/internal/services/tokens"
 	"ponglehub.co.uk/events/gateway/internal/services/user_store"
@@ -42,8 +42,7 @@ func Start(brokerEnv string, domain string, origins []string, crdClient *crds.Us
 
 	engine.LoadHTMLGlob("/html/*")
 
-	engine.GET("/events", eventsGetRoute(tokens, domain))
-	engine.POST("/events", eventsPostRoute(tokens, domain, eventClient))
+	engine.GET("/events", eventsGetRoute(tokens, domain, eventClient))
 	engine.GET("/auth/user", userRoute(tokens, domain, crdClient, store))
 	engine.GET("/auth/login", loginHTML)
 	engine.POST("/auth/login", loginRoute(store, tokens, domain))
@@ -71,60 +70,43 @@ func Start(brokerEnv string, domain string, origins []string, crdClient *crds.Us
 	}
 }
 
-func eventsGetRoute(tokens *tokens.Tokens, domain string) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		subject, err := loggedIn(c, tokens, domain)
-		if err != nil {
-			return
-		}
+func watchEvents(conn *websocket.Conn) (<-chan cloudevents.Event, <-chan struct{}) {
+	events := make(chan cloudevents.Event)
+	stopper := make(chan struct{})
 
-		messages, err := tokens.GetResponses(subject)
-		if err != nil {
-			logrus.Errorf("Failed to get messages: %+v", err)
-			c.Status(http.StatusInternalServerError)
-			return
-		}
+	go func(events chan<- cloudevents.Event, stopper chan<- struct{}) {
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				logrus.Warnf("Closing websocket connection: %+v", err)
+				stopper <- struct{}{}
+				return
+			}
 
-		if len(messages) == 0 {
-			logrus.Infof("No new messages for user %s", subject)
-			c.Status(http.StatusNoContent)
-			return
-		}
+			var event cloudevents.Event
+			err = json.Unmarshal(msg, &event)
+			if err != nil {
+				logrus.Errorf("Error unmarshalling event data: %+v", err)
+				continue
+			}
 
-		err = tokens.RemoveResponses(subject, int64(len(messages)))
-		if err != nil {
-			logrus.Errorf("Failed to clean up messages: %+v", err)
-			c.Status(http.StatusInternalServerError)
-			return
+			events <- event
 		}
+	}(events, stopper)
 
-		c.JSON(
-			http.StatusOK,
-			gin.H{
-				"messages": messages,
-			},
-		)
-	}
+	return events, stopper
 }
 
-func eventsPostRoute(tokens *tokens.Tokens, domain string, client *events.Events) func(c *gin.Context) {
-	ctx := context.Background()
-	p, err := cloudevents.NewHTTP()
-	if err != nil {
-		logrus.Fatalf("failed to create protocol: %s", err.Error())
-	}
+func eventsGetRoute(tokens *tokens.Tokens, domain string, client *events.Events) func(c *gin.Context) {
+	var wsupgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			url := r.URL.String()
+			logrus.Infof("Url: %s", url)
 
-	handler := func(ctx context.Context, event event.Event) {
-		logrus.Infof("passing through event: %s", event.Type())
-		err := client.Proxy(event)
-		if err != nil {
-			logrus.Errorf("Error proxying event to broker: %+v", err)
-		}
-	}
-
-	h, err := cloudevents.NewHTTPReceiveHandler(ctx, p, handler)
-	if err != nil {
-		logrus.Fatalf("failed to create handler: %s", err.Error())
+			return true
+		},
 	}
 
 	return func(c *gin.Context) {
@@ -133,8 +115,40 @@ func eventsPostRoute(tokens *tokens.Tokens, domain string, client *events.Events
 			return
 		}
 
-		c.Request.Header.Add("ce-userid", subject)
-		h.ServeHTTP(c.Writer, c.Request)
+		conn, err := wsupgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			logrus.Errorf("Failed to set websocket upgrade: %+v", err)
+			return
+		}
+
+		responses, stopper, err := tokens.WatchResponses(subject)
+		if err != nil {
+			logrus.Errorf("Failed to watch responses: %+v", err)
+			return
+		}
+
+		events, stopped := watchEvents(conn)
+
+		for {
+			select {
+			case <-stopped:
+				stopper <- struct{}{}
+				return
+			case response := <-responses:
+				err = conn.WriteMessage(0, []byte(response))
+				if err != nil {
+					logrus.Errorf("Error return response: %+v", err)
+				}
+			case event := <-events:
+				logrus.Infof("passing through event: %s", event.Type())
+
+				event.SetExtension("userid", subject)
+				err = client.Proxy(event)
+				if err != nil {
+					logrus.Errorf("Error proxying event to broker: %+v", err)
+				}
+			}
+		}
 	}
 }
 

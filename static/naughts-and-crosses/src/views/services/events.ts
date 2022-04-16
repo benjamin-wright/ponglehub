@@ -1,54 +1,50 @@
-const axios = require('axios').default;
-const { CloudEvent, HTTP } = require('cloudevents');
-
-export async function send(type: string) {
-    const event = new CloudEvent({
-        source: "web-ui",
-        type: type,
-        datacontenttype: "text/plain",
-        dataschema: "https://d.schema.com/my.json",
-        subject: "naughts-and-crosses",
-    })
-    const message = HTTP.binary(event)
-
-    const result = await axios({
-        method: "post",
-        url: "http://ponglehub.co.uk/events",
-        data: message.body,
-        headers: message.headers,
-        withCredentials: true,
-    })
-
-    console.log(`Result: ${result.status}`)
-}
-
 export type EventResponse = {
     type: string,
     data: any,
 }
 
-export async function receive(): Promise<EventResponse[]> {
-    const result = await axios({
-        method: "get",
-        url: "http://ponglehub.co.uk/events",
-        withCredentials: true,
-    })
+export type SendEvents = {
+    send: (type: string, message: string) => void
+    stopper: () => void
+}
 
-    if (result.status > 399) {
-        throw new Error(`Failed to get events: ${result.status}`)
-    }
+export async function listen(
+    receive: (type: string, message: string) => void,
+    stopped: () => void
+): Promise<SendEvents> { 
+    return new Promise((resolve, reject) => {
+        let socket = new WebSocket("ws://ponglehub.co.uk/events")
 
-    if (result.status === 204) {
-        return []
-    }
-
-    let messages: string[] = result.data.messages;
-
-    return messages.map(m => {
-        let parsed = JSON.parse(m);
-        return {
-            type: parsed.type,
-            data: parsed.data,
+        socket.onopen = (event: Event) => {
+            resolve({
+                send: function(type: string, message: string): void {
+                    console.log(`Sent message -> ${type}: ${message}`);
+                },
+                stopper: function() {
+                    socket.onclose = () => {}
+                    socket.onerror = () => {}
+                    socket.close();
+                }
+            });
         };
-    });
+
+        socket.onmessage = (event: Event) => {
+            console.log(event)
+            receive("type", "message")
+        }
+
+        socket.onclose = (event: Event) => {
+            console.warn("socket connection closed");
+            socket.onclose = () => {}
+            socket.onerror = () => {}
+            stopped();
+        };
+
+        socket.onerror = (error: Event) => {
+            console.warn(`Socket error: ${error}`)
+            socket.onclose = () => {}
+            socket.onerror = () => {}
+            reject();
+        }
+    });   
 }

@@ -1,4 +1,4 @@
-import { send, receive } from './events';
+import { listen, SendEvents } from './events';
 
 export type GameData = {
   games: string[]
@@ -10,41 +10,43 @@ function sleep(time: number): Promise<null> {
 
 export class Game {
   private data: GameData
-  private running: boolean
+  private events: SendEvents
 
   constructor() {
     this.data = {
       games: []
     };
-    this.running = false;
   }
 
   async refresh() {
-    await send("naughts-and-crosses.list-games");
+    this.events.send("naughts-and-crosses.list-games", null);
   }
 
-  async start() {
-    this.running = true;
-    
-    while (this.running) {
-      let messages = await receive();
-    
-      messages.forEach(m => {
-        switch(m.type) {
-          case "naughts-and-crosses.list-games.response":
-            console.info(`List response: ${JSON.stringify(m.data)}`);
-            break;
-          default:
-            console.warn(`Unrecognised response type from server: ${m.type}`);
-            break;
-        }
-      });
-
-      await sleep(1);
+  onmessage(type: string, message: string) {
+    switch(type) {
+      case "naughts-and-crosses.list-games.response":
+        console.info(`List response: ${message}`);
+        break;
+      default:
+        console.warn(`Unrecognised response type from server: ${type}`);
+        break;
     }
   }
 
+  async start() {
+    try {
+      this.events = await listen(this.onmessage.bind(this), this.start.bind(this));
+    } catch(error: any) {
+      await sleep(10);
+      this.start();
+      console.error(error);
+      return
+    }
+
+    this.events.send("naughts-and-crosses.list-games", null);
+  }
+
   stop() {
-    this.running = false;
+    this.events.stopper();
   }
 }

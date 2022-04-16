@@ -33,9 +33,9 @@ func (s *Storage) AddEvent(id string, event event.Event) error {
 		return fmt.Errorf("failed to marshal event to json: %+v", err)
 	}
 
-	err = s.redis.RPush(context.Background(), key, string(data)).Err()
+	err = s.redis.Publish(context.Background(), key, string(data)).Err()
 	if err != nil {
-		return fmt.Errorf("failed to add event to redis store: %+v", err)
+		return fmt.Errorf("failed to publish event to redis: %+v", err)
 	}
 
 	return nil

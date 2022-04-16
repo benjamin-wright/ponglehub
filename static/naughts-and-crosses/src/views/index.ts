@@ -26,7 +26,6 @@ export class IndexView extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.game.refresh();
 
     this.auth.init()
       .then(data => this.userName = data.name)
