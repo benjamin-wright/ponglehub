@@ -241,8 +241,11 @@ k8s_yaml(helm(
 # Utils
 
 local_resource(
-  'add_user',
-  'ponglehub users add --resource-name test-user --display-name pingu --email test@user.com --password password',
+  'add_users',
+  '''
+    ponglehub users add --resource-name test-user --display-name pingu --email test@user.com --password password
+    ponglehub users add --resource-name other-user --display-name pongo --email other@user.com --password password
+  ''',
   auto_init=False,
   trigger_mode=TRIGGER_MODE_MANUAL
 )

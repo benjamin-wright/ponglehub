@@ -18,7 +18,7 @@ import (
 )
 
 func Start(brokerEnv string, domain string, origins []string, crdClient *crds.UserClient, store *user_store.Store, tokens *tokens.Tokens) func() {
-	eventClient, err := events.New(events.EventsArgs{BrokerEnv: brokerEnv})
+	eventClient, err := events.New(events.EventsArgs{BrokerEnv: brokerEnv, Source: "event-gateway"})
 	if err != nil {
 		logrus.Fatalf("Failed to create broker client: %+v", err)
 	}
@@ -42,7 +42,7 @@ func Start(brokerEnv string, domain string, origins []string, crdClient *crds.Us
 
 	engine.LoadHTMLGlob("/html/*")
 
-	engine.GET("/events", eventsGetRoute(tokens, domain, eventClient))
+	engine.GET("/events", eventsGetRoute(tokens, domain, store, eventClient))
 	engine.GET("/auth/user", userRoute(tokens, domain, crdClient, store))
 	engine.GET("/auth/login", loginHTML)
 	engine.POST("/auth/login", loginRoute(store, tokens, domain))
@@ -97,16 +97,11 @@ func watchEvents(conn *websocket.Conn) (<-chan cloudevents.Event, <-chan struct{
 	return events, stopper
 }
 
-func eventsGetRoute(tokens *tokens.Tokens, domain string, client *events.Events) func(c *gin.Context) {
+func eventsGetRoute(tokens *tokens.Tokens, domain string, store *user_store.Store, client *events.Events) func(c *gin.Context) {
 	var wsupgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			url := r.URL.String()
-			logrus.Infof("Url: %s", url)
-
-			return true
-		},
+		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
 
 	return func(c *gin.Context) {
@@ -135,17 +130,33 @@ func eventsGetRoute(tokens *tokens.Tokens, domain string, client *events.Events)
 				stopper <- struct{}{}
 				return
 			case response := <-responses:
-				err = conn.WriteMessage(0, []byte(response))
+				logrus.Infof("sending response to %s", subject)
+				err = conn.WriteMessage(websocket.TextMessage, []byte(response))
 				if err != nil {
 					logrus.Errorf("Error return response: %+v", err)
 				}
 			case event := <-events:
-				logrus.Infof("passing through event: %s", event.Type())
+				switch event.Type() {
+				case "auth.list-users":
+					logrus.Infof("listing users for: %s", subject)
+					ids := store.ListIDs(subject)
 
-				event.SetExtension("userid", subject)
-				err = client.Proxy(event)
-				if err != nil {
-					logrus.Errorf("Error proxying event to broker: %+v", err)
+					err = client.Send(
+						"auth.list-users.response",
+						map[string]interface{}{"userids": ids},
+						map[string]interface{}{"userid": subject},
+					)
+					if err != nil {
+						logrus.Errorf("Error sending list-users response: %+v", err)
+					}
+				default:
+					logrus.Infof("passing through event: %s", event.Type())
+
+					event.SetExtension("userid", subject)
+					err = client.Proxy(event)
+					if err != nil {
+						logrus.Errorf("Error proxying event to broker: %+v", err)
+					}
 				}
 			}
 		}
