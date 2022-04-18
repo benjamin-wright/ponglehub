@@ -6,24 +6,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestListIds(t *testing.T) {
+func TestGetFriends(t *testing.T) {
 	for _, test := range []struct {
 		name       string
 		nameLookup map[string]string
 		id         string
-		expected   []string
+		expected   map[string]string
 	}{
 		{
 			name:       "empty",
 			nameLookup: map[string]string{},
 			id:         "abc123",
-			expected:   []string{},
+			expected:   map[string]string{},
 		},
 		{
 			name:       "only self",
 			nameLookup: map[string]string{"abc123": "username"},
 			id:         "abc123",
-			expected:   []string{},
+			expected:   map[string]string{},
 		},
 		{
 			name: "missing self",
@@ -32,7 +32,7 @@ func TestListIds(t *testing.T) {
 				"ghi789": "users",
 			},
 			id:       "abc123",
-			expected: []string{"def456", "ghi789"},
+			expected: map[string]string{"def456": "other", "ghi789": "users"},
 		},
 		{
 			name: "filters self",
@@ -42,12 +42,12 @@ func TestListIds(t *testing.T) {
 				"ghi789": "users",
 			},
 			id:       "abc123",
-			expected: []string{"def456", "ghi789"},
+			expected: map[string]string{"def456": "other", "ghi789": "users"},
 		},
 	} {
 		t.Run(test.name, func(u *testing.T) {
 			store := &Store{nameLookup: test.nameLookup}
-			actual := store.ListIDs(test.id)
+			actual := store.GetFriends(test.id)
 
 			assert.Equal(u, test.expected, actual)
 		})

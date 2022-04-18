@@ -51,27 +51,16 @@ func (u *Store) GetName(id string) (string, bool) {
 	return name, ok
 }
 
-func (u *Store) ListIDs(id string) []string {
-	logrus.Infof("lookup: %+v", u.nameLookup)
-	numIds := len(u.nameLookup) - 1
-	if numIds < 1 {
-		return []string{}
-	}
+func (u *Store) GetFriends(id string) map[string]string {
+	friends := map[string]string{}
 
-	ids := make([]string, numIds)
-	i := 0
-	for x := range u.nameLookup {
-		if id == x {
+	for friendId, friendName := range u.nameLookup {
+		if id == friendId {
 			continue
 		}
 
-		if i < numIds {
-			ids[i] = x
-			i++
-		} else {
-			ids = append(ids, x)
-		}
+		friends[friendId] = friendName
 	}
 
-	return ids
+	return friends
 }

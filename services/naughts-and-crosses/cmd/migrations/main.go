@@ -37,6 +37,20 @@ func main() {
 					COMMIT;
 				`,
 			},
+			{
+				Query: `
+					BEGIN;
+
+					SAVEPOINT games_restart;
+
+					ALTER TABLE games
+					ADD COLUMN created_time TIMESTAMP;
+
+					RELEASE SAVEPOINT games_restart;
+
+					COMMIT;
+				`,
+			},
 		},
 	)
 	if err != nil {

@@ -1,8 +1,18 @@
 import { listen, SendEvents } from './events';
 
 export type GameData = {
-  games: string[],
-  players: string[]
+  games: any[],
+  players: {[key: string]: string}
+}
+
+function convert(g: any): any {
+  return {
+    created: g.Created,
+    id: g.ID,
+    player1: g.Player1,
+    player2: g.Player2,
+    turn: g.Turn
+  }
 }
 
 export class Game {
@@ -13,22 +23,24 @@ export class Game {
   constructor() {
     this.data = {
       games: [],
-      players: []
+      players: {}
     };
   }
 
-  async refresh() {
-    this.events.send("naughts-and-crosses.list-games", null);
-  }
-
   onmessage(type: string, data: any) {
+    console.info(`Event: ${type}`);
+
     switch(type) {
       case "naughts-and-crosses.list-games.response":
-        this.data.games = data.games;
+        this.data.games = data.games.map(convert);
         this.callback();
         break;
-      case "auth.list-users.response":
-        this.data.players = data.userids;
+      case "auth.list-friends.response":
+        this.data.players = data;
+        this.callback();
+        break;
+      case "naughts-and-crosses.new-game.response":
+        this.data.games.push(convert(data.game))
         this.callback();
         break;
       default:
@@ -41,7 +53,7 @@ export class Game {
     this.callback = callback;
 
     this.events = listen(this.onmessage.bind(this));
-    this.events.send("auth.list-users", null);
+    this.events.send("auth.list-friends", null);
     this.events.send("naughts-and-crosses.list-games", null);
   }
 
@@ -54,7 +66,11 @@ export class Game {
     return this.data.games;
   }
 
-  players(): string[] {
+  players(): {[key: string]: string} {
     return this.data.players;
+  }
+
+  newGame(opponent: string) {
+    this.events.send("naughts-and-crosses.new-game", {opponent})
   }
 }

@@ -1,6 +1,7 @@
 import '@pongle/styles/global.css';
 import '@pongle/components/nav-bar';
 import '@pongle/panels/popup-panel';
+import '../controls/game-summary';
 
 import {html, css, LitElement} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
@@ -9,7 +10,11 @@ import {Game} from '../services/game';
 
 @customElement('index-view')
 export class IndexView extends LitElement {
-  static styles = css``;
+  static styles = css`
+    ul {
+      list-style: none;
+    }
+  `;
 
   private auth: Auth;
   private game: Game;
@@ -24,7 +29,7 @@ export class IndexView extends LitElement {
   private games: string[];
   
   @state()
-  private players: string[];
+  private players: {[key: string]: string};
 
   constructor() {
     super();
@@ -43,6 +48,7 @@ export class IndexView extends LitElement {
     this.game.start(() => {
       this.games = this.game.games();
       this.players = this.game.players();
+      this.requestUpdate();
     });
   }
 
@@ -66,10 +72,17 @@ export class IndexView extends LitElement {
       <p>games:</p>
       <ul>
         ${this.games.map(game => html`
-          <li>Id: ${game}</li>
+          <li>
+            <game-summary .game="${game}" .players="${this.players}"></game-summary>
+          </li>
         `)}
       </ul>
     `;
+  }
+
+  private requestNewGame(opponent: string) {
+    this.newGame = false;
+    this.game.newGame(opponent)
   }
 
   private newGamePopup() {
@@ -81,7 +94,11 @@ export class IndexView extends LitElement {
       <popup-panel>
         <div>
           <p>Who would you like to challenge?</p>
-          <button @click="${() => this.newGame = false}">OK</button>
+          <ul>
+            ${Object.keys(this.players).map(key => html`
+              <li @click="${() => this.requestNewGame(key)}">${this.players[key]}</li>
+            `)}
+          </ul>
         </div>
       </popup-panel>
     `
@@ -94,7 +111,6 @@ export class IndexView extends LitElement {
       <button @click="${() => this.newGame = true}">New Game</button>
       ${this.listGames()}
       ${this.newGamePopup()}
-      <p>Players: ${JSON.stringify(this.players)}</p>
     `;
   }
 }

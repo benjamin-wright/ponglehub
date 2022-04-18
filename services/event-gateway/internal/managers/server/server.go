@@ -137,18 +137,24 @@ func eventsGetRoute(tokens *tokens.Tokens, domain string, store *user_store.Stor
 				}
 			case event := <-events:
 				switch event.Type() {
-				case "auth.list-users":
-					logrus.Infof("listing users for: %s", subject)
-					ids := store.ListIDs(subject)
+				case "auth.list-friends":
+					logrus.Infof("listing friends for: %s", subject)
+					friends := store.GetFriends(subject)
 
-					err = client.Send(
-						"auth.list-users.response",
-						map[string]interface{}{"userids": ids},
-						map[string]interface{}{"userid": subject},
-					)
+					response, err := json.Marshal(map[string]interface{}{
+						"type": "auth.list-friends.response",
+						"data": friends,
+					})
 					if err != nil {
-						logrus.Errorf("Error sending list-users response: %+v", err)
+						logrus.Errorf("Error serialising list-friends response: %+v", err)
+						continue
 					}
+
+					err = conn.WriteMessage(websocket.TextMessage, response)
+					if err != nil {
+						logrus.Errorf("Error returning list-friends response: %+v", err)
+					}
+
 				default:
 					logrus.Infof("passing through event: %s", event.Type())
 

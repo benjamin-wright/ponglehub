@@ -91,14 +91,20 @@ func newGame(client *events.Events, db *database.Database, userId string, event 
 		return fmt.Errorf("failed to parse payload data from event: %+v", err)
 	}
 
-	id, err := db.NewGame(data.Opponent, userId)
+	game, err := db.NewGame(data.Opponent, userId)
 	if err != nil {
 		return fmt.Errorf("failed to create new game: %+v", err)
 	}
 
-	err = client.Send("naughts-and-crosses.new-game.response", map[string]string{"id": id})
-	if err != nil {
-		return fmt.Errorf("failed to send new game id event: %+v", err)
+	for _, id := range []string{userId, data.Opponent} {
+		err = client.Send(
+			"naughts-and-crosses.new-game.response",
+			map[string]database.Game{"game": game},
+			map[string]interface{}{"userid": id},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to send new game event for %s: %+v", id, err)
+		}
 	}
 
 	return nil
