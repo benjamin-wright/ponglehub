@@ -3,6 +3,10 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
+  devServer: {
+    hot: true,
+    port: 80,
+  },
   entry: {
     index: "./src/views/index.ts"
   },

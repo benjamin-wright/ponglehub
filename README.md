@@ -2,8 +2,7 @@
 
 ## Todo:
 
-- Try refactoring UIs to use more composition
-- Set up event-gateway to hold requests by ID and wait for response events
+- debug setup for static UI, local watch in terminal and dist/ folder sync
 
 ## Dependencies:
 
