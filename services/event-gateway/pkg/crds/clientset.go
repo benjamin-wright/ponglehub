@@ -107,6 +107,25 @@ func (c *UserClient) Get(name string) (User, error) {
 	return fromAuthUser(&result), err
 }
 
+func (c *UserClient) ListOthers(id string) ([]User, error) {
+	result, err := c.list(v1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list users: %+v", err)
+	}
+
+	users := []User{}
+
+	for _, user := range result.Items {
+		converted := fromAuthUser(&user)
+
+		if converted.ID != id {
+			users = append(users, converted)
+		}
+	}
+
+	return users, nil
+}
+
 func (c *UserClient) Delete(name string) error {
 	res := c.restClient.
 		Delete().

@@ -42,7 +42,7 @@ func Start(brokerEnv string, domain string, origins []string, crdClient *crds.Us
 
 	engine.LoadHTMLGlob("/html/*")
 
-	engine.GET("/events", eventsGetRoute(tokens, domain, store, eventClient))
+	engine.GET("/events", eventsGetRoute(tokens, domain, crdClient, eventClient))
 	engine.GET("/auth/user", userRoute(tokens, domain, crdClient, store))
 	engine.GET("/auth/login", loginHTML)
 	engine.POST("/auth/login", loginRoute(store, tokens, domain))
@@ -97,7 +97,7 @@ func watchEvents(conn *websocket.Conn) (<-chan cloudevents.Event, <-chan struct{
 	return events, stopper
 }
 
-func eventsGetRoute(tokens *tokens.Tokens, domain string, store *user_store.Store, client *events.Events) func(c *gin.Context) {
+func eventsGetRoute(tokens *tokens.Tokens, domain string, crdClient *crds.UserClient, client *events.Events) func(c *gin.Context) {
 	var wsupgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -139,11 +139,21 @@ func eventsGetRoute(tokens *tokens.Tokens, domain string, store *user_store.Stor
 				switch event.Type() {
 				case "auth.list-friends":
 					logrus.Infof("listing friends for: %s", subject)
-					friends := store.GetFriends(subject)
+
+					friends, err := crdClient.ListOthers(subject)
+					if err != nil {
+						logrus.Errorf("Error fetching friends: %+v", err)
+						continue
+					}
+
+					friendData := map[string]string{}
+					for _, friend := range friends {
+						friendData[friend.ID] = friend.Display
+					}
 
 					response, err := json.Marshal(map[string]interface{}{
 						"type": "auth.list-friends.response",
-						"data": friends,
+						"data": friendData,
 					})
 					if err != nil {
 						logrus.Errorf("Error serialising list-friends response: %+v", err)

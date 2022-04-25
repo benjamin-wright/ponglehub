@@ -2,6 +2,7 @@ import '@pongle/styles/global.css';
 
 import {html, css, LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
+import { timeSince } from '../services/utils';
 
 @customElement('game-summary')
 export class GameSummary extends LitElement {
@@ -38,7 +39,7 @@ export class GameSummary extends LitElement {
   `;
 
   @property({type: Object})
-  private game: {id: string, player1: string, player2: string, turn: number, created: Date};
+  private game: {id: string, player1: string, player2: string, turn: number, created: string};
 
   @property({type: Object})
   private players: {[key: string]: string};
@@ -58,11 +59,7 @@ export class GameSummary extends LitElement {
       turn += "'s";
     }
 
-    let timeSince = Date.now() - this.game.created.getUTCMilliseconds();
-    let seconds = timeSince / 1000;
-    let minutes = seconds / 60;
-    let hours = minutes / 60;
-    let days = hours / 24;
+    let elapsed = timeSince(this.game.created);
 
     return html`
       <div class="panel">
@@ -71,7 +68,7 @@ export class GameSummary extends LitElement {
         </div>
         <div class="split">
           <p>${turn} go</p>
-          <p>${this.game.created}</p>
+          <p>started ${elapsed} ago</p>
         </div>
       </div>
     `;

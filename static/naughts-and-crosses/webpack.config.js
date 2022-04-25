@@ -3,10 +3,6 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
-  devServer: {
-    hot: true,
-    port: 80,
-  },
   entry: {
     index: "./src/views/index.ts"
   },
@@ -37,7 +33,6 @@ module.exports = {
         ]
     }),
     new webpack.DefinePlugin({
-      'process.env.NODE_ENV': 'production',
       'process.env.NODE_DEBUG': '"console"'
     })
   ]
