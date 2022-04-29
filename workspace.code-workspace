@@ -40,8 +40,8 @@
 			"name": "srv: event-responder"
 		},
 		{
-			"path": "libraries/node/auth",
-			"name": "lib: auth"
+			"path": "libraries/node/events",
+			"name": "lib: events"
 		},
 		{
 			"path": "libraries/node/styles",

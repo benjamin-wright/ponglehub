@@ -2,6 +2,8 @@
 
 ## Todo:
 
+- Naughts and crosses game data through safe transform, with lowercase keys
+
 ## Dependencies:
 
 - brew install k3d

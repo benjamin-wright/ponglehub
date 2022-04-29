@@ -3,6 +3,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
+  target: "web",
   entry: {
     index: "./src/views/index.ts"
   },

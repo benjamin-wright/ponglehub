@@ -20,11 +20,9 @@
     "webpack-cli": "^4.9.2"
   },
   "dependencies": {
-    "@pongle/auth": "file:../../libraries/node/auth",
     "@pongle/components": "file:../../libraries/node/components",
+    "@pongle/events": "file:../../libraries/node/events",
     "@pongle/panels": "file:../../libraries/node/panels",
-    "@pongle/styles": "file:../../libraries/node/styles",
-    "axios": "^0.26.0",
-    "cloudevents": "^5.3.2"
+    "@pongle/styles": "file:../../libraries/node/styles"
   }
 }
