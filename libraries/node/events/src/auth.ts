@@ -9,27 +9,28 @@ export class Auth {
   }
 
   async load(): Promise<UserData> {
-    const response = await axios.get(`http://${this.host}/auth/user`, {
-      withCredentials: true,
-    });
+    try {
 
-    if (response.status == 401) {
-      return null;
+      const response = await axios.get(`http://${this.host}/auth/user`, {
+        withCredentials: true
+      });
+      
+      if (typeof response.data.name !== "string") {
+        throw new Error(`parsing error, name property not found on "${JSON.stringify(response.data)}"`);
+      }
+  
+      const data: UserData = {
+        name: response.data.name
+      };
+  
+      return data;
+    } catch (error) {
+      if (error.response.status == 401) {
+        return null;
+      }
+
+      throw error;
     }
-
-    if (response.status != 200) {
-      throw new Error(`failed to get user data: status code ${response.status}`);
-    }
-
-    if (typeof response.data.name !== "string") {
-      throw new Error(`parsing error, name property not found on "${JSON.stringify(response.data)}"`);
-    }
-
-    const data: UserData = {
-      name: response.data.name
-    };
-
-    return data;
   }
 
   async logOut(): Promise<any> {

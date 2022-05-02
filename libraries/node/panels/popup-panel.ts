@@ -18,6 +18,8 @@ export class PopupPanel extends LitElement {
 
     .center-panel {
       background-color: var(--default-background);
+      border-radius: 1em;
+      padding: 1em;
     }
   `;
 

@@ -42,7 +42,7 @@ func Start(brokerEnv string, domain string, origins []string, crdClient *crds.Us
 
 	engine.LoadHTMLGlob("/html/*")
 
-	engine.GET("/events", eventsGetRoute(tokens, domain, crdClient, eventClient))
+	engine.GET("/events", eventsGetRoute(tokens, domain, store, crdClient, eventClient))
 	engine.GET("/auth/user", userRoute(tokens, domain, crdClient, store))
 	engine.GET("/auth/login", loginHTML)
 	engine.POST("/auth/login", loginRoute(store, tokens, domain))
@@ -97,7 +97,7 @@ func watchEvents(conn *websocket.Conn) (<-chan cloudevents.Event, <-chan struct{
 	return events, stopper
 }
 
-func eventsGetRoute(tokens *tokens.Tokens, domain string, crdClient *crds.UserClient, client *events.Events) func(c *gin.Context) {
+func eventsGetRoute(tokens *tokens.Tokens, domain string, store *user_store.Store, crdClient *crds.UserClient, client *events.Events) func(c *gin.Context) {
 	var wsupgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -110,11 +110,33 @@ func eventsGetRoute(tokens *tokens.Tokens, domain string, crdClient *crds.UserCl
 			return
 		}
 
+		name, ok := store.GetName(subject)
+		if !ok {
+			logrus.Errorf("Failed to find user name for subject %s: user not found", subject)
+			return
+		}
+
+		user, err := crdClient.Get(name)
+		if err != nil {
+			logrus.Errorf("Failed to fetch user data: %+v", err)
+			return
+		}
+
 		conn, err := wsupgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
 			logrus.Errorf("Failed to set websocket upgrade: %+v", err)
 			return
 		}
+
+		whoamiResponse, err := json.Marshal(map[string]interface{}{
+			"type": "auth.whoami.response",
+			"data": user.Display,
+		})
+		if err != nil {
+			logrus.Errorf("Error serialising whoami response: %+v", err)
+			return
+		}
+		conn.WriteMessage(websocket.TextMessage, whoamiResponse)
 
 		responses, stopper, err := tokens.WatchResponses(subject)
 		if err != nil {

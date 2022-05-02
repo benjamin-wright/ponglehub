@@ -1,47 +1,16 @@
 import '@pongle/styles/global.css';
 import '@pongle/components/nav-bar';
-import '@pongle/panels/popup-panel';
-import '../controls/game-summary';
-import '../controls/new-game';
 
 import {html, css, LitElement} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {PongleEvents} from '@pongle/events';
-import {newGameEvent} from '../services/events';
-
-function convert(g: any): any {
-  return {
-    created: g.Created,
-    id: g.ID,
-    player1: g.Player1,
-    player2: g.Player2,
-    turn: g.Turn
-  }
-}
 
 @customElement('index-view')
 export class IndexView extends LitElement {
   static styles = css`
-    h1 {
-      width: 100%;
-      text-align: center;
-    }
-
     ul {
       list-style: none;
       display: flex;
-      flex-wrap: wrap;
-    }
-
-    em {
-      color: var(--default-foreground);
-      font-style: normal;
-      font-weight: bold;
-      text-transform: capitalize;
-    }
-
-    section {
-      padding: 1em;
     }
   `;
 
@@ -130,8 +99,8 @@ export class IndexView extends LitElement {
     }
 
     return html`
+      <p>games:</p>
       <ul>
-        <li><new-game @click="${() => this.newGame = true}"/></li>
         ${this.games.map(game => html`
           <li>
             <game-summary .game="${game}" .players="${this.players}"></game-summary>
@@ -153,12 +122,14 @@ export class IndexView extends LitElement {
 
     return html`
       <popup-panel>
-        <p>Who would you like to challenge?</p>
-        <ul>
-          ${Object.keys(this.players).map(key => html`
-            <li @click="${() => this.requestNewGame(key)}">${this.players[key]}</li>
-          `)}
-        </ul>
+        <div>
+          <p>Who would you like to challenge?</p>
+          <ul>
+            ${Object.keys(this.players).map(key => html`
+              <li @click="${() => this.requestNewGame(key)}">${this.players[key]}</li>
+            `)}
+          </ul>
+        </div>
       </popup-panel>
     `
   }
@@ -166,11 +137,10 @@ export class IndexView extends LitElement {
   render() {
     return html`
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
-      <section>
-        <h1>Hi <em>${this.userName}</em>! Lets play Naughts and Crosses!</h1>
-        ${this.listGames()}
-        ${this.newGamePopup()}
-      </section>
+      <h1>Hi ${this.userName}! Lets play Naughts and Crosses!</h1>
+      <button @click="${() => this.newGame = true}">New Game</button>
+      ${this.listGames()}
+      ${this.newGamePopup()}
     `;
   }
 }

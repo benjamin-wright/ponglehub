@@ -8,11 +8,19 @@ import { timeSince } from '../services/utils';
 export class GameSummary extends LitElement {
   static styles = css`
     .panel {
+      user-select: none;
+      cursor: pointer;
+
       margin: 1em;
       padding: 1em;
       background: var(--default-foreground);
       color: var(--default-background);
+      border: 2px solid var(--default-foreground);
       border-radius: 1em;
+    }
+
+    .panel:hover, .panel:focus {
+      border: 2px solid var(--default-highlight);
     }
 
     em {
@@ -34,6 +42,8 @@ export class GameSummary extends LitElement {
 
     .split {
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: space-between;
     }
   `;
@@ -45,20 +55,9 @@ export class GameSummary extends LitElement {
   private players: {[key: string]: string};
 
   render() {
-    console.info(this.game);
-    console.info(this.players);
-
     let player1 = this.players[this.game.player1] || "You";
     let player2 = this.players[this.game.player2] || "You";
-
-    let turn = this.game.turn == 0 ? player1 : player2;
-
-    if (turn === "You") {
-      turn += "r";
-    } else {
-      turn += "'s";
-    }
-
+    let theirTurn = this.game.turn === 0 && this.players[this.game.player1];
     let elapsed = timeSince(this.game.created);
 
     return html`
@@ -67,7 +66,7 @@ export class GameSummary extends LitElement {
           <p><em>${player1}</em> vs <em>${player2}</em></p>
         </div>
         <div class="split">
-          <p>${turn} go</p>
+          <p>${theirTurn ? "Their" : "Your"} turn</p>
           <p>started ${elapsed} ago</p>
         </div>
       </div>

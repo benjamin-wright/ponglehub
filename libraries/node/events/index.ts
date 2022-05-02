@@ -23,30 +23,37 @@ export class PongleEvents {
         }
 
         while(true) {
-            let attempts = 0;
-            while (attempts < 3) {
-                try {
-                    await this.events.start(callback, closed);
-                    return;
-                } catch (error) {
-                    attempts++;
-                }
+            try {
+                console.info("getting events socket...");
+                await this.events.start(callback, closed);
+                console.info("done!");
+                return;
+            } catch (error) {
+                console.info("failed to get events socket", error)
             }
 
             try {
+                console.info("checking logged in...");
                 if (await this.auth.load() == null) {
                     try {
+                        console.info('logging out...');
                         await this.auth.logOut();
+                        console.info('done!');
                     } finally {
+                        console.info('navigating to login...');
                         this.auth.logIn();
                         return;
                     }
                 }
-            } catch { }
-
+            } catch (error) {
+                console.info("failed to load user info", error);
+            }
+            
+            console.info("Next round!");
             await sleep(5000);
         }
     }
+
     send(type: string, data: any) {
         this.events.send(type, data);
     }

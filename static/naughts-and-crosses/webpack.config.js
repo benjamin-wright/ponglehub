@@ -1,5 +1,6 @@
 const path = require("path");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 const webpack = require('webpack');
 
 module.exports = {
@@ -33,6 +34,7 @@ module.exports = {
             { from: './static', to: './' }
         ]
     }),
+    new NodePolyfillPlugin(),
     new webpack.DefinePlugin({
       'process.env.NODE_DEBUG': '"console"'
     })

@@ -23,7 +23,7 @@ export class Events {
                 receive(data.type, data.data);
             }
         
-            socket.onclose = (event: Event) => {
+            socket.onclose = () => {
                 console.warn("socket connection closed");
                 socket.onclose = () => {};
                 socket.onerror = () => {};
@@ -36,7 +36,7 @@ export class Events {
                 socket.onclose = () => {};
                 socket.onerror = () => {};
                 this.socket = null;
-                closed();
+                reject(error);
             }
         });
     }
