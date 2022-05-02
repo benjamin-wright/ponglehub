@@ -6,18 +6,7 @@ import '../controls/new-game';
 
 import {html, css, LitElement} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
-import {PongleEvents} from '@pongle/events';
-import {newGameEvent} from '../services/events';
-
-function convert(g: any): any {
-  return {
-    created: g.Created,
-    id: g.ID,
-    player1: g.Player1,
-    player2: g.Player2,
-    turn: g.Turn
-  }
-}
+import {Game, GameData} from '../services/game';
 
 @customElement('index-view')
 export class IndexView extends LitElement {
@@ -45,7 +34,7 @@ export class IndexView extends LitElement {
     }
   `;
 
-  private events: PongleEvents;
+  private game: Game;
 
   @state()
   private userName: string;
@@ -54,13 +43,7 @@ export class IndexView extends LitElement {
   private newGame: boolean;
 
   @state()
-  private games: {
-    created: string,
-    id: string,
-    player1: string,
-    player2: string,
-    turn: number
-  }[];
+  private games: GameData[];
   
   @state()
   private players: {[key: string]: string};
@@ -68,60 +51,38 @@ export class IndexView extends LitElement {
   constructor() {
     super();
     
-    this.events = new PongleEvents("ponglehub.co.uk", window.localStorage);
+    this.game = new Game("ponglehub.co.uk", window.localStorage);
+    this.game.addListener(this.listen.bind(this));
   }
 
   connectedCallback() {
     super.connectedCallback();
-    this.listen();    
+    this.game.start();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.events.stop();
+    this.game.stop();
   }
 
-  private listen() {
-    this.events.start(
-      this.eventHandler.bind(this),
-      this.listen.bind(this),
-    )
-    .then(() => {
-      this.events.send("auth.list-friends", null);
-      this.events.send("naughts-and-crosses.list-games", null);
-    })
-    .catch(error => {
-      console.error("Error connecting to websocket", error);
-    });
-  }
-
-  private eventHandler(type: string, data: any) {
-    console.info(`Event: ${type}`);
-    switch(type) {
-      case "naughts-and-crosses.list-games.response":
-        this.games = data.games.map(convert);
-        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created))
-        break;
-      case "auth.list-friends.response":
-        this.players = data;
-        break;
-      case "auth.whoami.response":
-        this.userName = data;
-        break;
-      case "naughts-and-crosses.new-game.response":
-        this.games.push(convert(data.game));
-        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created))
+  private listen(property: string) {
+    switch (property) {
+      case "userName":
+        this.userName = this.game.userName;
+        this.requestUpdate("userName");
+      case "players":
+        this.players = this.game.players;
+        this.requestUpdate("players");
+      case "games":
+        this.games = this.game.games;
         this.requestUpdate("games");
-        break;
       default:
-        console.error(`Unrecognised response type from server: ${type}`);
-        break;
+        console.info(`Ignoring unknown property: ${property}`);
     }
   }
 
   private async logOut() {
-    await this.events.logout();
-    window.location.href="http://games.ponglehub.co.uk";
+    await this.game.logout();
   }
 
   private listGames() {
@@ -143,7 +104,7 @@ export class IndexView extends LitElement {
 
   private requestNewGame(opponent: string) {
     this.newGame = false;
-    this.events.send("naughts-and-crosses.new-game", newGameEvent(opponent));
+    this.game.newGame(opponent);
   }
 
   private newGamePopup() {

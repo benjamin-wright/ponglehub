@@ -204,6 +204,7 @@ func eventsGetRoute(tokens *tokens.Tokens, domain string, store *user_store.Stor
 func loggedIn(c *gin.Context, tokens *tokens.Tokens, domain string) (string, error) {
 	token, err := c.Cookie("ponglehub.login")
 	if err == http.ErrNoCookie {
+		logrus.Errorf("No cookie provided: %+v", err)
 		c.Status(http.StatusUnauthorized)
 		return "", err
 	}
