@@ -6,7 +6,8 @@ const webpack = require('webpack');
 module.exports = {
   target: "web",
   entry: {
-    index: "./src/views/index.ts"
+    index: "./src/views/index.ts",
+    game: "./src/views/game.ts",
   },
   output: {
     path: path.resolve(__dirname, "dist"),

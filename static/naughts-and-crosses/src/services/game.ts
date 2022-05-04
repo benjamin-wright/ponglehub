@@ -2,7 +2,7 @@ import { PongleEvents } from "@pongle/events";
 
 export interface GameData {
   created: string,
-  id: number,
+  id: string,
   player1: string,
   player2: string,
   turn: number
@@ -26,6 +26,7 @@ export class Game {
   public live: boolean;
   public userName: string;
   public games: GameData[];
+  public currentGame: GameData;
   public players: {[key: string]: string};
 
   constructor(host: string, storage: Storage) {
@@ -46,6 +47,32 @@ export class Game {
     }
   }
 
+  private restore(): boolean {
+    const username = this.storage.getItem("userName");
+    const players = this.storage.getItem("players");
+    const games = this.storage.getItem("games");
+    const currentGame = this.storage.getItem("currentGame");
+
+    if (username === null || players === null || games === null) {
+      return false;
+    }
+
+    this.userName = username;
+    this.players = JSON.parse(players);
+    this.games = JSON.parse(games);
+
+    this.inform("userName");
+    this.inform("players");
+    this.inform("games");
+
+    return true;
+  }
+
+  private initialise() {
+    this.events.send("auth.list-friends", null);
+    this.events.send("naughts-and-crosses.list-games", null);
+  }
+
   async start() {
     this.live = false;
     await this.events.start(
@@ -54,8 +81,9 @@ export class Game {
     );
     this.live = true;
 
-    this.events.send("auth.list-friends", null);
-    this.events.send("naughts-and-crosses.list-games", null);
+    if (!this.restore()) {
+      this.initialise();
+    }
   }
 
   stop() {
@@ -64,6 +92,7 @@ export class Game {
 
   async logout() {
     try {
+      this.storage.clear();
       await this.events.logout();
     } finally {
       this.events.login();
@@ -73,21 +102,30 @@ export class Game {
   event(type: string, data: any) {
     switch(type) {
       case "auth.whoami.response":
+        if (this.userName && this.userName !== data) {
+          this.storage.clear();
+          this.initialise();
+        }
+
         this.userName = data;
+        this.storage.setItem("userName", this.userName);
         this.inform("userName");
         break;
       case "auth.list-friends.response":
         this.players = data;
+        this.storage.setItem("players", JSON.stringify(this.players));
         this.inform("players");
         break;
       case "naughts-and-crosses.list-games.response":
         this.games = data.games.map(convert);
-        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created))
+        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
+        this.storage.setItem("games", JSON.stringify(this.games));
         this.inform("games");
         break;
       case "naughts-and-crosses.new-game.response":
         this.games.push(convert(data.game));
-        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created))
+        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
+        this.storage.setItem("games", JSON.stringify(this.games));
         this.inform("games");
         break;
       default:
@@ -102,5 +140,9 @@ export class Game {
 
   newGame(opponent: string) {
     this.events.send("naughts-and-crosses.new-game", {opponent});
+  }
+
+  loadGame(id: string) {
+    this.events.send("naughts-and-crosses.load-game", {id});
   }
 }

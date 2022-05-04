@@ -111,3 +111,23 @@ func (d *Database) ListGames(player string) ([]Game, error) {
 
 	return games, nil
 }
+
+func (d *Database) LoadGame(id string) (*Game, string, error) {
+	logrus.Infof("Loading game %s", id)
+	rows, err := d.conn.Query(context.TODO(), "SELECT id, player1, player2, created_time, turn, marks FROM games WHERE id=$1", id)
+	if err != nil {
+		return nil, "", fmt.Errorf("error fetching game data: %+v", err)
+	}
+
+	game := Game{}
+	var marks string
+
+	for rows.Next() {
+		err := rows.Scan(&game.ID, &game.Player1, &game.Player2, &game.Created, &game.Turn, &marks)
+		if err != nil {
+			return nil, "", fmt.Errorf("error parsing game data: %+v", err)
+		}
+	}
+
+	return &game, marks, nil
+}

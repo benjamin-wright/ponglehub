@@ -1,8 +1,8 @@
 import '@pongle/styles/global.css';
 import '@pongle/components/nav-bar';
 import '@pongle/panels/popup-panel';
-import '../controls/game-summary';
-import '../controls/new-game';
+import '../controls/list-games';
+import '../controls/new-game-popup';
 
 import {html, css, LitElement} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
@@ -31,6 +31,34 @@ export class IndexView extends LitElement {
 
     section {
       padding: 1em;
+    }
+
+    .challenger {
+      border: 2px solid var(--default-foreground);
+      border-radius: 1em;
+      padding: 1em;
+      text-transform: capitalize;
+      color: var(--default-foreground);
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .challenger:focus, .challenger:hover {
+      border: 2px solid var(--default-highlight);
+      background: var(--default-foreground);
+      color: var(--default-background);
+    }
+
+    .cancel {
+      display: flex;
+      justify-content: right;
+    }
+
+    .cancel button {
+      background: none;
+      border: none;
+      color: red;
+      cursor: pointer;
     }
   `;
 
@@ -70,14 +98,18 @@ export class IndexView extends LitElement {
       case "userName":
         this.userName = this.game.userName;
         this.requestUpdate("userName");
+        break;
       case "players":
         this.players = this.game.players;
         this.requestUpdate("players");
+        break;
       case "games":
         this.games = this.game.games;
         this.requestUpdate("games");
+        break;
       default:
         console.info(`Ignoring unknown property: ${property}`);
+        break;
     }
   }
 
@@ -85,43 +117,9 @@ export class IndexView extends LitElement {
     await this.game.logout();
   }
 
-  private listGames() {
-    if (!this.games) {
-      return html`<p>loading...</p>`;
-    }
-
-    return html`
-      <ul>
-        <li><new-game @click="${() => this.newGame = true}"/></li>
-        ${this.games.map(game => html`
-          <li>
-            <game-summary .game="${game}" .players="${this.players}"></game-summary>
-          </li>
-        `)}
-      </ul>
-    `;
-  }
-
   private requestNewGame(opponent: string) {
     this.newGame = false;
     this.game.newGame(opponent);
-  }
-
-  private newGamePopup() {
-    if (!this.newGame) {
-      return null;
-    }
-
-    return html`
-      <popup-panel>
-        <p>Who would you like to challenge?</p>
-        <ul>
-          ${Object.keys(this.players).map(key => html`
-            <li @click="${() => this.requestNewGame(key)}">${this.players[key]}</li>
-          `)}
-        </ul>
-      </popup-panel>
-    `
   }
 
   render() {
@@ -129,8 +127,17 @@ export class IndexView extends LitElement {
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
       <section>
         <h1>Hi <em>${this.userName}</em>! Lets play Naughts and Crosses!</h1>
-        ${this.listGames()}
-        ${this.newGamePopup()}
+        <list-games
+          .games="${this.games}"
+          .players="${this.players}"
+          @new-game="${() => this.newGame = true}"
+        ></list-games>
+        <new-game-popup
+          .display="${this.newGame}"
+          .players="${this.players}"
+          @cancel="${() => this.newGame = false}"
+          @new-game="${(event: CustomEvent<string>) => this.requestNewGame(event.detail)}"
+        ></new-game-popup>
       </section>
     `;
   }

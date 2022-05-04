@@ -38,6 +38,8 @@ func New(client *events.Events, db *database.Database) (*Server, error) {
 			err = listGames(client, db, userId, event)
 		case "naughts-and-crosses.new-game":
 			err = newGame(client, db, userId, event)
+		case "naughts-and-crosses.load-game":
+			err = loadGame(client, db, userId, event)
 		case "naughts-and-crosses.mark":
 			err = mark(client, db, userId, event)
 		default:
@@ -103,8 +105,36 @@ func newGame(client *events.Events, db *database.Database, userId string, event 
 			map[string]interface{}{"userid": id},
 		)
 		if err != nil {
-			return fmt.Errorf("failed to send new game event for %s: %+v", id, err)
+			return fmt.Errorf("failed to send new game response for %s: %+v", id, err)
 		}
+	}
+
+	return nil
+}
+
+type LoadGameEvent struct {
+	ID string `json:"id"`
+}
+
+func loadGame(client *events.Events, db *database.Database, userId string, event event.Event) error {
+	data := LoadGameEvent{}
+	err := event.DataAs(&data)
+	if err != nil {
+		return fmt.Errorf("failed to parse payload data from event: %+v", err)
+	}
+
+	game, marks, err := db.LoadGame(data.ID)
+	if err != nil {
+		return fmt.Errorf("failed to load game data: %+v", err)
+	}
+
+	err = client.Send(
+		"naughts-and-crosses.load-game.response",
+		map[string]interface{}{"game": game, "marks": marks},
+		map[string]interface{}{"userid": userId},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to send load game response for %s: %+v", userId, err)
 	}
 
 	return nil

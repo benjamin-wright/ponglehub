@@ -19,7 +19,7 @@ export class GameSummary extends LitElement {
 
     input:hover, .panel:focus {
       background: var(--default-foreground);
-      color: var(--default-highlight);
+      color: var(--default-background);
       border: 2px dashed var(--default-highlight);
     }
   `;
