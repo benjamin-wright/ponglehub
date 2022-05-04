@@ -8,7 +8,7 @@ export interface GameData {
   turn: number
 }
 
-function convert(g: any): GameData {
+export function convert(g: any): GameData {
   return {
     created: g.Created,
     id: g.ID,
@@ -51,7 +51,6 @@ export class Game {
     const username = this.storage.getItem("userName");
     const players = this.storage.getItem("players");
     const games = this.storage.getItem("games");
-    const currentGame = this.storage.getItem("currentGame");
 
     if (username === null || players === null || games === null) {
       return false;
@@ -123,6 +122,7 @@ export class Game {
         this.inform("games");
         break;
       case "naughts-and-crosses.new-game.response":
+        this.games = this.games.slice();
         this.games.push(convert(data.game));
         this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
         this.storage.setItem("games", JSON.stringify(this.games));

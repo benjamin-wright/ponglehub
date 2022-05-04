@@ -4,9 +4,12 @@ import '@pongle/panels/popup-panel';
 import '../controls/list-games';
 import '../controls/new-game-popup';
 
-import {html, css, LitElement} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
-import {Game, GameData} from '../services/game';
+import { html, css, LitElement } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { convert, GameData } from '../services/game';
+import { PongleEvents } from '@pongle/events';
+
+const INDEX_DATA_KEY = "index-data";
 
 @customElement('index-view')
 export class IndexView extends LitElement {
@@ -14,12 +17,6 @@ export class IndexView extends LitElement {
     h1 {
       width: 100%;
       text-align: center;
-    }
-
-    ul {
-      list-style: none;
-      display: flex;
-      flex-wrap: wrap;
     }
 
     em {
@@ -32,37 +29,10 @@ export class IndexView extends LitElement {
     section {
       padding: 1em;
     }
-
-    .challenger {
-      border: 2px solid var(--default-foreground);
-      border-radius: 1em;
-      padding: 1em;
-      text-transform: capitalize;
-      color: var(--default-foreground);
-      cursor: pointer;
-      user-select: none;
-    }
-    
-    .challenger:focus, .challenger:hover {
-      border: 2px solid var(--default-highlight);
-      background: var(--default-foreground);
-      color: var(--default-background);
-    }
-
-    .cancel {
-      display: flex;
-      justify-content: right;
-    }
-
-    .cancel button {
-      background: none;
-      border: none;
-      color: red;
-      cursor: pointer;
-    }
   `;
 
-  private game: Game;
+  private events: PongleEvents;
+  private storage: Storage;
 
   @state()
   private userName: string;
@@ -78,48 +48,91 @@ export class IndexView extends LitElement {
 
   constructor() {
     super();
-    
-    this.game = new Game("ponglehub.co.uk", window.localStorage);
-    this.game.addListener(this.listen.bind(this));
+
+    this.events = new PongleEvents("ponglehub.co.uk");
+    this.storage = window.localStorage;
+
+    const data = this.storage.getItem(INDEX_DATA_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+
+      this.userName = parsed.username;
+      this.players = parsed.players;
+      this.games = parsed.games;
+    }
   }
 
   connectedCallback() {
     super.connectedCallback();
-    this.game.start();
+    this.start();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.game.stop();
+    this.events.stop();
   }
 
-  private listen(property: string) {
-    switch (property) {
-      case "userName":
-        this.userName = this.game.userName;
-        this.requestUpdate("userName");
-        break;
-      case "players":
-        this.players = this.game.players;
-        this.requestUpdate("players");
-        break;
-      case "games":
-        this.games = this.game.games;
-        this.requestUpdate("games");
-        break;
-      default:
-        console.info(`Ignoring unknown property: ${property}`);
-        break;
+  private async start() {
+    await this.events.start(
+      this.listen.bind(this),
+      this.start.bind(this),
+    );
+
+    if (!this.storage.getItem(INDEX_DATA_KEY)) {
+      this.list();
     }
   }
 
+  private listen(type: string, data: any) {
+    switch(type) {
+      case "auth.whoami.response":
+        if (this.userName && this.userName !== data) {
+          this.storage.clear();
+          this.list();
+        }
+
+        this.userName = data;
+        break;
+      case "auth.list-friends.response":
+        this.players = data;
+        break;
+      case "naughts-and-crosses.list-games.response":
+        this.games = data.games.map(convert);
+        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
+        break;
+      case "naughts-and-crosses.new-game.response":
+        this.games = this.games.slice();
+        this.games.push(convert(data.game));
+        this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
+        break;
+      default:
+        console.error(`Unrecognised response type from server: ${type}`);
+        return;
+    }
+
+    this.save();
+  }
+
+  private save() {
+    this.storage.setItem(INDEX_DATA_KEY, JSON.stringify({
+      username: this.userName,
+      players: this.players,
+      games: this.games
+    }));
+  }
+
+  private list() {
+    this.events.send("auth.list-friends", null);
+    this.events.send("naughts-and-crosses.list-games", null);
+  }
+
   private async logOut() {
-    await this.game.logout();
+    await this.events.logout();
   }
 
   private requestNewGame(opponent: string) {
     this.newGame = false;
-    this.game.newGame(opponent);
+    this.events.send("naughts-and-crosses.new-game", {opponent});
   }
 
   render() {
