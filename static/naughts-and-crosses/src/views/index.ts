@@ -9,8 +9,6 @@ import { customElement, state } from 'lit/decorators.js';
 import { convert, GameData } from '../services/game';
 import { PongleEvents } from '@pongle/events';
 
-const INDEX_DATA_KEY = "index-data";
-
 @customElement('index-view')
 export class IndexView extends LitElement {
   static styles = css`
@@ -32,7 +30,6 @@ export class IndexView extends LitElement {
   `;
 
   private events: PongleEvents;
-  private storage: Storage;
 
   @state()
   private userName: string;
@@ -50,16 +47,6 @@ export class IndexView extends LitElement {
     super();
 
     this.events = new PongleEvents("ponglehub.co.uk");
-    this.storage = window.localStorage;
-
-    const data = this.storage.getItem(INDEX_DATA_KEY);
-    if (data) {
-      const parsed = JSON.parse(data);
-
-      this.userName = parsed.username;
-      this.players = parsed.players;
-      this.games = parsed.games;
-    }
   }
 
   connectedCallback() {
@@ -78,16 +65,13 @@ export class IndexView extends LitElement {
       this.start.bind(this),
     );
 
-    if (!this.storage.getItem(INDEX_DATA_KEY)) {
-      this.list();
-    }
+    this.list();
   }
 
   private listen(type: string, data: any) {
     switch(type) {
       case "auth.whoami.response":
         if (this.userName && this.userName !== data) {
-          this.storage.clear();
           this.list();
         }
 
@@ -109,16 +93,6 @@ export class IndexView extends LitElement {
         console.error(`Unrecognised response type from server: ${type}`);
         return;
     }
-
-    this.save();
-  }
-
-  private save() {
-    this.storage.setItem(INDEX_DATA_KEY, JSON.stringify({
-      username: this.userName,
-      players: this.players,
-      games: this.games
-    }));
   }
 
   private list() {
@@ -128,6 +102,7 @@ export class IndexView extends LitElement {
 
   private async logOut() {
     await this.events.logout();
+    this.events.login();
   }
 
   private requestNewGame(opponent: string) {

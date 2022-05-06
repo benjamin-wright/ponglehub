@@ -24,7 +24,7 @@ export class ListGames extends LitElement {
 
   private navigate(id: string) {
     console.log(`Clicked on ${id}`);
-    window.location.href = `naughts-and-crosses/game?id=${id}`;
+    window.location.href = `/naughts-and-crosses/game?id=${id}`;
   }
 
   private newGame() {

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -96,6 +97,7 @@ func (d *Database) ListGames(player string) ([]Game, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error fetching games data: %+v", err)
 	}
+	defer rows.Close()
 
 	games := []Game{}
 
@@ -118,15 +120,18 @@ func (d *Database) LoadGame(id string) (*Game, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("error fetching game data: %+v", err)
 	}
+	defer rows.Close()
 
 	game := Game{}
 	var marks string
 
-	for rows.Next() {
-		err := rows.Scan(&game.ID, &game.Player1, &game.Player2, &game.Created, &game.Turn, &marks)
-		if err != nil {
-			return nil, "", fmt.Errorf("error parsing game data: %+v", err)
-		}
+	if !rows.Next() {
+		return nil, "", errors.New("game not found")
+	}
+
+	err = rows.Scan(&game.ID, &game.Player1, &game.Player2, &game.Created, &game.Turn, &marks)
+	if err != nil {
+		return nil, "", fmt.Errorf("error parsing game data: %+v", err)
 	}
 
 	return &game, marks, nil

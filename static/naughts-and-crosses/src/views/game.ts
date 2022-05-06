@@ -7,8 +7,6 @@ import { customElement, state } from 'lit/decorators.js';
 import { convert, GameData } from '../services/game';
 import { PongleEvents } from '@pongle/events';
 
-const GAME_DATA_KEY = "game-data";
-
 @customElement('game-view')
 export class GameView extends LitElement {
   static styles = css`
@@ -22,7 +20,6 @@ export class GameView extends LitElement {
   `;
 
   private events: PongleEvents;
-  private storage: Storage;
 
   @state()
   private userName: string;
@@ -43,25 +40,9 @@ export class GameView extends LitElement {
     super();
 
     this.events = new PongleEvents("ponglehub.co.uk");
-    this.storage = window.localStorage;
 
     const params = new URLSearchParams(window.location.search);
     this.gameId = params.get("id");
-
-    const data = this.storage.getItem(GAME_DATA_KEY);
-    if (data) {
-      const parsed = JSON.parse(data);
-
-      if (this.gameId !== parsed.id) {
-        this.storage.removeItem(GAME_DATA_KEY);
-        return;
-      }
-
-      this.userName = parsed.username;
-      this.players = parsed.players;
-      this.game = parsed.game;
-      this.marks = parsed.marks;
-    }
   }
 
   connectedCallback() {
@@ -80,16 +61,13 @@ export class GameView extends LitElement {
       this.start.bind(this),
     );
 
-    if (!this.storage.getItem(GAME_DATA_KEY)) {
-      this.list(this.gameId);
-    }
+    this.list(this.gameId);
   }
 
   private listen(type: string, data: any) {
     switch(type) {
       case "auth.whoami.response":
         if (this.userName && this.userName !== data) {
-          this.storage.clear();
           this.list(this.gameId);
         }
 
@@ -102,22 +80,13 @@ export class GameView extends LitElement {
         this.game = convert(data.game);
         this.marks = data.marks;
         break;
+      case "naughts-and-crosses.load-game.rejection.response":
+        window.location.href = "../naughts-and-crosses"
+        break;
       default:
         console.error(`Unrecognised response type from server: ${type}`);
         return;
     }
-
-    this.save();
-  }
-
-  private save() {
-    this.storage.setItem(GAME_DATA_KEY, JSON.stringify({
-      username: this.userName,
-      players: this.players,
-      game: this.game,
-      marks: this.marks,
-      id: this.gameId,
-    }));
   }
 
   private list(id: string) {
@@ -125,15 +94,21 @@ export class GameView extends LitElement {
     this.events.send("naughts-and-crosses.load-game", {id});
   }
 
+  private select(index: number) {
+    console.log(`Selected: ${index}`);
+    this.events.send("naughts-and-crosses.mark", {game: this.gameId, position: index})
+  }
+
   private async logOut() {
     await this.events.logout();
+    this.events.login();
   }
 
   render() {
     return html`
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
       <section>
-        <game-board .marks="${this.marks}"></game-board>
+        <game-board .marks="${this.marks}" @select="${(event: CustomEvent<number>) => this.select(event.detail)}"></game-board>
       </section>
     `;
   }

@@ -125,6 +125,11 @@ func loadGame(client *events.Events, db *database.Database, userId string, event
 
 	game, marks, err := db.LoadGame(data.ID)
 	if err != nil {
+		client.Send(
+			"naughts-and-crosses.load-game.rejection.response",
+			nil,
+			map[string]interface{}{"userid": userId},
+		)
 		return fmt.Errorf("failed to load game data: %+v", err)
 	}
 
@@ -151,6 +156,18 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 	if err != nil {
 		return fmt.Errorf("failed to parse payload data from event: %+v", err)
 	}
+
+	game, _, err := db.LoadGame(data.ID)
+	if err != nil {
+		client.Send(
+			"naughts-and-crosses.load-game.rejection.response",
+			nil,
+			map[string]interface{}{"userid": userId},
+		)
+		return fmt.Errorf("failed to load game data: %+v", err)
+	}
+
+	
 
 	return nil
 }
