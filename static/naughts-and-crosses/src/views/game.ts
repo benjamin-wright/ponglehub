@@ -80,6 +80,10 @@ export class GameView extends LitElement {
         this.game = convert(data.game);
         this.marks = data.marks;
         break;
+      case "naughts-and-crosses.mark.response":
+        this.game = convert(data.game);
+        this.marks = data.marks;
+        break;
       case "naughts-and-crosses.load-game.rejection.response":
         window.location.href = "../naughts-and-crosses"
         break;
@@ -95,7 +99,6 @@ export class GameView extends LitElement {
   }
 
   private select(index: number) {
-    console.log(`Selected: ${index}`);
     this.events.send("naughts-and-crosses.mark", {game: this.gameId, position: index})
   }
 

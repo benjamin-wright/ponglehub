@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/games/naughts-and-crosses/pkg/database"
 	"ponglehub.co.uk/lib/events"
@@ -157,17 +158,60 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 		return fmt.Errorf("failed to parse payload data from event: %+v", err)
 	}
 
-	game, _, err := db.LoadGame(data.ID)
+	game, marks, err := db.LoadGame(data.Game)
 	if err != nil {
 		client.Send(
-			"naughts-and-crosses.load-game.rejection.response",
+			"naughts-and-crosses.mark.rejection.response",
 			nil,
 			map[string]interface{}{"userid": userId},
 		)
 		return fmt.Errorf("failed to load game data: %+v", err)
 	}
 
-	
+	markRunes := []rune(marks)
+
+	player1Fail := game.Turn == 0 && game.Player1.String() != userId
+	player2Fail := game.Turn == 1 && game.Player2.String() != userId
+
+	if player1Fail || player2Fail {
+		client.Send(
+			"naughts-and-crosses.mark.rejection.response",
+			nil,
+			map[string]interface{}{"userid": userId},
+		)
+		return fmt.Errorf("user %s tried to make a mark in game %s, but it wasn't their turn", userId, data.Game)
+	}
+
+	if markRunes[data.Position] != '-' {
+		client.Send(
+			"naughts-and-crosses.mark.rejection.response",
+			nil,
+			map[string]interface{}{"userid": userId},
+		)
+		return fmt.Errorf("user %s tried to make a mark in game %s, but it was already marked", userId, data.Game)
+	}
+
+	if game.Turn == 0 {
+		markRunes[data.Position] = '0'
+		game.Turn = 1
+	} else {
+		markRunes[data.Position] = '1'
+		game.Turn = 0
+	}
+
+	marks = string(markRunes)
+	db.SetMarks(data.Game, game.Turn, marks)
+
+	for _, uuid := range []uuid.UUID{game.Player1, game.Player2} {
+		err = client.Send(
+			"naughts-and-crosses.mark.response",
+			map[string]interface{}{"game": game, "marks": marks},
+			map[string]interface{}{"userid": uuid.String()},
+		)
+		if err != nil {
+			logrus.Errorf("failed to send mark response for %s - %s: %+v", userId, data.Game, err)
+		}
+	}
 
 	return nil
 }
