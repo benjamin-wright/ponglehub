@@ -71,11 +71,11 @@ export class IndexView extends LitElement {
   private listen(type: string, data: any) {
     switch(type) {
       case "auth.whoami.response":
-        if (this.userName && this.userName !== data) {
+        if (this.userName && this.userName !== data.display) {
           this.list();
         }
 
-        this.userName = data;
+        this.userName = data.display;
         break;
       case "auth.list-friends.response":
         this.players = data;

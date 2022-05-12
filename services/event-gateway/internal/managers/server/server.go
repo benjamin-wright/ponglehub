@@ -130,7 +130,10 @@ func eventsGetRoute(tokens *tokens.Tokens, domain string, store *user_store.Stor
 
 		whoamiResponse, err := json.Marshal(map[string]interface{}{
 			"type": "auth.whoami.response",
-			"data": user.Display,
+			"data": map[string]interface{}{
+				"id":      user.ID,
+				"display": user.Display,
+			},
 		})
 		if err != nil {
 			logrus.Errorf("Error serialising whoami response: %+v", err)

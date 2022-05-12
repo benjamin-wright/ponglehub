@@ -23,6 +23,9 @@ export class GameView extends LitElement {
 
   @state()
   private userName: string;
+  
+  @state()
+  private userId: string;
 
   @state()
   private game: GameData;
@@ -67,11 +70,12 @@ export class GameView extends LitElement {
   private listen(type: string, data: any) {
     switch(type) {
       case "auth.whoami.response":
-        if (this.userName && this.userName !== data) {
+        if (this.userName && this.userName !== data.display) {
           this.list(this.gameId);
         }
 
-        this.userName = data;
+        this.userName = data.display;
+        this.userId = data.id;
         break;
       case "auth.list-friends.response":
         this.players = data;
@@ -107,11 +111,27 @@ export class GameView extends LitElement {
     this.events.login();
   }
 
+  private getTurn(): number {
+    if(!this.game) {
+      return 0;
+    }
+
+    return this.game.turn;
+  }
+
+  private getPlayer(): number {
+    if(!this.game) {
+      return 0;
+    }
+
+    return this.game.player1 === this.userId ? 0 : 1;
+  }
+
   render() {
     return html`
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
       <section>
-        <game-board .marks="${this.marks}" @select="${(event: CustomEvent<number>) => this.select(event.detail)}"></game-board>
+        <game-board .turn="${this.getTurn()}" .player="${this.getPlayer()}" .marks="${this.marks}" @select="${(event: CustomEvent<number>) => this.select(event.detail)}"></game-board>
       </section>
     `;
   }

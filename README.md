@@ -2,6 +2,7 @@
 
 ## Todo:
 
+- Return player object (id and display name) for whoami
 - Naughts and crosses game data through safe transform, with lowercase keys
 
 ## Dependencies:

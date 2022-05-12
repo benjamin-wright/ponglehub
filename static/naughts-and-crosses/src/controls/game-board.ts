@@ -1,4 +1,5 @@
 import '@pongle/styles/global.css';
+import './game-mark';
 
 import {html, css, LitElement, TemplateResult} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
@@ -58,26 +59,6 @@ export class GameBoard extends LitElement {
       grid-column: 3;
     }
 
-    .mark {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    button {
-      cursor: pointer;
-      background: none;
-      border: none;
-      width: 100%;
-      height: 100%;
-      stroke: white;
-    }
-
-    button:hover {
-      background: var(--default-highlight);
-      stroke: red;
-    }
-
     svg {
       height: 100%;
       width: 100%;
@@ -90,35 +71,8 @@ export class GameBoard extends LitElement {
   @property({type: Number})
   turn: number
 
-  @property({type: Boolean})
-  active: boolean
-
-  private xMark(color: string): TemplateResult<1> {
-    return html`
-      <svg>
-        <line x1="15%" y1="15%" x2="85%" y2="85%" stroke="${color}" stroke-width="10%" />
-        <line x1="15%" y1="85%" x2="85%" y2="15%" stroke="${color}" stroke-width="10%" />
-      </svg>
-    `;
-  }
-
-  private oMark(): TemplateResult<1> {
-    return html`
-      <svg>
-        <circle cx="50%" cy="50%" r="35%" fill="none" stroke="black" stroke-width="10%" />
-      </svg>
-    `;
-  }
-
-  private button(column: number, row: number): TemplateResult<1> {
-    return html`
-      <button
-        @click="${() => this.select(column, row)}"
-      >
-        ${this.turn === 0 ? this.xMark("blue") : this.oMark() }
-      </button>
-    `;
-  }
+  @property({type: Number})
+  player: number
 
   private select(column: number, row: number) {
     const index = row * 3 + column;
@@ -140,11 +94,15 @@ export class GameBoard extends LitElement {
 
     switch (this.marks[index]) {
       case "-":
-        return html`<div class="mark row${row}, col${column}">${this.button(column, row)}</div>`;
+        return html`<game-mark
+          class="row${row}, col${column}"
+          .player="${this.player}"
+          @click="${() => this.select(column, row)}"
+        />`;
       case "0":
-        return html`<div class="mark row${row}, col${column}">${this.xMark("black")}</div>`;
+        return html`<game-mark class="row${row}, col${column}" player="0" selected />`;
       case "1":
-        return html`<div class="mark row${row}, col${column}">${this.oMark()}</div>`;
+        return html`<game-mark class="row${row}, col${column}" player="1" selected />`;
       default:
         throw new Error(`bad character: ${this.marks[index]}`);
     }
