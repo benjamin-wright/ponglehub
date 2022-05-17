@@ -9,7 +9,9 @@ export class GameBoard extends LitElement {
   static styles = css`
     .panel {
       width: 80vw;
-      height: 80vw; 
+      height: 80vw;
+      margin-right: auto;
+      margin-left: auto;
     }
   
     @media (min-aspect-ratio: 1/1) {
@@ -94,6 +96,10 @@ export class GameBoard extends LitElement {
 
     switch (this.marks[index]) {
       case "-":
+        if (this.player !== this.turn) {
+          return null;
+        }
+
         return html`<game-mark
           class="row${row}, col${column}"
           .player="${this.player}"

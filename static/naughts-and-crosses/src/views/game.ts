@@ -1,6 +1,7 @@
 import '@pongle/styles/global.css';
 import '@pongle/components/nav-bar';
 import '../controls/game-board';
+import '../controls/name-panel';
 
 import { html, css, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
@@ -14,8 +15,51 @@ export class GameView extends LitElement {
       box-sizing: border-box;
       width: 100%;
       padding: 1em;
-      display: flex;
+      display: grid;
       justify-content: center;
+      grid-template-columns: 10% 80% 10%;
+      grid-template-rows: 100%;
+    }
+
+    .left {
+      grid-column: 1;
+    }
+
+    .right {
+      grid-column: 3;
+    }
+
+    game-board {
+      grid-row: 1;
+    }
+
+    name-panel {
+      grid-row: 1;
+    }
+
+    @media (max-aspect-ratio: 1/1) {
+      section {
+        grid-template-columns: 50% 50%;
+        grid-template-rows: 100% 20%; 
+      }
+
+      .left {
+        grid-column: 1;
+      }
+
+      .right {
+        grid-column: 2;
+      }
+
+      game-board {
+        grid-row: 1;
+        grid-column-start: 1;
+        grid-column-end: 3;
+      }
+
+      name-panel {
+        grid-row: 2;
+      }
     }
   `;
 
@@ -127,11 +171,22 @@ export class GameView extends LitElement {
     return this.game.player1 === this.userId ? 0 : 1;
   }
 
+  private getPlayerName(id: string): string {
+    return this.players[id] || "you";
+  }
+
   render() {
     return html`
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
       <section>
-        <game-board .turn="${this.getTurn()}" .player="${this.getPlayer()}" .marks="${this.marks}" @select="${(event: CustomEvent<number>) => this.select(event.detail)}"></game-board>
+        <name-panel class="left" .player=${this.getPlayerName(this.game.player1)} .active=${this.getTurn() == 0} ></name-panel> 
+        <game-board
+          .turn="${this.getTurn()}"
+          .player="${this.getPlayer()}"
+          .marks="${this.marks}"
+          @select="${(event: CustomEvent<number>) => this.select(event.detail)}">
+        </game-board>
+        <name-panel class="right" .player=${this.getPlayerName(this.game.player2)} .active=${this.getTurn() == 1} ></name-panel> 
       </section>
     `;
   }
