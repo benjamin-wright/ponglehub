@@ -69,12 +69,12 @@ func (d *Database) NewGame(player1 string, player2 string) (Game, error) {
 	}, nil
 }
 
-func (d *Database) InsertGame(game Game) error {
+func (d *Database) InsertGame(game Game, marks string) error {
 	logrus.Infof("Inserting game for %s vs %s", game.Player1, game.Player2)
 	_, err := d.conn.Exec(
 		context.TODO(),
-		"INSERT INTO games (id, player1, player2, created_time, turn, marks) VALUES ($1, $2, $3, $4, $5, '---------') RETURNING id;",
-		game.ID, game.Player1, game.Player2, game.Created, game.Turn,
+		"INSERT INTO games (id, player1, player2, created_time, turn, marks) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
+		game.ID, game.Player1, game.Player2, game.Created, game.Turn, marks,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to add new game: %+v", err)

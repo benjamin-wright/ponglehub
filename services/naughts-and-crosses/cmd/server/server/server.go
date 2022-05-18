@@ -36,7 +36,7 @@ func New(client *events.Events, db *database.Database) (*Server, error) {
 
 		switch event.Type() {
 		case "naughts-and-crosses.list-games":
-			err = listGames(client, db, userId, event)
+			err = listGames(client, db, userId)
 		case "naughts-and-crosses.new-game":
 			err = newGame(client, db, userId, event)
 		case "naughts-and-crosses.load-game":
@@ -65,7 +65,7 @@ func (s *Server) Stop() {
 	s.cancelFunc()
 }
 
-func listGames(client *events.Events, db *database.Database, userId string, event event.Event) error {
+func listGames(client *events.Events, db *database.Database, userId string) error {
 	games, err := db.ListGames(userId)
 	if err != nil {
 		return fmt.Errorf("failed to list games: %+v", err)
