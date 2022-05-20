@@ -12,10 +12,6 @@ build: deps
 watch: deps
     npm run watch
 
-wasm:
-    mkdir -p dist/compiled
-    tinygo build -o dist/compiled/naughts-and-crosses.wasm -target wasm ./wasm/main.go
-
 image IMAGE_TAG: build
     DOCKER_BUILDKIT=1 docker build \
         -f ../../docker/nginx.Dockerfile \

@@ -1,8 +1,6 @@
-import { CloudEvent } from "cloudevents";
-
 export class Events {
     private host: string;
-    private socket: WebSocket;
+    private socket: WebSocket | null;
 
     constructor(host: string) {
         this.host = host;
@@ -19,8 +17,13 @@ export class Events {
             }
     
             socket.onmessage = (event: MessageEvent) => {
-                const data = JSON.parse(event.data);
-                receive(data.type, data.data);
+                const parsed = JSON.parse(event.data);
+
+                console.log("parsed data", parsed.data);
+                const data = typeof(parsed.data) === "string" ? JSON.parse(parsed.data) : parsed.data;
+                console.log("double-parsed", data);
+                
+                receive(parsed.type, data);
             }
         
             socket.onclose = () => {
@@ -46,13 +49,7 @@ export class Events {
             throw new Error(`Tried to send message ${type} to closed websocket`);
         }
 
-        const event = new CloudEvent({
-            type,
-            source: "web-cli",
-            data
-        });
-
-        this.socket.send(event.toString());
+        this.socket.send(JSON.stringify({type,data}));
     }
 
     stop(): void {

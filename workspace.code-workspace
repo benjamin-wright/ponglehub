@@ -72,6 +72,10 @@
 			"name": "static: naughts-and-crosses"
 		},
 		{
+			"path": "static/naughts-and-crosses-vanilla",
+			"name": "static: naughts-and-crosses-vanilla"
+		},
+		{
 			"path": "services/naughts-and-crosses",
 			"name": "srv: naughts-and-crosses"
 		},

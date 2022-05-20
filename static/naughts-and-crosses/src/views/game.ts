@@ -78,7 +78,7 @@ export class GameView extends LitElement {
   private gameId: string;
 
   @state()
-  private marks: string
+  private marks: string;
   
   @state()
   private players: {[key: string]: string};
@@ -90,6 +90,13 @@ export class GameView extends LitElement {
 
     const params = new URLSearchParams(window.location.search);
     this.gameId = params.get("id");
+    this.game = {
+      created: "",
+      id: "",
+      player1: "",
+      player2: "",
+      turn: 0
+    };
   }
 
   connectedCallback() {
@@ -127,10 +134,12 @@ export class GameView extends LitElement {
       case "naughts-and-crosses.load-game.response":
         this.game = convert(data.game);
         this.marks = data.marks;
+        console.log("marks: ", this.marks);
         break;
       case "naughts-and-crosses.mark.response":
         this.game = convert(data.game);
         this.marks = data.marks;
+        console.log("marks: ", this.marks);
         break;
       case "naughts-and-crosses.load-game.rejection.response":
         window.location.href = "../naughts-and-crosses"
@@ -172,6 +181,10 @@ export class GameView extends LitElement {
   }
 
   private getPlayerName(id: string): string {
+    if (!this.players) {
+      return "loading...";
+    }
+
     return this.players[id] || "you";
   }
 

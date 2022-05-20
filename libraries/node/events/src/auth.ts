@@ -1,5 +1,3 @@
-import axios from "axios";
-
 export class Auth {
   private host: string;
 
@@ -8,10 +6,13 @@ export class Auth {
   }
 
   async logOut(): Promise<any> {
-    const response = await axios.post(
+    const response = await fetch(
       `http://${this.host}/auth/logout`,
-      {},
-      { withCredentials: true }
+      {
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'include',
+      }
     );
 
     if (response.status != 204) {

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -28,9 +29,13 @@ func New(redisUrl string) (*Storage, error) {
 
 func (s *Storage) AddEvent(id string, event event.Event) error {
 	key := fmt.Sprintf("%s.responses", id)
-	data, err := event.MarshalJSON()
+
+	data, err := json.Marshal(map[string]interface{}{
+		"type": event.Type(),
+		"data": string(event.Data()),
+	})
 	if err != nil {
-		return fmt.Errorf("failed to marshal event to json: %+v", err)
+		return fmt.Errorf("failed to marshal event data: %+v", err)
 	}
 
 	err = s.redis.Publish(context.Background(), key, string(data)).Err()

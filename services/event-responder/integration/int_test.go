@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/lib/events"
@@ -24,11 +24,9 @@ func clearEvents(t *testing.T, rdb *redis.Client, id string) {
 	noErr(t, rdb.Del(context.Background(), fmt.Sprintf("%s.responses", id)).Err())
 }
 
-func getEvents(t *testing.T, rdb *redis.Client, id string) []string {
-	members, err := rdb.LRange(context.Background(), fmt.Sprintf("%s.responses", id), 0, -1).Result()
-	noErr(t, err)
-
-	return members
+func pubsubChannel(t *testing.T, rdb *redis.Client, id string) <-chan *redis.Message {
+	pubsub := rdb.Subscribe(context.TODO(), fmt.Sprintf("%s.responses", id))
+	return pubsub.Channel(redis.WithChannelSize(10))
 }
 
 func TestEvents(t *testing.T) {
@@ -56,15 +54,15 @@ func TestEvents(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		events   []testEvent
-		expected []testEvent
+		expected []map[string]interface{}
 	}{
 		{
 			name: "single",
 			events: []testEvent{
 				{Type: "test.event", Data: "messages", UserId: TEST_USER},
 			},
-			expected: []testEvent{
-				{Type: "test.event", Data: "messages", UserId: TEST_USER},
+			expected: []map[string]interface{}{
+				{"data": "\"messages\"", "type": "test.event"},
 			},
 		},
 		{
@@ -73,9 +71,9 @@ func TestEvents(t *testing.T) {
 				{Type: "test.event", Data: "message 1", UserId: TEST_USER},
 				{Type: "another.event", Data: "message 2", UserId: TEST_USER},
 			},
-			expected: []testEvent{
-				{Type: "test.event", Data: "message 1", UserId: TEST_USER},
-				{Type: "another.event", Data: "message 2", UserId: TEST_USER},
+			expected: []map[string]interface{}{
+				{"data": "\"message 1\"", "type": "test.event"},
+				{"data": "\"message 2\"", "type": "another.event"},
 			},
 		},
 		{
@@ -84,8 +82,8 @@ func TestEvents(t *testing.T) {
 				{Type: "test.event", Data: "message 1", UserId: TEST_USER},
 				{Type: "another.event", Data: "message 2", UserId: OTHER_USER},
 			},
-			expected: []testEvent{
-				{Type: "test.event", Data: "message 1", UserId: TEST_USER},
+			expected: []map[string]interface{}{
+				{"data": "\"message 1\"", "type": "test.event"},
 			},
 		},
 		{
@@ -94,8 +92,8 @@ func TestEvents(t *testing.T) {
 				{Type: "test.event", Data: "message 1", UserId: OTHER_USER},
 				{Type: "another.event", Data: "message 2", UserId: TEST_USER},
 			},
-			expected: []testEvent{
-				{Type: "another.event", Data: "message 2", UserId: TEST_USER},
+			expected: []map[string]interface{}{
+				{"data": "\"message 2\"", "type": "another.event"},
 			},
 		},
 	} {
@@ -103,10 +101,11 @@ func TestEvents(t *testing.T) {
 			clearEvents(u, rdb, TEST_USER)
 			clearEvents(u, rdb, OTHER_USER)
 
-			clearedEvents := getEvents(u, rdb, TEST_USER)
-			if !assert.Equal(u, []string{}, clearedEvents) {
-				u.FailNow()
-			}
+			pubsub := rdb.Subscribe(context.TODO(), TEST_USER+".responses")
+			defer pubsub.Close()
+			responseChannel := pubsub.Channel(redis.WithChannelSize(10))
+
+			time.Sleep(time.Millisecond * 500)
 
 			for _, event := range test.events {
 				client.Send(
@@ -116,26 +115,21 @@ func TestEvents(t *testing.T) {
 				)
 			}
 
-			testEvents := getEvents(u, rdb, TEST_USER)
-			if !assert.Equal(u, len(test.expected), len(testEvents)) {
-				u.FailNow()
+			for _, expected := range test.expected {
+				select {
+				case actual := <-responseChannel:
+					data, _ := json.Marshal(expected)
+					assert.Equal(u, string(data), actual.Payload)
+				case <-time.After(time.Second * 2):
+					assert.FailNow(u, "timed out waiting for event")
+				}
 			}
 
-			for index, data := range testEvents {
-				event := event.Event{}
-				noErr(u, event.UnmarshalJSON([]byte(data)))
-
-				var output interface{}
-				noErr(u, json.Unmarshal(event.Data(), &output))
-
-				userId, err := event.Context.GetExtension("userid")
-				noErr(u, err)
-
-				assert.Equal(u, test.expected[index].Type, event.Type())
-				assert.Equal(u, test.expected[index].Data, output)
-				assert.Equal(u, test.expected[index].UserId, userId)
+			select {
+			case <-responseChannel:
+				assert.FailNow(u, "received extra event")
+			case <-time.After(time.Second):
 			}
-
 		})
 	}
 }

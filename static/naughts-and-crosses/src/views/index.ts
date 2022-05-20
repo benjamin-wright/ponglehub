@@ -90,7 +90,7 @@ export class IndexView extends LitElement {
         this.games = this.games.sort((a, b) => Date.parse(b.created) - Date.parse(a.created));
         break;
       default:
-        console.error(`Unrecognised response type from server: ${type}`);
+        console.error(`Ignoring event: ${type}`);
         return;
     }
   }

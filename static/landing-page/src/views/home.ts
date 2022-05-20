@@ -51,10 +51,10 @@ export class HomeView extends LitElement {
   private content() {
     return html`
       <center-panel height="calc(100% - 3.1em)">
-        <a href="/naughts-and-crosses">
+        <a href="http://nac.ponglehub.co.uk">
           <img src="/assets/naughts-and-crosses.png" width="128" height="128" />
         </a>
-        <a href="/draughts">
+        <a href="http://draughts.ponglehub.co.uk">
           <img src="/assets/draughts.png" width="128" height="128" />
         </a>
       </center-panel>

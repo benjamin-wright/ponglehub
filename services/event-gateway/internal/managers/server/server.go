@@ -83,10 +83,26 @@ func watchEvents(conn *websocket.Conn) (<-chan cloudevents.Event, <-chan struct{
 				return
 			}
 
-			var event cloudevents.Event
-			err = json.Unmarshal(msg, &event)
+			type eventData struct {
+				EventType string                 `json:"type"`
+				EventData map[string]interface{} `json:"data"`
+			}
+
+			var data eventData
+
+			err = json.Unmarshal(msg, &data)
 			if err != nil {
 				logrus.Errorf("Error unmarshalling event data: %+v", err)
+				continue
+			}
+
+			event := cloudevents.NewEvent()
+			event.SetType(data.EventType)
+			event.SetSource("client")
+
+			err = event.SetData(cloudevents.ApplicationJSON, data.EventData)
+			if err != nil {
+				logrus.Errorf("Failed to serialize event data: %+v", err)
 				continue
 			}
 

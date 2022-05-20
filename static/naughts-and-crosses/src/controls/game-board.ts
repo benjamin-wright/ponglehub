@@ -106,9 +106,9 @@ export class GameBoard extends LitElement {
           @click="${() => this.select(column, row)}"
         />`;
       case "0":
-        return html`<game-mark class="row${row}, col${column}" player="0" selected />`;
+        return html`<game-mark class="row${row} col${column}" player="0" selected />`;
       case "1":
-        return html`<game-mark class="row${row}, col${column}" player="1" selected />`;
+        return html`<game-mark class="row${row} col${column}" player="1" selected />`;
       default:
         throw new Error(`bad character: ${this.marks[index]}`);
     }
