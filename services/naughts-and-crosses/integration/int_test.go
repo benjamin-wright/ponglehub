@@ -160,6 +160,22 @@ type markResponse struct {
 	marks string
 }
 
+type setup struct {
+	initial  string
+	turn     int16
+	user     uuid.UUID
+	finished bool
+}
+
+func makeSetup(initial string, turn int16, user uuid.UUID, finished bool) setup {
+	return setup{
+		initial,
+		turn,
+		user,
+		finished,
+	}
+}
+
 func TestMarkEvent(t *testing.T) {
 	logrus.SetOutput(io.Discard)
 
@@ -172,18 +188,45 @@ func TestMarkEvent(t *testing.T) {
 
 	for _, test := range []struct {
 		name     string
-		initial  string
+		setup    setup
 		position int
-		expected markResponse
+		expected *markResponse
+		err      string
 	}{
 		{
-			name:     "success",
-			initial:  "---------",
+			name:     "player 0",
+			setup:    makeSetup("---------", 0, userId, false),
 			position: 0,
-			expected: markResponse{
+			expected: &markResponse{
 				turn:  1,
 				marks: "0--------",
 			},
+		},
+		{
+			name:     "player 1",
+			setup:    makeSetup("---------", 1, opponentId, false),
+			position: 0,
+			expected: &markResponse{
+				turn:  0,
+				marks: "1--------",
+			},
+		},
+		{
+			name:  "wrong player",
+			setup: makeSetup("---------", 0, opponentId, false),
+			err:   "not your turn",
+		},
+		{
+			name:     "replay",
+			setup:    makeSetup("--0------", 0, userId, false),
+			position: 2,
+			err:      "already played",
+		},
+		{
+			name:     "overplay",
+			setup:    makeSetup("-----0---", 1, opponentId, false),
+			position: 5,
+			err:      "already played",
 		},
 	} {
 		t.Run(test.name, func(u *testing.T) {
@@ -196,9 +239,9 @@ func TestMarkEvent(t *testing.T) {
 					Player1: userId,
 					Player2: opponentId,
 					Created: created,
-					Turn:    0,
+					Turn:    test.setup.turn,
 				},
-				test.initial,
+				test.setup.initial,
 			)
 			noErr(u, err)
 
@@ -208,28 +251,41 @@ func TestMarkEvent(t *testing.T) {
 					"game":     gameId.String(),
 					"position": test.position,
 				},
-				map[string]interface{}{"userid": userId.String()},
+				map[string]interface{}{"userid": test.setup.user.String()},
 			)
 			noErr(u, err)
 
-			event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.response")
-			var actual map[string]interface{}
-			err = json.Unmarshal([]byte(event), &actual)
-			noErr(u, err)
+			if test.expected != nil {
+				event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.response")
+				var actual map[string]interface{}
+				err = json.Unmarshal([]byte(event), &actual)
+				noErr(u, err)
 
-			expected := map[string]interface{}{
-				"game": map[string]interface{}{
-					"ID":      gameId.String(),
-					"Player1": userId.String(),
-					"Player2": opponentId.String(),
-					"Created": created.Format("2006-01-02T15:04:05.999999Z"),
-					"Turn":    test.expected.turn,
-				},
-				"marks": test.expected.marks,
+				expected := map[string]interface{}{
+					"game": map[string]interface{}{
+						"ID":       gameId.String(),
+						"Player1":  userId.String(),
+						"Player2":  opponentId.String(),
+						"Created":  created.Format("2006-01-02T15:04:05.999999Z"),
+						"Turn":     test.expected.turn,
+						"Finished": false,
+					},
+					"marks": test.expected.marks,
+				}
+
+				assert.Equal(u, expected, actual)
 			}
 
-			assert.Equal(u, expected, actual)
+			if test.err != "" {
+				event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.rejection.response")
+				var actual map[string]interface{}
+				err = json.Unmarshal([]byte(event), &actual)
+				noErr(u, err)
+
+				assert.Equal(u, map[string]interface{}{
+					"reason": test.err,
+				}, actual)
+			}
 		})
 	}
-
 }

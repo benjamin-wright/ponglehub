@@ -47,7 +47,7 @@ func (d *Database) NewGame(player1 string, player2 string) (Game, error) {
 
 	row := d.conn.QueryRow(
 		context.TODO(),
-		"INSERT INTO games (player1, player2, created_time, turn, marks) VALUES ($1, $2, $3, 0, '---------') RETURNING id;",
+		"INSERT INTO games (player1, player2, created_time, turn, marks, finished) VALUES ($1, $2, $3, 0, '---------', false) RETURNING id;",
 		player1,
 		player2,
 		created,
@@ -61,11 +61,12 @@ func (d *Database) NewGame(player1 string, player2 string) (Game, error) {
 	}
 
 	return Game{
-		ID:      id,
-		Player1: uuid.MustParse(player1),
-		Player2: uuid.MustParse(player2),
-		Turn:    0,
-		Created: created,
+		ID:       id,
+		Player1:  uuid.MustParse(player1),
+		Player2:  uuid.MustParse(player2),
+		Turn:     0,
+		Created:  created,
+		Finished: false,
 	}, nil
 }
 
@@ -73,8 +74,8 @@ func (d *Database) InsertGame(game Game, marks string) error {
 	logrus.Infof("Inserting game for %s vs %s", game.Player1, game.Player2)
 	_, err := d.conn.Exec(
 		context.TODO(),
-		"INSERT INTO games (id, player1, player2, created_time, turn, marks) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
-		game.ID, game.Player1, game.Player2, game.Created, game.Turn, marks,
+		"INSERT INTO games (id, player1, player2, created_time, turn, marks, finished) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+		game.ID, game.Player1, game.Player2, game.Created, game.Turn, marks, game.Finished,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to add new game: %+v", err)
@@ -84,16 +85,17 @@ func (d *Database) InsertGame(game Game, marks string) error {
 }
 
 type Game struct {
-	ID      uuid.UUID
-	Player1 uuid.UUID
-	Player2 uuid.UUID
-	Created time.Time
-	Turn    int16
+	ID       uuid.UUID
+	Player1  uuid.UUID
+	Player2  uuid.UUID
+	Created  time.Time
+	Turn     int16
+	Finished bool
 }
 
 func (d *Database) ListGames(player string) ([]Game, error) {
 	logrus.Infof("Listing games for user %s", player)
-	rows, err := d.conn.Query(context.TODO(), "SELECT id, player1, player2, created_time, turn FROM games WHERE player1=$1 OR player2=$1", player)
+	rows, err := d.conn.Query(context.TODO(), "SELECT id, player1, player2, created_time, turn, finished FROM games WHERE player1=$1 OR player2=$1", player)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching games data: %+v", err)
 	}
@@ -103,7 +105,7 @@ func (d *Database) ListGames(player string) ([]Game, error) {
 
 	for rows.Next() {
 		game := Game{}
-		err := rows.Scan(&game.ID, &game.Player1, &game.Player2, &game.Created, &game.Turn)
+		err := rows.Scan(&game.ID, &game.Player1, &game.Player2, &game.Created, &game.Turn, &game.Finished)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing game data: %+v", err)
 		}
@@ -116,7 +118,7 @@ func (d *Database) ListGames(player string) ([]Game, error) {
 
 func (d *Database) LoadGame(id string) (*Game, string, error) {
 	logrus.Infof("Loading game %s", id)
-	rows, err := d.conn.Query(context.TODO(), "SELECT id, player1, player2, created_time, turn, marks FROM games WHERE id=$1", id)
+	rows, err := d.conn.Query(context.TODO(), "SELECT id, player1, player2, created_time, turn, marks, finished FROM games WHERE id=$1", id)
 	if err != nil {
 		return nil, "", fmt.Errorf("error fetching game data: %+v", err)
 	}
@@ -129,7 +131,7 @@ func (d *Database) LoadGame(id string) (*Game, string, error) {
 		return nil, "", errors.New("game not found")
 	}
 
-	err = rows.Scan(&game.ID, &game.Player1, &game.Player2, &game.Created, &game.Turn, &marks)
+	err = rows.Scan(&game.ID, &game.Player1, &game.Player2, &game.Created, &game.Turn, &marks, &game.Finished)
 	if err != nil {
 		return nil, "", fmt.Errorf("error parsing game data: %+v", err)
 	}

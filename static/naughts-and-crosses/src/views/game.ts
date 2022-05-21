@@ -134,15 +134,13 @@ export class GameView extends LitElement {
       case "naughts-and-crosses.load-game.response":
         this.game = convert(data.game);
         this.marks = data.marks;
-        console.log("marks: ", this.marks);
         break;
       case "naughts-and-crosses.mark.response":
         this.game = convert(data.game);
         this.marks = data.marks;
-        console.log("marks: ", this.marks);
         break;
       case "naughts-and-crosses.load-game.rejection.response":
-        window.location.href = "../naughts-and-crosses"
+        window.location.href = "/";
         break;
       default:
         console.error(`Unrecognised response type from server: ${type}`);

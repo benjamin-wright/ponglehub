@@ -84,7 +84,7 @@ k8s_yaml(helm(
     'servers.landing-page.image=landing-page',
     'servers.landing-page.resources.limits.memory=64Mi',
     'servers.landing-page.resources.requests.memory=64Mi',
-    'servers.landing-page.host=games.ponglehub.co.uk',
+    'servers.landing-page.host=games.ponglehub.co.uk'
   ]
 ))
 
@@ -114,6 +114,7 @@ k8s_yaml(helm(
     'servers.naughts-and-crosses-server.events={\'naughts-and-crosses.*\'}',
   ]
 ))
+
 k8s_yaml(helm(
   'helm',
   name='draughts',
@@ -122,8 +123,6 @@ k8s_yaml(helm(
     'servers.draughts.image=draughts',
     'servers.draughts.resources.limits.memory=64Mi',
     'servers.draughts.resources.requests.memory=64Mi',
-    'servers.draughts.host=games.ponglehub.co.uk',
-    'servers.draughts.path=/draughts',
-    'servers.draughts.stripPrefix=true',
+    'servers.draughts.host=draughts.ponglehub.co.uk'
   ]
 ))

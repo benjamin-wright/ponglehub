@@ -18,11 +18,7 @@ export class Events {
     
             socket.onmessage = (event: MessageEvent) => {
                 const parsed = JSON.parse(event.data);
-
-                console.log("parsed data", parsed.data);
                 const data = typeof(parsed.data) === "string" ? JSON.parse(parsed.data) : parsed.data;
-                console.log("double-parsed", data);
-                
                 receive(parsed.type, data);
             }
         

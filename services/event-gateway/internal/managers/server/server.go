@@ -26,10 +26,7 @@ func Start(brokerEnv string, domain string, origins []string, crdClient *crds.Us
 	engine := gin.Default()
 
 	engine.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://ponglehub.co.uk",
-			"http://games.ponglehub.co.uk",
-		},
+		AllowOrigins: origins,
 		AllowMethods: []string{"POST", "GET"},
 		AllowHeaders: []string{
 			"Origin", "Content-Type", "ce-dataschema",

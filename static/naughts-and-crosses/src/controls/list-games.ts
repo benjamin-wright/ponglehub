@@ -23,7 +23,6 @@ export class ListGames extends LitElement {
   players: {[key: string]: string};
 
   private navigate(id: string) {
-    console.log(`Clicked on ${id}`);
     window.location.href = `/game?id=${id}`;
   }
 

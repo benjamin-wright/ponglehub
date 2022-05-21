@@ -162,7 +162,7 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 	if err != nil {
 		client.Send(
 			"naughts-and-crosses.mark.rejection.response",
-			nil,
+			map[string]interface{}{"reason": "server error"},
 			map[string]interface{}{"userid": userId},
 		)
 		return fmt.Errorf("failed to load game data: %+v", err)
@@ -176,7 +176,7 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 	if player1Fail || player2Fail {
 		client.Send(
 			"naughts-and-crosses.mark.rejection.response",
-			nil,
+			map[string]interface{}{"reason": "not your turn"},
 			map[string]interface{}{"userid": userId},
 		)
 		return fmt.Errorf("user %s tried to make a mark in game %s, but it wasn't their turn", userId, data.Game)
@@ -185,7 +185,7 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 	if markRunes[data.Position] != '-' {
 		client.Send(
 			"naughts-and-crosses.mark.rejection.response",
-			nil,
+			map[string]interface{}{"reason": "already played"},
 			map[string]interface{}{"userid": userId},
 		)
 		return fmt.Errorf("user %s tried to make a mark in game %s, but it was already marked", userId, data.Game)

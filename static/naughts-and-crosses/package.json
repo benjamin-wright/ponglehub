@@ -12,18 +12,18 @@
   "devDependencies": {
     "copy-webpack-plugin": "^10.2.4",
     "css-loader": "^6.6.0",
-    "lit": "^2.1.4",
     "style-loader": "^3.3.1",
     "ts-loader": "^9.2.6",
     "typescript": "^4.5.5",
     "webpack": "^5.69.1",
-    "webpack-cli": "^4.9.2"
+    "webpack-cli": "^4.9.2",
+    "node-polyfill-webpack-plugin": "^1.1.4"
   },
   "dependencies": {
+    "lit": "^2.1.4",
     "@pongle/components": "file:../../libraries/node/components",
     "@pongle/events": "file:../../libraries/node/events",
     "@pongle/panels": "file:../../libraries/node/panels",
-    "@pongle/styles": "file:../../libraries/node/styles",
-    "node-polyfill-webpack-plugin": "^1.1.4"
+    "@pongle/styles": "file:../../libraries/node/styles"
   }
 }
