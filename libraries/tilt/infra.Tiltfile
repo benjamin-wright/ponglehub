@@ -70,7 +70,7 @@ k8s_yaml(helm(
     'servers.gateway.env.REDIS_URL="redis:6379"',
     'servers.gateway.env.KEY_FILE="/secrets/keyfile"',
     'servers.gateway.env.TOKEN_DOMAIN="ponglehub.co.uk"',
-    'servers.gateway.env.ALLOWED_ORIGINS="http://ponglehub.co.uk\\,http://games.ponglehub.co.uk\\,http://nac.ponglehub.co.uk\\,http://draughts.ponglehub.co.uk"',
+    'servers.gateway.env.ALLOWED_ORIGINS="games/nac/draughts"',
     'servers.gateway.volFromSecret.gateway-key.path=/secrets',
     'servers.gateway.rbac.apiGroups={ponglehub.co.uk}',
     'servers.gateway.rbac.resources={authusers,authusers/status}',

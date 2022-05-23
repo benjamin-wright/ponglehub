@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -156,22 +157,25 @@ func TestNewGameEvent(t *testing.T) {
 }
 
 type markResponse struct {
-	turn  float64
-	marks string
-}
-
-type setup struct {
-	initial  string
-	turn     int16
-	user     uuid.UUID
+	turn     float64
+	marks    string
 	finished bool
 }
 
-func makeSetup(initial string, turn int16, user uuid.UUID, finished bool) setup {
-	return setup{
+type play struct {
+	initial  string
+	turn     int16
+	user     uuid.UUID
+	position int
+	finished bool
+}
+
+func makePlay(initial string, turn int16, user uuid.UUID, position int, finished bool) play {
+	return play{
 		initial,
 		turn,
 		user,
+		position,
 		finished,
 	}
 }
@@ -188,45 +192,48 @@ func TestMarkEvent(t *testing.T) {
 
 	for _, test := range []struct {
 		name     string
-		setup    setup
-		position int
-		expected *markResponse
-		err      string
+		play     play
+		expected markResponse
 	}{
 		{
-			name:     "player 0",
-			setup:    makeSetup("---------", 0, userId, false),
-			position: 0,
-			expected: &markResponse{
+			name: "player 0",
+			play: makePlay("---------", 0, userId, 0, false),
+			expected: markResponse{
 				turn:  1,
 				marks: "0--------",
 			},
 		},
 		{
-			name:     "player 1",
-			setup:    makeSetup("---------", 1, opponentId, false),
-			position: 0,
-			expected: &markResponse{
+			name: "player 1",
+			play: makePlay("---------", 1, opponentId, 0, false),
+			expected: markResponse{
 				turn:  0,
 				marks: "1--------",
 			},
 		},
 		{
-			name:  "wrong player",
-			setup: makeSetup("---------", 0, opponentId, false),
-			err:   "not your turn",
+			name: "player 0 non-zero",
+			play: makePlay("---------", 0, userId, 3, false),
+			expected: markResponse{
+				turn:  1,
+				marks: "---0-----",
+			},
 		},
 		{
-			name:     "replay",
-			setup:    makeSetup("--0------", 0, userId, false),
-			position: 2,
-			err:      "already played",
+			name: "player 1 non-zero",
+			play: makePlay("---------", 1, opponentId, 3, false),
+			expected: markResponse{
+				turn:  0,
+				marks: "---1-----",
+			},
 		},
 		{
-			name:     "overplay",
-			setup:    makeSetup("-----0---", 1, opponentId, false),
-			position: 5,
-			err:      "already played",
+			name: "messy",
+			play: makePlay("0110-0-01", 1, opponentId, 4, false),
+			expected: markResponse{
+				turn:  0,
+				marks: "011010-01",
+			},
 		},
 	} {
 		t.Run(test.name, func(u *testing.T) {
@@ -239,9 +246,9 @@ func TestMarkEvent(t *testing.T) {
 					Player1: userId,
 					Player2: opponentId,
 					Created: created,
-					Turn:    test.setup.turn,
+					Turn:    test.play.turn,
 				},
-				test.setup.initial,
+				test.play.initial,
 			)
 			noErr(u, err)
 
@@ -249,43 +256,184 @@ func TestMarkEvent(t *testing.T) {
 				"naughts-and-crosses.mark",
 				map[string]interface{}{
 					"game":     gameId.String(),
-					"position": test.position,
+					"position": test.play.position,
 				},
-				map[string]interface{}{"userid": test.setup.user.String()},
+				map[string]interface{}{"userid": test.play.user.String()},
 			)
 			noErr(u, err)
 
-			if test.expected != nil {
-				event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.response")
-				var actual map[string]interface{}
-				err = json.Unmarshal([]byte(event), &actual)
-				noErr(u, err)
+			event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.response")
+			var actual map[string]interface{}
+			err = json.Unmarshal([]byte(event), &actual)
+			noErr(u, err)
 
-				expected := map[string]interface{}{
-					"game": map[string]interface{}{
-						"ID":       gameId.String(),
-						"Player1":  userId.String(),
-						"Player2":  opponentId.String(),
-						"Created":  created.Format("2006-01-02T15:04:05.999999Z"),
-						"Turn":     test.expected.turn,
-						"Finished": false,
-					},
-					"marks": test.expected.marks,
-				}
-
-				assert.Equal(u, expected, actual)
+			expected := map[string]interface{}{
+				"game": map[string]interface{}{
+					"ID":       gameId.String(),
+					"Player1":  userId.String(),
+					"Player2":  opponentId.String(),
+					"Created":  created.Format("2006-01-02T15:04:05.999999Z"),
+					"Turn":     test.expected.turn,
+					"Finished": test.expected.finished,
+				},
+				"marks": test.expected.marks,
 			}
 
-			if test.err != "" {
-				event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.rejection.response")
-				var actual map[string]interface{}
-				err = json.Unmarshal([]byte(event), &actual)
-				noErr(u, err)
+			assert.Equal(u, expected, actual)
+		})
+	}
 
-				assert.Equal(u, map[string]interface{}{
-					"reason": test.err,
-				}, actual)
+	for _, test := range []struct {
+		name string
+		play play
+		err  string
+	}{
+		{
+			name: "wrong player",
+			play: makePlay("---------", 0, opponentId, 0, false),
+			err:  "not your turn",
+		},
+		{
+			name: "replay",
+			play: makePlay("--0------", 0, userId, 2, false),
+			err:  "already played",
+		},
+		{
+			name: "overplay",
+			play: makePlay("-----0---", 1, opponentId, 5, false),
+			err:  "already played",
+		},
+		{
+			name: "too low",
+			play: makePlay("-----0---", 1, opponentId, -1, false),
+			err:  "illegal position",
+		},
+		{
+			name: "too high",
+			play: makePlay("-----0---", 1, opponentId, 9, false),
+			err:  "illegal position",
+		},
+		{
+			name: "finished",
+			play: makePlay("-----0---", 1, opponentId, 0, true),
+			err:  "already finished",
+		},
+	} {
+		t.Run(test.name, func(u *testing.T) {
+			recorder.Clear(u, os.Getenv("RECORDER_URL"))
+			noErr(u, db.Clear())
+
+			err := db.InsertGame(
+				database.Game{
+					ID:       gameId,
+					Player1:  userId,
+					Player2:  opponentId,
+					Created:  created,
+					Turn:     test.play.turn,
+					Finished: test.play.finished,
+				},
+				test.play.initial,
+			)
+			noErr(u, err)
+
+			err = eventClient.Send(
+				"naughts-and-crosses.mark",
+				map[string]interface{}{
+					"game":     gameId.String(),
+					"position": test.play.position,
+				},
+				map[string]interface{}{"userid": test.play.user.String()},
+			)
+			noErr(u, err)
+
+			event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.rejection.response")
+			var actual map[string]interface{}
+			err = json.Unmarshal([]byte(event), &actual)
+			noErr(u, err)
+
+			assert.Equal(u, map[string]interface{}{
+				"reason": test.err,
+			}, actual)
+		})
+	}
+
+	for index, test := range []struct {
+		play     play
+		expected string
+	}{
+		{play: makePlay("0--0-----", 0, userId, 6, false), expected: "0--0--0--"},
+		{play: makePlay("0-----0--", 0, userId, 3, false), expected: "0--0--0--"},
+		{play: makePlay("---0--0--", 0, userId, 0, false), expected: "0--0--0--"},
+		{play: makePlay("0-101----", 0, userId, 6, false), expected: "0-101-0--"},
+		{play: makePlay("0-1-1-0--", 0, userId, 3, false), expected: "0-101-0--"},
+		{play: makePlay("--101-0--", 0, userId, 0, false), expected: "0-101-0--"},
+		{play: makePlay("-0--0----", 0, userId, 7, false), expected: "-0--0--0-"},
+		{play: makePlay("-0-----0-", 0, userId, 4, false), expected: "-0--0--0-"},
+		{play: makePlay("----0--0-", 0, userId, 1, false), expected: "-0--0--0-"},
+		{play: makePlay("--0--0---", 0, userId, 8, false), expected: "--0--0--0"},
+		{play: makePlay("--0-----0", 0, userId, 5, false), expected: "--0--0--0"},
+		{play: makePlay("-----0--0", 0, userId, 2, false), expected: "--0--0--0"},
+		{play: makePlay("-00------", 0, userId, 0, false), expected: "000------"},
+		{play: makePlay("0-0------", 0, userId, 1, false), expected: "000------"},
+		{play: makePlay("00-------", 0, userId, 2, false), expected: "000------"},
+		{play: makePlay("----00---", 0, userId, 3, false), expected: "---000---"},
+		{play: makePlay("---0-0---", 0, userId, 4, false), expected: "---000---"},
+		{play: makePlay("---00----", 0, userId, 5, false), expected: "---000---"},
+		{play: makePlay("-------00", 0, userId, 6, false), expected: "------000"},
+		{play: makePlay("------0-0", 0, userId, 7, false), expected: "------000"},
+		{play: makePlay("------00-", 0, userId, 8, false), expected: "------000"},
+		{play: makePlay("----0---0", 0, userId, 0, false), expected: "0---0---0"},
+		{play: makePlay("0-------0", 0, userId, 4, false), expected: "0---0---0"},
+		{play: makePlay("0---0----", 0, userId, 8, false), expected: "0---0---0"},
+		{play: makePlay("----0-0--", 0, userId, 2, false), expected: "--0-0-0--"},
+		{play: makePlay("--0---0--", 0, userId, 4, false), expected: "--0-0-0--"},
+		{play: makePlay("--0-0----", 0, userId, 6, false), expected: "--0-0-0--"},
+	} {
+		t.Run(fmt.Sprintf("win condition %d", index), func(u *testing.T) {
+			recorder.Clear(u, os.Getenv("RECORDER_URL"))
+			noErr(u, db.Clear())
+
+			err := db.InsertGame(
+				database.Game{
+					ID:       gameId,
+					Player1:  userId,
+					Player2:  opponentId,
+					Created:  created,
+					Turn:     test.play.turn,
+					Finished: test.play.finished,
+				},
+				test.play.initial,
+			)
+			noErr(u, err)
+
+			err = eventClient.Send(
+				"naughts-and-crosses.mark",
+				map[string]interface{}{
+					"game":     gameId.String(),
+					"position": test.play.position,
+				},
+				map[string]interface{}{"userid": test.play.user.String()},
+			)
+			noErr(u, err)
+
+			event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.response")
+			var actual map[string]interface{}
+			err = json.Unmarshal([]byte(event), &actual)
+			noErr(u, err)
+
+			expected := map[string]interface{}{
+				"game": map[string]interface{}{
+					"ID":       gameId.String(),
+					"Player1":  userId.String(),
+					"Player2":  opponentId.String(),
+					"Created":  created.Format("2006-01-02T15:04:05.999999Z"),
+					"Turn":     float64(test.play.turn),
+					"Finished": true,
+				},
+				"marks": test.expected,
 			}
+
+			assert.Equal(u, expected, actual)
 		})
 	}
 }

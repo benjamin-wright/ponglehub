@@ -49,7 +49,7 @@ func main() {
 
 	client, tokens, store := getServices()
 
-	origins := strings.Split(getEnv("ALLOWED_ORIGINS"), ",")
+	origins := strings.Split(getEnv("ALLOWED_ORIGINS"), "/")
 
 	stopServer := server.Start("BROKER_URL", getEnv("TOKEN_DOMAIN"), origins, client, store, tokens)
 	defer stopServer()

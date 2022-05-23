@@ -2,6 +2,7 @@ import '@pongle/styles/global.css';
 import '@pongle/components/nav-bar';
 import '../controls/game-board';
 import '../controls/name-panel';
+import '../controls/victory-popup';
 
 import { html, css, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
@@ -95,7 +96,8 @@ export class GameView extends LitElement {
       id: "",
       player1: "",
       player2: "",
-      turn: 0
+      turn: 0,
+      finished: false,
     };
   }
 
@@ -162,6 +164,10 @@ export class GameView extends LitElement {
     this.events.login();
   }
 
+  private backToHome() {
+    window.location.href = "/";
+  }
+
   private getTurn(): number {
     if(!this.game) {
       return 0;
@@ -186,6 +192,21 @@ export class GameView extends LitElement {
     return this.players[id] || "you";
   }
 
+  private getWinnerName(): string {
+    if(!this.game || !this.players) {
+      return "loading..."
+    }
+
+    switch (this.game.turn) {
+      case 0:
+        return this.players[this.game.player1] || "you"
+      case 1:
+        return this.players[this.game.player2] || "you"
+    }
+
+    return "oops"
+  }
+
   render() {
     return html`
       <nav-bar .loading="${false}" .authorised="${true}" @logout-event="${this.logOut}"></nav-bar>
@@ -197,7 +218,8 @@ export class GameView extends LitElement {
           .marks="${this.marks}"
           @select="${(event: CustomEvent<number>) => this.select(event.detail)}">
         </game-board>
-        <name-panel class="right" .player=${this.getPlayerName(this.game.player2)} .active=${this.getTurn() == 1} ></name-panel> 
+        <name-panel class="right" .player=${this.getPlayerName(this.game.player2)} .active=${this.getTurn() == 1} ></name-panel>
+        <victory-popup .player=${this.getWinnerName()} .display=${this.game.finished} @ok="${() => this.backToHome()}" ></victory-popup>
       </section>
     `;
   }

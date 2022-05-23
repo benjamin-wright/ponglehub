@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"ponglehub.co.uk/games/naughts-and-crosses/pkg/database"
+	"ponglehub.co.uk/games/naughts-and-crosses/pkg/rules"
 	"ponglehub.co.uk/lib/events"
 )
 
@@ -168,39 +169,43 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 		return fmt.Errorf("failed to load game data: %+v", err)
 	}
 
-	markRunes := []rune(marks)
-
-	player1Fail := game.Turn == 0 && game.Player1.String() != userId
-	player2Fail := game.Turn == 1 && game.Player2.String() != userId
-
-	if player1Fail || player2Fail {
+	fail := rules.Validate(game, marks, userId, data.Position)
+	if fail != nil {
 		client.Send(
 			"naughts-and-crosses.mark.rejection.response",
-			map[string]interface{}{"reason": "not your turn"},
+			map[string]interface{}{"reason": fail.Response()},
 			map[string]interface{}{"userid": userId},
 		)
-		return fmt.Errorf("user %s tried to make a mark in game %s, but it wasn't their turn", userId, data.Game)
+		return errors.New(fail.Log())
 	}
 
-	if markRunes[data.Position] != '-' {
+	marks = rules.PlaceMark(marks, data.Position, game.Turn)
+	if err != nil {
 		client.Send(
 			"naughts-and-crosses.mark.rejection.response",
-			map[string]interface{}{"reason": "already played"},
+			map[string]interface{}{"reason": "server error"},
 			map[string]interface{}{"userid": userId},
 		)
-		return fmt.Errorf("user %s tried to make a mark in game %s, but it was already marked", userId, data.Game)
+		return fmt.Errorf("failed to load game data: %+v", err)
 	}
 
-	if game.Turn == 0 {
-		markRunes[data.Position] = '0'
-		game.Turn = 1
+	game.Finished = rules.IsWinner(marks, data.Position)
+	if game.Finished {
+		logrus.Infof("User %d won game %s at position %d", game.Turn, marks, data.Position)
 	} else {
-		markRunes[data.Position] = '1'
-		game.Turn = 0
+		logrus.Infof("User %d played mark in game %s at position %d", game.Turn, marks, data.Position)
+		game.Turn = rules.NextTurn(game.Turn)
 	}
 
-	marks = string(markRunes)
-	db.SetMarks(data.Game, game.Turn, marks)
+	err = db.SetMarks(data.Game, game.Turn, marks, game.Finished)
+	if err != nil {
+		client.Send(
+			"naughts-and-crosses.mark.rejection.response",
+			map[string]interface{}{"reason": "server error"},
+			map[string]interface{}{"userid": userId},
+		)
+		return fmt.Errorf("failed to set marks back in database: %+v", err)
+	}
 
 	for _, uuid := range []uuid.UUID{game.Player1, game.Player2} {
 		err = client.Send(

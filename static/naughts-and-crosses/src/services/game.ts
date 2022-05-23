@@ -5,7 +5,8 @@ export interface GameData {
   id: string,
   player1: string,
   player2: string,
-  turn: number
+  turn: number,
+  finished: boolean,
 }
 
 export function convert(g: any): GameData {
@@ -14,6 +15,7 @@ export function convert(g: any): GameData {
     id: g.ID,
     player1: g.Player1,
     player2: g.Player2,
-    turn: g.Turn
+    turn: g.Turn,
+    finished: g.Finished,
   }
 }

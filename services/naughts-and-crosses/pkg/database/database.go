@@ -139,10 +139,10 @@ func (d *Database) LoadGame(id string) (*Game, string, error) {
 	return &game, marks, nil
 }
 
-func (d *Database) SetMarks(id string, turn int16, marks string) error {
+func (d *Database) SetMarks(id string, turn int16, marks string, finished bool) error {
 	logrus.Infof("Updating game %s", id)
 
-	_, err := d.conn.Exec(context.TODO(), "UPDATE games SET turn=$1, marks=$2 WHERE id=$3", turn, marks, id)
+	_, err := d.conn.Exec(context.TODO(), "UPDATE games SET turn=$1, marks=$2, finished=$3 WHERE id=$4", turn, marks, finished, id)
 	if err != nil {
 		return fmt.Errorf("error setting mark data: %+v", err)
 	}
