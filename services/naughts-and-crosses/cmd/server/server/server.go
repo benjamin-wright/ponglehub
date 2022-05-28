@@ -189,9 +189,15 @@ func mark(client *events.Events, db *database.Database, userId string, event eve
 		return fmt.Errorf("failed to load game data: %+v", err)
 	}
 
-	game.Finished = rules.IsWinner(marks, data.Position)
-	if game.Finished {
+	winner := rules.IsWinner(marks, data.Position)
+	tie := rules.IsTie(marks)
+	if winner {
+		game.Finished = true
 		logrus.Infof("User %d won game %s at position %d", game.Turn, marks, data.Position)
+	} else if tie {
+		game.Finished = true
+		game.Turn = -1
+		logrus.Infof("Game %s tied at position %d", marks, data.Position)
 	} else {
 		logrus.Infof("User %d played mark in game %s at position %d", game.Turn, marks, data.Position)
 		game.Turn = rules.NextTurn(game.Turn)

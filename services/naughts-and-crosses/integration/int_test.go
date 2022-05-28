@@ -436,4 +436,51 @@ func TestMarkEvent(t *testing.T) {
 			assert.Equal(u, expected, actual)
 		})
 	}
+
+	t.Run("draw condition", func(u *testing.T) {
+		recorder.Clear(u, os.Getenv("RECORDER_URL"))
+		noErr(u, db.Clear())
+
+		err := db.InsertGame(
+			database.Game{
+				ID:       gameId,
+				Player1:  userId,
+				Player2:  opponentId,
+				Created:  created,
+				Turn:     1,
+				Finished: false,
+			},
+			"01110001-",
+		)
+		noErr(u, err)
+
+		err = eventClient.Send(
+			"naughts-and-crosses.mark",
+			map[string]interface{}{
+				"game":     gameId.String(),
+				"position": 8,
+			},
+			map[string]interface{}{"userid": opponentId.String()},
+		)
+		noErr(u, err)
+
+		event := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "naughts-and-crosses.mark.response")
+		var actual map[string]interface{}
+		err = json.Unmarshal([]byte(event), &actual)
+		noErr(u, err)
+
+		expected := map[string]interface{}{
+			"game": map[string]interface{}{
+				"ID":       gameId.String(),
+				"Player1":  userId.String(),
+				"Player2":  opponentId.String(),
+				"Created":  created.Format("2006-01-02T15:04:05.999999Z"),
+				"Turn":     -1.0,
+				"Finished": true,
+			},
+			"marks": "011100011",
+		}
+
+		assert.Equal(u, expected, actual)
+	})
 }
