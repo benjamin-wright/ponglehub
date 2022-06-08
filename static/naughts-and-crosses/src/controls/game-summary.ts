@@ -103,7 +103,6 @@ export class GameSummary extends LitElement {
       `;
     }
 
-
     return html`
       <div class="panel">
         <div class="center">
