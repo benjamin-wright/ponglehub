@@ -37,6 +37,14 @@ export class VictoryPopup extends LitElement {
     this.dispatchEvent(event);
   }
 
+  private greeting(): TemplateResult<1> {
+    if (this.player === "") {
+      return html`<h1>It's a tie!</h1>`;
+    }
+
+    return html`<h1>${this.player} Won!</h1>`
+  }
+
   private message(): TemplateResult<1> {
     if (this.player === "you") {
         return html`<p>Nicely done, you absolute legend!</p>`;
@@ -52,7 +60,7 @@ export class VictoryPopup extends LitElement {
     
     return html`
       <popup-panel>
-        <h1>${this.player} Won!</h1>
+        ${this.greeting()}
         ${this.message()}
         <div class="ok">
           <button @click="${() => this.ok()}">OK</button>

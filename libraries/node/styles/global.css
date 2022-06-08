@@ -3,6 +3,9 @@
     --default-foreground: #2c3e50;
     --default-highlight: #5ad8ff;
     --default-overlay: rgba(0,0,0,0.9);
+    --default-success: rgb(35, 110, 86);
+    --default-failure: rgb(154, 73, 73);
+    --default-neutral: gray;
 }
 
 html, body {

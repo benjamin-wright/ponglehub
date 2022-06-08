@@ -204,7 +204,7 @@ export class GameView extends LitElement {
         return this.players[this.game.player2] || "you"
     }
 
-    return "oops"
+    return ""
   }
 
   render() {

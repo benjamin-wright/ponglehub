@@ -63,7 +63,7 @@ export class NavBar extends LitElement {
   render() {
     return html`
       <div class="container">
-        <div><a href="/"><span>PONGLEHUB</span></a></div>
+        <div><a href="http://games.ponglehub.co.uk"><span>PONGLEHUB</span></a></div>
         ${ this.button() }
       </div>
     `;

@@ -1,8 +1,9 @@
 import '@pongle/styles/global.css';
 
-import {html, css, LitElement} from 'lit';
+import {html, css, LitElement, TemplateResult} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import { timeSince } from '../services/utils';
+import { GameData } from '../services/game';
 
 @customElement('game-summary')
 export class GameSummary extends LitElement {
@@ -46,27 +47,70 @@ export class GameSummary extends LitElement {
       align-items: center;
       justify-content: space-between;
     }
+
+    .panel.tied {
+      background-color: var(--default-neutral);
+    }
+
+    .panel.won {
+      background-color: var(--default-success);
+    }
+
+    .panel.lost {
+      background-color: var(--default-failure);
+    }
   `;
 
   @property({type: Object})
-  private game: {id: string, player1: string, player2: string, turn: number, created: string};
+  private game: GameData;
 
   @property({type: Object})
   private players: {[key: string]: string};
 
   render() {
-    let player1 = this.players[this.game.player1] || "You";
-    let player2 = this.players[this.game.player2] || "You";
-    let theirTurn = this.game.turn === 0 && this.players[this.game.player1];
-    let elapsed = timeSince(this.game.created);
+    const elapsed = timeSince(this.game.created);
+    const player = this.players[this.game.player1] ? 1 : 0;
+    const player1 = this.players[this.game.player1] || "You";
+    const player2 = this.players[this.game.player2] || "You";
+
+    if (this.game.finished) {
+      let outcomeClass;
+      let outcomeMessage;
+      switch (true) {
+        case player === this.game.turn:
+          outcomeClass = "won";
+          outcomeMessage = "You won";
+          break;
+        case this.game.turn === -1:
+          outcomeClass = "tied";
+          outcomeMessage = "Tied";
+          break;
+        default:
+          outcomeClass = "lost";
+          outcomeMessage = "You lost";
+      }
+
+      return html`
+        <div class="panel ${outcomeClass}">
+          <div class="center">
+            <p><em>${player1}</em> vs <em>${player2}</em></p>
+          </div>
+          <div class="split">
+            <p>${outcomeMessage}</p>
+            <p>started ${elapsed} ago</p>
+          </div>
+        </div>
+      `;
+    }
+
 
     return html`
       <div class="panel">
         <div class="center">
-          <p><em>${player1}</em> vs <em>${player2}</em></p>
+            <p><em>${player1}</em> vs <em>${player2}</em></p>
         </div>
         <div class="split">
-          <p>${theirTurn ? "Their" : "Your"} turn</p>
+          <p>${player === this.game.turn ? "Your" : "Their"} turn</p>
           <p>started ${elapsed} ago</p>
         </div>
       </div>
