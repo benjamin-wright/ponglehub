@@ -1,0 +1,94 @@
+allow_k8s_contexts(['pongle'])
+load('../../libraries/tilt/helm.Tiltfile', 'namespace_yaml')
+load_dynamic('../db-operator/shared.Tiltfile')
+
+k8s_yaml(namespace_yaml('int-draughts'))
+
+custom_build(
+  'localhost:5000/draughts/migrations',
+  'just image-migrations $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'localhost:5000/draughts/server',
+  'just image $EXPECTED_REF',
+  ['./'],
+  ignore=['Tiltfile', './dist']
+)
+
+custom_build(
+  'localhost:5000/event-recorder',
+  'just ../event-recorder/image $EXPECTED_REF',
+  ['../event-recorder'],
+  ignore=['Tiltfile', './dist']
+)
+
+k8s_resource(
+    'draughts-migrations',
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    resource_deps=[ 'db', 'db-operator']
+)
+
+k8s_resource(
+    'draughts',
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    port_forwards=["3000:80"],
+    resource_deps=['draughts-migrations']
+)
+
+k8s_resource(
+    'recorder',
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    port_forwards=["3001:3001"]
+)
+
+k8s_resource(
+    'db',
+    extra_pod_selectors=[{'db-operator.ponglehub.co.uk/deployment': 'db'}],
+    port_forwards=["26257:26257"]
+)
+
+k8s_yaml(helm(
+  '../../helm',
+  name='draughts',
+  namespace='int-draughts',
+  set=[
+    'cockroach.db=256Mi',
+    'jobs.draughts-migrations.image=localhost:5000/draughts/migrations',
+    'jobs.draughts-migrations.db.cluster=db',
+    'jobs.draughts-migrations.db.username=draughts_mig_user',
+    'jobs.draughts-migrations.db.database=draughts',
+    'jobs.draughts-migrations.resources.limits.memory=64Mi',
+    'jobs.draughts-migrations.resources.requests.memory=64Mi',
+    'servers.recorder.image=localhost:5000/event-recorder',
+    'servers.recorder.env.EVENT_PORT="80"',
+    'servers.recorder.env.SERVER_PORT="3001"',
+    'servers.recorder.resources.limits.memory=64Mi',
+    'servers.recorder.resources.requests.memory=64Mi',
+    'servers.draughts.image=localhost:5000/draughts/server',
+    'servers.draughts.env.BROKER_URL="http://recorder:80"',
+    'servers.draughts.db.cluster=db',
+    'servers.draughts.db.username=draughts_user',
+    'servers.draughts.db.database=draughts',
+    'servers.draughts.resources.limits.memory=64Mi',
+    'servers.draughts.resources.requests.memory=64Mi',
+  ]
+))
+
+local_resource(
+  'int-test',
+  'just int-test',
+  env={
+    'RECORDER_URL': 'http://localhost:3001',
+    'DRAUGHTS_URL': 'http://localhost:3000',
+    "POSTGRES_HOST": "localhost",                 
+    "POSTGRES_PORT": "26257",            
+    "POSTGRES_USER": "draughts_user",           
+    "POSTGRES_NAME": "draughts",
+  },
+  auto_init=False,
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  resource_deps=['draughts']
+)

@@ -78,7 +78,7 @@ func listGames(client *events.Events, db *database.Database, userId string) erro
 		map[string]interface{}{"userid": userId},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to send new game id event: %+v", err)
+		return fmt.Errorf("failed to send list-games response event: %+v", err)
 	}
 
 	return nil

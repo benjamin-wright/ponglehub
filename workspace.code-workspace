@@ -60,6 +60,10 @@
 			"name": "static: landing-page"
 		},
 		{
+			"path": "services/draughts",
+			"name": "srv: draughts"
+		},
+		{
 			"path": "static/draughts",
 			"name": "static: draughts"
 		},

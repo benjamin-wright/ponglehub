@@ -1,0 +1,30 @@
+start:
+    just ../../start
+
+stop:
+    just ../../stop
+
+build:
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/server/server ./cmd/server/main.go
+
+image IMAGE_TAG: build
+    DOCKER_BUILDKIT=1 docker build \
+        -f ../../docker/go.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        --build-arg EXECUTABLE=server \
+        ./dist/server
+
+build-migrations:
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -v -o dist/migrations/migrations ./cmd/migrations/main.go
+
+image-migrations IMAGE_TAG: build-migrations
+    DOCKER_BUILDKIT=1 docker build \
+        -f ../../docker/go.Dockerfile \
+        -t {{IMAGE_TAG}} \
+        --build-arg EXECUTABLE=migrations \
+        ./dist/migrations
+
+int-test:
+    go test --count 1 -v ./integration
