@@ -21,7 +21,7 @@ func main() {
 		Routes: events.EventRoutes{
 			"draughts.list-games": routes.ListGames(db),
 			"draughts.new-game":   routes.NewGame(db),
-			"draughts.load-game":  nil,
+			"draughts.load-game":  routes.LoadGame(db),
 		},
 	})
 }
