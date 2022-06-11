@@ -5,7 +5,7 @@ import (
 	"os/signal"
 
 	"github.com/sirupsen/logrus"
-	"ponglehub.co.uk/games/naughts-and-crosses/cmd/server/server"
+	"ponglehub.co.uk/games/naughts-and-crosses/cmd/server/routes"
 	"ponglehub.co.uk/games/naughts-and-crosses/pkg/database"
 	"ponglehub.co.uk/lib/events"
 )
@@ -13,24 +13,25 @@ import (
 func main() {
 	logrus.Infof("Starting operator...")
 
-	client, err := events.New(events.EventsArgs{
-		BrokerEnv: "BROKER_URL",
-		Source:    "naughts-and-crosses",
-	})
-	if err != nil {
-		logrus.Fatalf("failed to create events client: %+v", err)
-	}
-
 	db, err := database.New()
 	if err != nil {
 		logrus.Fatalf("failed to create database client: %+v", err)
 	}
 
-	server, err := server.New(client, db)
+	stop, err := events.Serve(events.ServeParams{
+		BrokerEnv: "BROKER_URL",
+		Source:    "naughts-and-crosses",
+		Routes: events.EventRoutes{
+			"naughts-and-crosses.list-games": routes.ListGames(db),
+			"naughts-and-crosses.new-game":   routes.NewGame(db),
+			"naughts-and-crosses.load-game":  routes.LoadGame(db),
+			"naughts-and-crosses.mark":       routes.Mark(db),
+		},
+	})
 	if err != nil {
-		logrus.Fatalf("Failed to start server: %+v", err)
+		logrus.Fatalf("failed to start server: %+v", err)
 	}
-	defer server.Stop()
+	defer stop()
 
 	logrus.Infof("Running...")
 
