@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/events/recorder/pkg/recorder"
 	"ponglehub.co.uk/games/draughts/pkg/database"
+	"ponglehub.co.uk/games/draughts/pkg/rules"
 	"ponglehub.co.uk/lib/events"
 )
 
@@ -150,4 +151,41 @@ func TestListGames(t *testing.T) {
 			assert.Equal(u, test.expected, event)
 		})
 	}
+}
+
+func TestNewGameEvent(t *testing.T) {
+	logrus.SetOutput(io.Discard)
+
+	db, eventClient := initClients(t)
+
+	recorder.Clear(t, os.Getenv("RECORDER_URL"))
+	noErr(t, db.Clear())
+
+	userId := uuid.New()
+	opponentId := uuid.New()
+
+	err := eventClient.Send(
+		"draughts.new-game",
+		map[string]string{"opponent": opponentId.String()},
+		map[string]interface{}{"userid": userId.String()},
+	)
+	noErr(t, err)
+
+	data := recorder.WaitForEvent(t, os.Getenv("RECORDER_URL"), "draughts.new-game.response")
+
+	actual := map[string]database.Game{}
+	noErr(t, json.Unmarshal([]byte(data), &actual))
+
+	assert.Equal(t, userId, actual["game"].Player1)
+	assert.Equal(t, opponentId, actual["game"].Player2)
+	assert.Equal(t, int16(0), actual["game"].Turn)
+	assert.Equal(t, false, actual["game"].Finished)
+	assert.Less(t, time.Since(actual["game"].CreatedTime), 5*time.Second)
+
+	pieces, err := db.LoadPieces(actual["game"].ID.String())
+	noErr(t, err)
+
+	t.Logf("%+v", pieces)
+
+	assert.Equal(t, []string{}, rules.ToString(pieces))
 }

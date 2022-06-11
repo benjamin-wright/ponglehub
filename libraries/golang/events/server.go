@@ -3,6 +3,8 @@ package events
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/sirupsen/logrus"
@@ -27,14 +29,14 @@ type ServeParams struct {
 	Routes    map[string]EventRoute
 }
 
-func Serve(params ServeParams) (context.CancelFunc, error) {
+func Serve(params ServeParams) error {
 	client, err := New(EventsArgs{
 		BrokerEnv: params.BrokerEnv,
 		BrokerURL: params.BrokerURL,
 		Source:    params.Source,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client connection: %+v", err)
+		return fmt.Errorf("failed to create client connection: %+v", err)
 	}
 
 	cancelFunc, err := Listen(80, func(ctx context.Context, event event.Event) {
@@ -79,8 +81,20 @@ func Serve(params ServeParams) (context.CancelFunc, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to start server: %+v", err)
 	}
 
-	return cancelFunc, nil
+	defer cancelFunc()
+
+	logrus.Infof("Running...")
+
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 5 seconds.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+
+	logrus.Infof("Stopped")
+
+	return nil
 }
