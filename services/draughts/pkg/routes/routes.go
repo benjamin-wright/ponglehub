@@ -118,7 +118,7 @@ func Move(db *database.Database) events.EventRoute {
 				EventType: "rejection.response",
 				Data:      map[string]interface{}{"message": "it's not your turn"},
 				UserId:    userId,
-			}}, fmt.Errorf("User %s made a move when it wasn't their turn", userId)
+			}}, fmt.Errorf("user %s made a move when it wasn't their turn", userId)
 		}
 
 		_, err = rules.Process(data.Moves, pieces)
@@ -127,7 +127,7 @@ func Move(db *database.Database) events.EventRoute {
 				EventType: "rejection.response",
 				Data:      map[string]interface{}{"message": "invalid move"},
 				UserId:    userId,
-			}}, fmt.Errorf("User %s made an invalid move: %+v", userId, err)
+			}}, fmt.Errorf("user %s made an invalid move: %+v", userId, err)
 		}
 
 		return nil, nil
