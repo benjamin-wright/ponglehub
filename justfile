@@ -2,7 +2,7 @@ cluster_name := "pongle"
 registry_name := "pongle-registry.localhost"
 registry_port := "5000"
 
-start: create-cluster setup-context
+start: create-cluster setup-context wait-for-traefik
 stop: delete-cluster clear-context
 
 create-cluster:
@@ -33,3 +33,21 @@ clear-context:
     if [[ -f .scratch/kubeconfig ]]; then \
         rm .scratch/kubeconfig; \
     fi
+
+wait-for-traefik:
+    #!/usr/bin/env bash
+    LAST_STATUS=""
+    STATUS=""
+    
+    echo "Waiting for traefik to start..."
+
+    while [[ "$STATUS" != "Running" ]]; do
+        sleep 1
+        STATUS=$(kubectl get pods -n kube-system -o json | jq '.items[] | select(.metadata.name | startswith("traefik")) | .status.phase' -r)
+        if [[ "$STATUS" != "$LAST_STATUS" ]]; then
+            echo "traefik pod is '$STATUS'"
+        fi
+        LAST_STATUS="$STATUS"
+    done
+
+    echo "done"

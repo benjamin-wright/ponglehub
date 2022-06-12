@@ -117,9 +117,9 @@ func (d *Database) NewPieces(pieces []Piece) error {
 	index := 1
 
 	for _, piece := range pieces {
-		query += fmt.Sprintf("($%d, $%d, $%d, $%d, false),", index, index+1, index+2, index+3)
-		args = append(args, piece.Game, piece.X, piece.Y, piece.Player)
-		index += 4
+		query += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d),", index, index+1, index+2, index+3, index+4)
+		args = append(args, piece.Game, piece.X, piece.Y, piece.Player, piece.King)
+		index += 5
 	}
 
 	query = strings.TrimSuffix(query, ",")

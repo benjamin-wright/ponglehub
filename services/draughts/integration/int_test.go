@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"ponglehub.co.uk/events/recorder/pkg/recorder"
+	"ponglehub.co.uk/games/draughts/integration/matchers"
 	"ponglehub.co.uk/games/draughts/pkg/database"
 	"ponglehub.co.uk/games/draughts/pkg/rules"
 	"ponglehub.co.uk/lib/events"
@@ -176,16 +177,114 @@ func TestNewGameEvent(t *testing.T) {
 	actual := map[string]database.Game{}
 	noErr(t, json.Unmarshal([]byte(data), &actual))
 
-	assert.Equal(t, userId, actual["game"].Player1)
-	assert.Equal(t, opponentId, actual["game"].Player2)
-	assert.Equal(t, int16(0), actual["game"].Turn)
-	assert.Equal(t, false, actual["game"].Finished)
-	assert.Less(t, time.Since(actual["game"].CreatedTime), 5*time.Second)
+	matchers.AssertEqualGames(t, database.Game{
+		Player1:     userId,
+		Player2:     opponentId,
+		Turn:        int16(0),
+		Finished:    false,
+		CreatedTime: time.Now(),
+	}, actual["game"])
 
 	pieces, err := db.LoadPieces(actual["game"].ID.String())
 	noErr(t, err)
 
-	t.Logf("%+v", pieces)
+	matchers.AssertEqualPieces(t, []string{
+		" x x x x",
+		"x x x x ",
+		" x x x x",
+		"        ",
+		"        ",
+		"o o o o ",
+		" o o o o",
+		"o o o o ",
+	}, pieces)
+}
 
-	assert.Equal(t, []string{}, rules.ToString(pieces))
+func TestLoadGameEvent(t *testing.T) {
+	logrus.SetOutput(io.Discard)
+
+	db, eventClient := initClients(t)
+
+	userId := uuid.New()
+	opponentId := uuid.New()
+	gameId := uuid.New()
+
+	for _, test := range []struct {
+		name     string
+		existing database.Game
+		pieces   []string
+		id       uuid.UUID
+	}{
+		{
+			name: "success",
+			existing: database.Game{
+				ID:          gameId,
+				Player1:     userId,
+				Player2:     opponentId,
+				Turn:        0,
+				CreatedTime: time.Now().UTC(),
+				Finished:    false,
+			},
+			pieces: []string{
+				" x x x x",
+				"x x x x ",
+				" x x x x",
+				"        ",
+				"        ",
+				"o o o o ",
+				" o o o o",
+				"o o o o ",
+			},
+			id: gameId,
+		},
+		{
+			name: "later game",
+			existing: database.Game{
+				ID:          gameId,
+				Player1:     userId,
+				Player2:     opponentId,
+				Turn:        1,
+				CreatedTime: time.Now().UTC(),
+				Finished:    true,
+			},
+			pieces: []string{
+				"     X  ",
+				"O       ",
+				"        ",
+				"   x    ",
+				"  o     ",
+				"        ",
+				"     x  ",
+				"        ",
+			},
+			id: gameId,
+		},
+	} {
+		t.Run(test.name, func(u *testing.T) {
+			recorder.Clear(u, os.Getenv("RECORDER_URL"))
+			noErr(u, db.Clear())
+
+			noErr(u, db.InsertGame(test.existing))
+			noErr(u, db.NewPieces(rules.ToPieces(test.existing.ID, test.pieces)))
+
+			err := eventClient.Send(
+				"draughts.load-game",
+				map[string]string{"id": test.id.String()},
+				map[string]interface{}{"userid": userId.String()},
+			)
+			noErr(u, err)
+
+			data := recorder.WaitForEvent(u, os.Getenv("RECORDER_URL"), "draughts.load-game.response")
+
+			actual := struct {
+				Game   database.Game
+				Pieces []database.Piece
+			}{}
+
+			noErr(u, json.Unmarshal([]byte(data), &actual))
+
+			matchers.AssertEqualGames(u, test.existing, actual.Game)
+			matchers.AssertEqualPieces(t, test.pieces, actual.Pieces)
+		})
+	}
 }
