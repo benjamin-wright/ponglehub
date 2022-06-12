@@ -9,7 +9,6 @@ replace ponglehub.co.uk/lib/postgres => ./../../libraries/golang/postgres
 replace ponglehub.co.uk/events/recorder => ./../event-recorder
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.7.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	ponglehub.co.uk/events/recorder v0.0.0-00010101000000-000000000000
@@ -17,6 +16,7 @@ require (
 )
 
 require (
+	github.com/cloudevents/sdk-go/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
