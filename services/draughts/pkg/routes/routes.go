@@ -90,3 +90,46 @@ func LoadGame(db *database.Database) events.EventRoute {
 		}}, nil
 	}
 }
+
+func Move(db *database.Database) events.EventRoute {
+	return func(userId string, into events.EventParser) ([]events.Response, error) {
+		data := struct {
+			Game  string       `json:"game"`
+			Moves []rules.Move `json:"moves"`
+		}{}
+
+		err := into(&data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse move data: %+v", err)
+		}
+
+		game, err := db.LoadGame(data.Game)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load game: %+v", err)
+		}
+
+		pieces, err := db.LoadPieces(data.Game)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load pieces: %+v", err)
+		}
+
+		if !rules.IsYourTurn(userId, game) {
+			return []events.Response{{
+				EventType: "rejection.response",
+				Data:      map[string]interface{}{"message": "it's not your turn"},
+				UserId:    userId,
+			}}, fmt.Errorf("User %s made a move when it wasn't their turn", userId)
+		}
+
+		_, err = rules.Process(data.Moves, pieces)
+		if err != nil {
+			return []events.Response{{
+				EventType: "rejection.response",
+				Data:      map[string]interface{}{"message": "invalid move"},
+				UserId:    userId,
+			}}, fmt.Errorf("User %s made an invalid move: %+v", userId, err)
+		}
+
+		return nil, nil
+	}
+}

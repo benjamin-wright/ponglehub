@@ -1,90 +1,12 @@
 package rules
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"ponglehub.co.uk/games/draughts/pkg/database"
 )
-
-func runeToPiece(char rune) (bool, int16, bool) {
-	switch char {
-	case 'o':
-		return true, 0, false
-	case 'O':
-		return true, 0, true
-	case 'x':
-		return true, 1, false
-	case 'X':
-		return true, 1, true
-	default:
-		return false, 0, false
-	}
-}
-
-func ToPieces(gameId uuid.UUID, lines []string) []database.Piece {
-	pieces := []database.Piece{}
-
-	for y, line := range lines {
-		y = 7 - y
-
-		for x, char := range line {
-			if ok, player, king := runeToPiece(char); ok {
-				pieces = append(pieces, database.Piece{
-					Game:   gameId,
-					X:      int16(x),
-					Y:      int16(y),
-					Player: player,
-					King:   king,
-				})
-			}
-		}
-	}
-
-	return pieces
-}
-
-func pieceToRune(piece database.Piece) rune {
-	switch {
-	case piece.King && piece.Player == 0:
-		return 'O'
-	case piece.King && piece.Player == 1:
-		return 'X'
-	case piece.Player == 0:
-		return 'o'
-	case piece.Player == 1:
-		return 'x'
-	default:
-		panic(fmt.Sprintf("Illegal piece: %+v", piece))
-	}
-}
-
-func ToString(pieces []database.Piece) []string {
-	lines := []string{}
-
-	for y := int16(0); y < 8; y++ {
-		line := []rune{}
-
-		for x := int16(0); x < 8; x++ {
-			empty := true
-			for _, piece := range pieces {
-				if piece.X == x && piece.Y == 7-y {
-					empty = false
-					line = append(line, pieceToRune(piece))
-					break
-				}
-			}
-
-			if empty {
-				line = append(line, ' ')
-			}
-		}
-
-		lines = append(lines, string(line))
-	}
-
-	return lines
-}
 
 func NewGame(gameId uuid.UUID) []database.Piece {
 	return ToPieces(gameId, []string{
@@ -97,4 +19,152 @@ func NewGame(gameId uuid.UUID) []database.Piece {
 		" o o o o",
 		"o o o o ",
 	})
+}
+
+func IsYourTurn(player string, game database.Game) bool {
+	player1 := player == game.Player1.String() && game.Turn == 0
+	player2 := player == game.Player2.String() && game.Turn == 1
+
+	return player1 || player2
+}
+
+type Result struct {
+	Piece    uuid.UUID
+	NewX     int16
+	NewY     int16
+	ToRemove []uuid.UUID
+	King     bool
+}
+
+func Process(moves []Move, pieces []database.Piece) (Result, error) {
+	result := Result{}
+
+	if len(moves) < 1 {
+		return Result{}, errors.New("no moves")
+	}
+
+	piece, found := getTargetPiece(moves[0], pieces)
+	if !found {
+		return Result{}, fmt.Errorf("invalid move, couldn't find piece: %s", moves[0].Piece)
+	}
+
+	capturing := false
+
+	for idx, move := range moves {
+		if move.Piece != piece.ID {
+			return Result{}, fmt.Errorf("more than one piece moved (%s and %s)", move.Piece, piece.ID)
+		}
+
+		if isTraversal(move, piece) {
+			if idx > 0 {
+				return Result{}, errors.New("can't move piece more than once")
+			}
+
+			if isBlocked(move, pieces) {
+				return Result{}, fmt.Errorf("can't move piece, space already taken: %+v", move)
+			}
+
+			result.Piece = move.Piece
+			result.NewX = move.X
+			result.NewY = move.Y
+
+			if isKing(move, piece) {
+				result.King = true
+				piece.King = true
+			}
+		} else if isCapture(move, piece) {
+			capturing = true
+
+			if idx > 0 && !capturing {
+				return Result{}, fmt.Errorf("can't capture after a traversal")
+			}
+
+			if isBlocked(move, pieces) {
+				return Result{}, fmt.Errorf("can't move piece, space already taken: %+v", move)
+			}
+
+			captured, found := findCaptured(move, pieces)
+			if !found {
+				return Result{}, fmt.Errorf("can't capture piece, no piece to capture: %+v", move)
+			}
+
+			result.Piece = move.Piece
+			result.NewX = move.X
+			result.NewY = move.Y
+			result.ToRemove = append(result.ToRemove, captured.ID)
+
+			if isKing(move, piece) {
+				result.King = true
+				piece.King = true
+			}
+		} else {
+			return Result{}, fmt.Errorf("move %+v not recognised", move)
+		}
+	}
+
+	return result, nil
+}
+
+func getTargetPiece(move Move, pieces []database.Piece) (database.Piece, bool) {
+	for _, piece := range pieces {
+		if piece.ID == move.Piece {
+			return piece, true
+		}
+	}
+
+	return database.Piece{}, false
+}
+
+func isTraversal(move Move, piece database.Piece) bool {
+	dy := move.Y - piece.Y
+	dx := move.X - piece.X
+
+	if piece.King {
+		return abs(dy) == 1 && abs(dx) == 1
+	}
+
+	switch piece.Player {
+	case 0:
+		return dy == 1 && abs(dx) == 1
+	case 1:
+		return dy == -1 && abs(dx) == 1
+	default:
+		panic(fmt.Sprintf("piece player should be 0 or 1, got %d", piece.Player))
+	}
+}
+
+func isCapture(move Move, piece database.Piece) bool {
+	dy := move.Y - piece.Y
+	dx := move.X - piece.X
+
+	if piece.King {
+		return abs(dy) == 2 && abs(dx) == 2
+	}
+
+	switch piece.Player {
+	case 0:
+		return dy == 2 && abs(dx) == 2
+	case 1:
+		return dy == -2 && abs(dx) == 2
+	default:
+		panic(fmt.Sprintf("piece player should be 0 or 1, got %d", piece.Player))
+	}
+}
+
+func isBlocked(move Move, pieces []database.Piece) bool {
+	for _, piece := range pieces {
+		if piece.X == move.X && piece.Y == move.Y {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isKing(move Move, piece database.Piece) bool {
+	return false
+}
+
+func findCaptured(move Move, pieces []database.Piece) (database.Piece, bool) {
+	return database.Piece{}, false
 }
