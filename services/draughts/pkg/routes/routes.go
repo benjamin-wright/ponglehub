@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"ponglehub.co.uk/games/draughts/pkg/database"
 	"ponglehub.co.uk/games/draughts/pkg/rules"
 	"ponglehub.co.uk/lib/events"
@@ -121,7 +122,7 @@ func Move(db *database.Database) events.EventRoute {
 			}}, fmt.Errorf("user %s made a move when it wasn't their turn", userId)
 		}
 
-		_, err = rules.Process(data.Moves, pieces)
+		result, err := rules.Process(data.Moves, pieces)
 		if err != nil {
 			return []events.Response{{
 				EventType: "rejection.response",
@@ -130,6 +131,34 @@ func Move(db *database.Database) events.EventRoute {
 			}}, fmt.Errorf("user %s made an invalid move: %+v", userId, err)
 		}
 
-		return nil, nil
+		err = db.Move(game.ID, result.Piece, result.NewX, result.NewY, result.King, result.ToRemove)
+		if err != nil {
+			return []events.Response{{
+				EventType: "rejection.response",
+				Data:      map[string]interface{}{"message": "server error"},
+				UserId:    userId,
+			}}, fmt.Errorf("failed to process user %s move: %+v", userId, err)
+		}
+
+		pieces, err = db.LoadPieces(game.ID.String())
+		if err != nil {
+			return []events.Response{{
+				EventType: "rejection.response",
+				Data:      map[string]interface{}{"message": "server error"},
+				UserId:    userId,
+			}}, fmt.Errorf("failed to fetch pieces after user %s move: %+v", userId, err)
+		}
+
+		responses := []events.Response{}
+
+		for _, id := range []uuid.UUID{game.Player1, game.Player2} {
+			responses = append(responses, events.Response{
+				EventType: "response",
+				Data:      map[string]interface{}{"pieces": pieces},
+				UserId:    id.String(),
+			})
+		}
+
+		return responses, nil
 	}
 }

@@ -155,6 +155,7 @@ func (d *Database) LoadPieces(game string) ([]Piece, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load pieces from database: %+v", err)
 	}
+	defer rows.Close()
 
 	pieces := []Piece{}
 	for rows.Next() {
@@ -169,4 +170,65 @@ func (d *Database) LoadPieces(game string) ([]Piece, error) {
 	}
 
 	return pieces, nil
+}
+
+func (d *Database) Move(game uuid.UUID, piece uuid.UUID, x int16, y int16, king bool, toRemove []uuid.UUID) error {
+	tx, err := d.conn.Begin(context.TODO())
+	if err != nil {
+		return fmt.Errorf("failed to create context: %+v", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(context.TODO())
+		} else {
+			tx.Commit(context.TODO())
+		}
+	}()
+
+	err = movePiece(tx, game, piece, x, y, king)
+	if err != nil {
+		return err
+	}
+
+	err = removePieces(tx, game, toRemove)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func movePiece(tx pgx.Tx, game uuid.UUID, piece uuid.UUID, x int16, y int16, king bool) error {
+	kingQuery := ""
+
+	if king {
+		kingQuery = ", king = true"
+	}
+
+	_, err := tx.Exec(context.TODO(), fmt.Sprintf("UPDATE pieces SET x = $1, y = $2 %s WHERE id = $3", kingQuery), x, y, piece)
+	if err != nil {
+		return fmt.Errorf("failed to update piece: %+v", err)
+	}
+
+	return nil
+}
+
+func removePieces(tx pgx.Tx, game uuid.UUID, ids []uuid.UUID) error {
+	placeholders := make([]string, len(ids))
+	params := make([]interface{}, len(ids)+1)
+	params[0] = game
+
+	for idx, id := range ids {
+		placeholders[idx] = fmt.Sprintf("$%d", idx+2)
+		params[idx+1] = id
+	}
+
+	query := "DELETE FROM pieces WHERE game = $1 AND id IN (\"" + strings.Join(placeholders, ", ") + "\")"
+
+	_, err := tx.Exec(context.TODO(), query, params...)
+	if err != nil {
+		return fmt.Errorf("failed to delete pieces: %+v", err)
+	}
+
+	return nil
 }

@@ -72,6 +72,8 @@ func Process(moves []Move, pieces []database.Piece) (Result, error) {
 				result.King = true
 				piece.King = true
 			}
+
+			return result, nil
 		} else if isCapture(move, piece) {
 			capturing = true
 
@@ -83,9 +85,13 @@ func Process(moves []Move, pieces []database.Piece) (Result, error) {
 				return Result{}, fmt.Errorf("can't move piece, space already taken: %+v", move)
 			}
 
-			captured, found := findCaptured(move, pieces)
+			captured, found := findCaptured(move, piece, pieces)
 			if !found {
 				return Result{}, fmt.Errorf("can't capture piece, no piece to capture: %+v", move)
+			}
+
+			if captured.Player == piece.Player {
+				return Result{}, fmt.Errorf("can't capture piece, it belongs to the current player: %+v", move)
 			}
 
 			result.Piece = move.Piece
@@ -162,9 +168,18 @@ func isBlocked(move Move, pieces []database.Piece) bool {
 }
 
 func isKing(move Move, piece database.Piece) bool {
-	return false
+	return piece.Player == 0 && move.Y == 7 || piece.Player == 1 && move.Y == 0
 }
 
-func findCaptured(move Move, pieces []database.Piece) (database.Piece, bool) {
+func findCaptured(move Move, piece database.Piece, pieces []database.Piece) (database.Piece, bool) {
+	x := (move.X + piece.X) / 2
+	y := (move.Y + piece.Y) / 2
+
+	for _, p := range pieces {
+		if p.X == x && p.Y == y {
+			return p, true
+		}
+	}
+
 	return database.Piece{}, false
 }
