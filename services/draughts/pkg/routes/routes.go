@@ -109,17 +109,21 @@ func Move(db *database.Database) events.EventRoute {
 			return nil, fmt.Errorf("failed to load game: %+v", err)
 		}
 
-		pieces, err := db.LoadPieces(data.Game)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load pieces: %+v", err)
-		}
-
 		if !rules.IsYourTurn(userId, game) {
 			return []events.Response{{
 				EventType: "rejection.response",
 				Data:      map[string]interface{}{"message": "it's not your turn"},
 				UserId:    userId,
 			}}, fmt.Errorf("user %s made a move when it wasn't their turn", userId)
+		}
+
+		pieces, err := db.LoadPieces(data.Game)
+		if err != nil {
+			return []events.Response{{
+				EventType: "rejection.response",
+				Data:      map[string]interface{}{"message": "server error"},
+				UserId:    userId,
+			}}, fmt.Errorf("failed to fetch pieces before user %s move: %+v", userId, err)
 		}
 
 		result, err := rules.Process(data.Moves, pieces)
