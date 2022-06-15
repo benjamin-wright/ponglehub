@@ -1,19 +1,5 @@
-clean:
-    rm -rf ./dist
-    mkdir -p dist/compiled
-    mkdir -p dist/js
-
-build: statics web-components wasm
-
-statics:
-    cp -r ./static/ ./dist/
-
-web-components:
-    npm install
+build:
     npm run build
-
-wasm:
-    tinygo build -o dist/compiled/draughts.wasm -target wasm ./wasm/main.go
 
 image IMAGE_TAG: build
     DOCKER_BUILDKIT=1 docker build \
@@ -21,9 +7,5 @@ image IMAGE_TAG: build
         -t {{IMAGE_TAG}} \
         ./dist
 
-start IMAGE_TAG:
-    just image {{IMAGE_TAG}}
-    docker run -d --rm -p 7002:80 -v $(pwd)/dist:/usr/share/nginx/html --name draughts {{IMAGE_TAG}}
-
-stop:
-    docker stop draughts
+watch:
+    npm run watch
