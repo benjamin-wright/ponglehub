@@ -10,3 +10,26 @@
 h1 {
   text-align: center;
 }
+
+ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+ul input {
+  font-size: 4em;
+  margin: 0.25em;
+  padding: 0.1em 0.8em;
+  background: var(--default-background);
+  color: var(--default-foreground);
+  border: 2px dashed var(--default-foreground);
+  border-radius: 0.25em;
+  cursor: pointer;
+}
+
+ul input:hover {
+  background: var(--default-foreground);
+  color: var(--default-background);
+  border: 2px dashed var(--default-highlight);
+}

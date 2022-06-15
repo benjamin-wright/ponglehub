@@ -4,31 +4,103 @@ import '../css/style.css';
 
 import { PongleEvents } from '@pongle/events';
 
+function loadElement(id: string): HTMLElement {
+    const element = document.getElementById(id)
+    if (element == null) {
+        throw new Error(`Failed to find element with id: ${id}`);
+    }
+
+    return element
+}
+
+function loadTemplate(id: string): HTMLTemplateElement {
+    const element = document.getElementById(id)
+    if (element == null) {
+        throw new Error(`Failed to find element with id: ${id}`);
+    }
+
+    return element as HTMLTemplateElement;
+}
+
 class IndexPage {
-    playerName: HTMLElement | null;
-    gameSection: HTMLElement | null;
-    navBar: HTMLElement | null;
+    playerName: HTMLElement;
+    gameSection: HTMLElement;
+    navBar: HTMLElement;
+    gamesList: HTMLElement;
+    newGameSection: HTMLElement;
+    challengers: HTMLElement;
+
+    templateGame: HTMLTemplateElement;
+    templateNew: HTMLTemplateElement;
+    templateChallenger: HTMLTemplateElement;
+
+    newGameCallback: (id: string)=>void;
 
     constructor() {
-        this.playerName = document.getElementById('player-name');
-        this.gameSection = document.getElementById('game-section');
-        this.navBar = document.getElementById('nav-bar');
+        this.playerName = loadElement('player-name');
+        this.gameSection = loadElement('game-section');
+        this.navBar = loadElement('nav-bar');
+        this.gamesList = loadElement('games-list');
+        this.newGameSection = loadElement('new-game-section');
+        this.challengers = loadElement('challengers');
+
+        this.templateGame = loadTemplate('game-list-item');
+        this.templateNew = loadTemplate('new-list-item');
+        this.templateChallenger = loadTemplate('new-game-player');
+
+        this.newGameCallback = (id: string) => {};
     }
 
     setPlayerName(name: string) {
-        if (this.playerName) {
-            this.playerName.innerText = name;
+        this.playerName.innerText = name;
+        this.gameSection.hidden = false;
+    }
+
+    setGamesList(games: string[]) {
+        while (this.gamesList.firstChild) {
+            this.gamesList.removeChild(this.gamesList.firstChild);
         }
 
-        if (this.gameSection) {
-            this.gameSection.hidden = false;
+        const newGame = this.templateNew.content.cloneNode(true) as DocumentFragment;
+        const newGameButton = newGame.querySelector('input');
+        if (newGameButton == null) {
+            throw new Error('failed to find new game button in template');
         }
+
+        newGameButton.onclick = () => this.showNewGamePopup(true);
+        
+        this.gamesList.appendChild(newGame);
+    }
+
+    setChallengers(friends: {[key: string]: string}) {
+        while (this.challengers.firstChild) {
+            this.challengers.removeChild(this.challengers.firstChild);
+        }
+
+        Object.keys(friends).forEach(id => {
+            const node = this.templateChallenger.content.cloneNode(true) as DocumentFragment;
+            const button = node.querySelector('input');
+            if (button == null) {
+                throw new Error('failed to find challenger button in template');
+            }
+
+            button.value = friends[id];
+            button.onclick = () => this.newGameCallback(id);
+            
+            this.challengers.appendChild(node);
+        });
+    }
+
+    showNewGamePopup(show: boolean) {
+        this.newGameSection.hidden = !show;
     }
 
     onLogout(callback: () => void) {
-        if (this.navBar) {
-            this.navBar.addEventListener('logout-event', callback);
-        }
+        this.navBar.addEventListener('logout-event', callback);
+    }
+
+    onNewGame(callback: (id: string) => void) {
+        this.newGameCallback = callback;
     }
 }
 
@@ -47,6 +119,7 @@ class IndexEvents {
         this.events = new PongleEvents("ponglehub.co.uk");
 
         this.page.onLogout(() => this.logout());
+        this.page.onNewGame((id: string) => this.events.send("draughts.new-game", { opponent: id }));
     }
 
     async start() {
@@ -76,6 +149,8 @@ class IndexEvents {
 
     render() {
         this.page.setPlayerName(this.username);
+        this.page.setGamesList([]);
+        this.page.setChallengers(this.friends);
     }
 
     async logout() {

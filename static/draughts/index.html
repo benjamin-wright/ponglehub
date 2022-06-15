@@ -7,20 +7,33 @@
     <title>Ponglehub Games!</title>
   </head>
   <body>
-    <template id="game-list-item">
-      <li>
-        <p>vs</p>
-        <p>created</p>
-      </li>
-    </template>
     <nav-bar id="nav-bar" loading="false" authorised="true"></nav-bar>
 
     <section id="game-section" hidden>
+      <template id="new-list-item">
+        <li>
+          <input type="button" value="+"/>
+        </li>
+      </template>
+      <template id="game-list-item">
+        <li>
+          <p>vs</p>
+          <p>created</p>
+        </li>
+      </template>
       <h1>Hi <em id="player-name"></em>! Let's play Draughts!</h1>
-  
-      <ul id="games-list">
-        <li class="new-game">+</li>
-      </ul>
+      <ul id="games-list"></ul>
+    </section>
+
+    <section id="new-game-section" hidden>
+      <template id="new-game-player">
+        <li><input type="button" /></li>
+      </template>
+      <div>
+        <p>Who will you challenge?</p>
+        <ul id="challengers">
+        </ul>
+      </div>
     </section>
 
     <script type="module" src="/js/main.ts"></script>
