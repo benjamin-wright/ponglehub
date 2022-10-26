@@ -72,12 +72,12 @@
 			"name": "wasm: draughts"
 		},
 		{
-			"path": "static/naughts-and-crosses",
-			"name": "static: naughts-and-crosses"
-		},
-		{
 			"path": "services/naughts-and-crosses",
 			"name": "srv: naughts-and-crosses"
+		},
+		{
+			"path": "static/naughts-and-crosses",
+			"name": "static: naughts-and-crosses"
 		},
 		{
 			"path": "tools/ponglehub",
