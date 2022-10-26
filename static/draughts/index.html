@@ -5,24 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="play draughts with your friends" />
     <title>Ponglehub Games!</title>
+    <script type="module" src="/js/main.ts"></script>
   </head>
   <body>
     <nav-bar id="nav-bar" loading="false" authorised="true"></nav-bar>
 
     <section id="game-section" hidden>
-      <template id="new-list-item">
-        <li>
-          <input type="button" value="+"/>
-        </li>
-      </template>
-      <template id="game-list-item">
-        <li>
-          <p>vs</p>
-          <p>created</p>
-        </li>
-      </template>
       <h1>Hi <em id="player-name"></em>! Let's play Draughts!</h1>
-      <ul id="games-list"></ul>
+      <games-list></games-list>
     </section>
 
     <section id="new-game-section" hidden>
@@ -35,7 +25,5 @@
         </ul>
       </div>
     </section>
-
-    <script type="module" src="/js/main.ts"></script>
   </body>
 </html>

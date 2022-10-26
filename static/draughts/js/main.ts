@@ -1,5 +1,6 @@
 import '@pongle/styles/global.css';
 import '../components/nav-bar';
+import '../components/games-list';
 import '../css/style.css';
 
 import { PongleEvents } from '@pongle/events';
@@ -26,13 +27,8 @@ class IndexPage {
     playerName: HTMLElement;
     gameSection: HTMLElement;
     navBar: HTMLElement;
-    gamesList: HTMLElement;
     newGameSection: HTMLElement;
     challengers: HTMLElement;
-
-    templateGame: HTMLTemplateElement;
-    templateNew: HTMLTemplateElement;
-    templateChallenger: HTMLTemplateElement;
 
     newGameCallback: (id: string)=>void;
 
@@ -40,13 +36,8 @@ class IndexPage {
         this.playerName = loadElement('player-name');
         this.gameSection = loadElement('game-section');
         this.navBar = loadElement('nav-bar');
-        this.gamesList = loadElement('games-list');
         this.newGameSection = loadElement('new-game-section');
         this.challengers = loadElement('challengers');
-
-        this.templateGame = loadTemplate('game-list-item');
-        this.templateNew = loadTemplate('new-list-item');
-        this.templateChallenger = loadTemplate('new-game-player');
 
         this.newGameCallback = (id: string) => {};
     }
@@ -57,38 +48,34 @@ class IndexPage {
     }
 
     setGamesList(games: string[]) {
-        while (this.gamesList.firstChild) {
-            this.gamesList.removeChild(this.gamesList.firstChild);
-        }
+        // const newGame = this.templateNew.content.cloneNode(true) as DocumentFragment;
+        // const newGameButton = newGame.querySelector('input');
+        // if (newGameButton == null) {
+        //     throw new Error('failed to find new game button in template');
+        // }
 
-        const newGame = this.templateNew.content.cloneNode(true) as DocumentFragment;
-        const newGameButton = newGame.querySelector('input');
-        if (newGameButton == null) {
-            throw new Error('failed to find new game button in template');
-        }
-
-        newGameButton.onclick = () => this.showNewGamePopup(true);
+        // newGameButton.onclick = () => this.showNewGamePopup(true);
         
-        this.gamesList.appendChild(newGame);
+        // this.gamesList.appendChild(newGame);
     }
 
     setChallengers(friends: {[key: string]: string}) {
-        while (this.challengers.firstChild) {
-            this.challengers.removeChild(this.challengers.firstChild);
-        }
+        // while (this.challengers.firstChild) {
+        //     this.challengers.removeChild(this.challengers.firstChild);
+        // }
 
-        Object.keys(friends).forEach(id => {
-            const node = this.templateChallenger.content.cloneNode(true) as DocumentFragment;
-            const button = node.querySelector('input');
-            if (button == null) {
-                throw new Error('failed to find challenger button in template');
-            }
+        // Object.keys(friends).forEach(id => {
+        //     const node = this.templateChallenger.content.cloneNode(true) as DocumentFragment;
+        //     const button = node.querySelector('input');
+        //     if (button == null) {
+        //         throw new Error('failed to find challenger button in template');
+        //     }
 
-            button.value = friends[id];
-            button.onclick = () => this.newGameCallback(id);
+        //     button.value = friends[id];
+        //     button.onclick = () => this.newGameCallback(id);
             
-            this.challengers.appendChild(node);
-        });
+        //     this.challengers.appendChild(node);
+        // });
     }
 
     showNewGamePopup(show: boolean) {

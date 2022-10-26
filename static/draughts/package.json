@@ -15,6 +15,7 @@
   "dependencies": {
     "@pongle/components": "file:../../libraries/node/components",
     "@pongle/events": "file:../../libraries/node/events",
-    "@pongle/styles": "file:../../libraries/node/styles"
+    "@pongle/styles": "file:../../libraries/node/styles",
+    "lit": "^2.4.0"
   }
 }
